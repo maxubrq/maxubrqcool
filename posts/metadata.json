@@ -1,0 +1,56 @@
+{
+  "0001_hello-world": {
+    "title": "#1 - Hello World - Welcome to My Interactive Blog!",
+    "date": "2024-01-15",
+    "excerpt": "Welcome to my personal blog! This is my first interactive post where I share my thoughts and introduce myself with interactive components."
+  },
+  "0002_getting-started-with-nextjs": {
+    "title": "#2 - Getting Started with Next.js 14 - Interactive Guide",
+    "date": "2024-01-10",
+    "excerpt": "A comprehensive interactive guide to building modern web applications with Next.js 14, featuring hands-on examples and interactive components."
+  },
+  "0003_interactive-components-showcase": {
+    "title": "#3 - Interactive Components Showcase - The Power of MDX",
+    "date": "2024-01-20",
+    "excerpt": "Explore the full potential of interactive blog content with this showcase of all available interactive components."
+  },
+  "0004_syntax-highlighting-demo": {
+    "title": "#4 - Beautiful Code Syntax Highlighting with Shiki",
+    "date": "2024-01-25",
+    "excerpt": "Experience VS Code-quality syntax highlighting in your blog with Shiki. Learn how to display beautiful code examples across multiple programming languages."
+  },
+  "0005_typescript-series-01_introduction": {
+    "title": "#5 - TypeScript Fundamentals: Part 1 - Introduction",
+    "date": "2024-02-01",
+    "excerpt": "Begin your TypeScript journey with this comprehensive introduction. Learn about basic types, functions, interfaces, and why TypeScript is essential for modern development.",
+    "series": {
+      "name": "TypeScript Fundamentals",
+      "part": 1,
+      "totalParts": 3,
+      "slug": "typescript-series"
+    }
+  },
+  "0006_typescript-series-02_advanced-types": {
+    "title": "#6 - TypeScript Fundamentals: Part 2 - Advanced Types",
+    "date": "2024-02-05",
+    "excerpt": "Level up your TypeScript skills with generics, utility types, type guards, and advanced type manipulation. Master the features that make TypeScript powerful.",
+    "series": {
+      "name": "TypeScript Fundamentals",
+      "part": 2,
+      "totalParts": 3,
+      "slug": "typescript-series"
+    }
+  },
+  "0007_typescript-series-03_real-world-patterns": {
+    "title": "#7 - TypeScript Fundamentals: Part 3 - Real-World Patterns",
+    "date": "2024-02-10",
+    "excerpt": "Complete your TypeScript mastery with real-world patterns, React integration, testing strategies, and professional best practices.",
+    "series": {
+      "name": "TypeScript Fundamentals",
+      "part": 3,
+      "totalParts": 3,
+      "slug": "typescript-series"
+    }
+  }
+}
+

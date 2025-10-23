@@ -1,0 +1,412 @@
+Welcome back to the TypeScript Fundamentals series! In Part 1, we covered the basics. Now it's time to level up with advanced type features that make TypeScript truly powerful.
+
+## Recap from Part 1
+
+In the previous post, we covered:
+- Basic types (string, number, boolean)
+- Arrays and objects
+- Functions and interfaces
+- Type aliases and union types
+
+Now let's explore the advanced features that set TypeScript apart!
+
+## Generics
+
+Generics allow you to write flexible, reusable code:
+
+### Basic Generic Function
+
+```typescript
+// Generic function
+function identity<T>(value: T): T {
+  return value;
+}
+
+// Usage
+let num = identity<number>(42);        // Type: number
+let str = identity<string>("hello");   // Type: string
+let bool = identity(true);             // Type inferred as boolean
+```
+
+### Generic Interfaces
+
+```typescript
+interface Box<T> {
+  value: T;
+}
+
+let numberBox: Box<number> = { value: 123 };
+let stringBox: Box<string> = { value: "hello" };
+
+// Generic with multiple type parameters
+interface Pair<K, V> {
+  key: K;
+  value: V;
+}
+
+let pair: Pair<string, number> = {
+  key: "age",
+  value: 25
+};
+```
+
+### Generic Constraints
+
+```typescript
+// Constrain T to have a 'length' property
+interface HasLength {
+  length: number;
+}
+
+function logLength<T extends HasLength>(item: T): void {
+  console.log(`Length: ${item.length}`);
+}
+
+logLength("hello");      // ✅ Works (string has length)
+logLength([1, 2, 3]);    // ✅ Works (array has length)
+// logLength(123);       // ❌ Error (number doesn't have length)
+```
+
+## Utility Types
+
+TypeScript provides powerful built-in utility types:
+
+### Partial&lt;T&gt;
+
+Makes all properties optional:
+
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+}
+
+// All properties become optional
+function updateUser(user: Partial<User>): void {
+  // Update only the provided fields
+}
+
+updateUser({ name: "John" });           // ✅ Valid
+updateUser({ email: "john@test.com" }); // ✅ Valid
+```
+
+### Required&lt;T&gt;
+
+Makes all properties required:
+
+```typescript
+interface Config {
+  host?: string;
+  port?: number;
+}
+
+// All properties become required
+let prodConfig: Required<Config> = {
+  host: "localhost",  // Must provide
+  port: 3000          // Must provide
+};
+```
+
+### Readonly&lt;T&gt;
+
+Makes all properties readonly:
+
+```typescript
+interface Point {
+  x: number;
+  y: number;
+}
+
+let point: Readonly<Point> = { x: 10, y: 20 };
+// point.x = 15; // ❌ Error: Cannot assign to 'x'
+```
+
+### Pick&lt;T, K&gt;
+
+Creates a type by picking specific properties:
+
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  password: string;
+}
+
+// Pick only specific fields
+type PublicUser = Pick<User, 'id' | 'name' | 'email'>;
+
+let user: PublicUser = {
+  id: 1,
+  name: "John",
+  email: "john@example.com"
+  // No password field!
+};
+```
+
+### Omit&lt;T, K&gt;
+
+Creates a type by omitting specific properties:
+
+```typescript
+// Omit sensitive fields
+type SafeUser = Omit<User, 'password'>;
+
+let safeUser: SafeUser = {
+  id: 1,
+  name: "John",
+  email: "john@example.com"
+  // Cannot include password
+};
+```
+
+### Record&lt;K, T&gt;
+
+Creates an object type with specific keys and value types:
+
+```typescript
+type Role = 'admin' | 'user' | 'guest';
+type Permissions = Record<Role, string[]>;
+
+let permissions: Permissions = {
+  admin: ['read', 'write', 'delete'],
+  user: ['read', 'write'],
+  guest: ['read']
+};
+```
+
+## Type Guards
+
+Type guards help narrow down types:
+
+### typeof Guard
+
+```typescript
+function processValue(value: string | number): void {
+  if (typeof value === 'string') {
+    console.log(value.toUpperCase()); // TypeScript knows it's a string
+  } else {
+    console.log(value.toFixed(2));    // TypeScript knows it's a number
+  }
+}
+```
+
+### instanceof Guard
+
+```typescript
+class Dog {
+  bark() { console.log("Woof!"); }
+}
+
+class Cat {
+  meow() { console.log("Meow!"); }
+}
+
+function makeSound(animal: Dog | Cat): void {
+  if (animal instanceof Dog) {
+    animal.bark(); // TypeScript knows it's a Dog
+  } else {
+    animal.meow(); // TypeScript knows it's a Cat
+  }
+}
+```
+
+### Custom Type Guards
+
+```typescript
+interface Fish {
+  swim(): void;
+}
+
+interface Bird {
+  fly(): void;
+}
+
+// Custom type guard
+function isFish(pet: Fish | Bird): pet is Fish {
+  return (pet as Fish).swim !== undefined;
+}
+
+function moveAnimal(pet: Fish | Bird): void {
+  if (isFish(pet)) {
+    pet.swim(); // TypeScript knows it's a Fish
+  } else {
+    pet.fly();  // TypeScript knows it's a Bird
+  }
+}
+```
+
+## Conditional Types
+
+Conditional types enable type-level logic:
+
+```typescript
+// Basic conditional type
+type IsString<T> = T extends string ? true : false;
+
+type A = IsString<string>;  // true
+type B = IsString<number>;  // false
+
+// Practical example
+type NonNullable<T> = T extends null | undefined ? never : T;
+
+type MaybeString = string | null | undefined;
+type DefiniteString = NonNullable<MaybeString>; // string
+```
+
+## Mapped Types
+
+Create new types by transforming existing ones:
+
+```typescript
+// Make all properties optional
+type Optional<T> = {
+  [P in keyof T]?: T[P];
+};
+
+// Make all properties readonly
+type ReadonlyType<T> = {
+  readonly [P in keyof T]: T[P];
+};
+
+// Transform property types
+type Stringify<T> = {
+  [P in keyof T]: string;
+};
+
+interface User {
+  id: number;
+  name: string;
+  age: number;
+}
+
+type StringifiedUser = Stringify<User>;
+// Result: { id: string; name: string; age: string; }
+```
+
+## Interactive Quiz
+
+Test your understanding of advanced types:
+
+<Quiz 
+  question="What does the Partial<T> utility type do?"
+  options={[
+    "Makes all properties required",
+    "Makes all properties optional",
+    "Makes all properties readonly",
+    "Removes all properties"
+  ]}
+  correctAnswer={1}
+/>
+
+<Quiz 
+  question="Which utility type would you use to create a type with only specific properties from an interface?"
+  options={[
+    "Omit<T, K>",
+    "Pick<T, K>",
+    "Partial<T>",
+    "Required<T>"
+  ]}
+  correctAnswer={1}
+/>
+
+## Practical Example: API Response Handler
+
+Here's a real-world example combining what we've learned:
+
+```typescript
+// Base API response
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message: string;
+}
+
+// Generic fetch function with type safety
+async function fetchData<T>(url: string): Promise<ApiResponse<T>> {
+  const response = await fetch(url);
+  return response.json();
+}
+
+// User type
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+// Usage
+async function getUser(id: number): Promise<User> {
+  const response = await fetchData<User>(`/api/users/${id}`);
+  return response.data;
+}
+
+// Type-safe user updates
+type UserUpdate = Partial<Omit<User, 'id'>>;
+
+function updateUser(id: number, updates: UserUpdate): void {
+  // Can update name, email, or role, but not id
+  console.log(`Updating user ${id}`, updates);
+}
+```
+
+## Try It Yourself
+
+<CodePlayground 
+  initialCode={`// Advanced Types Playground
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  inStock: boolean;
+}
+
+// Create a type with only id and name
+type ProductSummary = Pick<Product, 'id' | 'name'>;
+
+// Create a type without inStock
+type ProductWithoutStock = Omit<Product, 'inStock'>;
+
+// Make all properties optional
+type PartialProduct = Partial<Product>;
+
+const summary: ProductSummary = {
+  id: 1,
+  name: "Laptop"
+};
+
+console.log(summary);`}
+  language="typescript"
+/>
+
+## Series Progress
+
+You're making great progress through the TypeScript series!
+
+<ProgressBar 
+  steps={[
+    'TypeScript Basics',
+    'Advanced Types',
+    'Real-world Patterns'
+  ]}
+  currentStep={1}
+/>
+
+## Coming Up in Part 3
+
+In the final part of this series, we'll explore:
+- TypeScript with React
+- Configuration best practices
+- Testing with TypeScript
+- Common patterns and anti-patterns
+- Performance considerations
+
+You're well on your way to TypeScript mastery! 🎯
+
+---
+
+*This is Part 2 of the TypeScript Fundamentals series. Practice these advanced concepts - they're the key to writing professional TypeScript code!*
+

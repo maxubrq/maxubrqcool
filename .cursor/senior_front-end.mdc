@@ -1,0 +1,344 @@
+---
+alwaysApply: true
+---
+
+{
+  "name": "Front-End Svelte • Elegant–Brutalism • No-Surprise",
+  "version": "1.0.0",
+  "audience": ["Senior Front-end SE", "Senior UX/UI"],
+  "goals": [
+    "Ship robust, elegant UIs with a Brutalist visual tone: bold hierarchy, stark contrast, grid discipline, minimal chrome.",
+    "Minimize surprises via explicit contracts, observability, and reversible changes.",
+    "Favor clarity, performance, and correctness over cleverness."
+  ],
+  "stack": {
+    "language": ["TypeScript >= 5.x"],
+    "framework": ["Svelte >= 4.x"],
+    "animation": ["AnimeJS"],
+    "graphics": ["ThreeJS (three)", "p5.js"],
+    "tooling": ["Vite", "ESLint", "Prettier", "Vitest/Playwright"]
+  },
+  "principles": {
+    "software": ["SOLID", "KISS", "YAGNI", "Design by Contract", "Idempotency at boundaries", "12-Factor for front-end"],
+    "architecture": [
+      "No-Surprise Architecture: explicit inputs/outputs, typed boundaries, predictable state, safe defaults, graceful failure.",
+      "Separation of concerns: UI (Svelte), state (stores), effects (services), I/O (gateways).",
+      "Progressive disclosure of complexity: simple path first, advanced via composition."
+    ],
+    "ux_ui": [
+      "Accessibility first (WCAG 2.2 AA).",
+      "Motion with purpose (reduce when prefers-reduced-motion).",
+      "Hierarchy via scale/space/contrast; consistent rhythm (4/8px grid)."
+    ]
+  },
+  "style_guide": {
+    "visual_tone": ["Elegant", "Brutalism"],
+    "layout": {
+      "grid": "CSS Grid/Flex with an 8px spacing scale",
+      "breakpoints": ["0-640", "641-960", "961-1280", "1281+"]
+    },
+    "typography": {
+      "rules": [
+        "One display family, one mono for code/numbers.",
+        "Tight line-height for headings, generous for body.",
+        "Use variable font weights to create hierarchy."
+      ]
+    },
+    "color": {
+      "palette": "High contrast, 1–2 accent hues max",
+      "modes": ["light", "dark"],
+      "tokens": ["--bg", "--fg", --muted, --accent, --danger, --warning, --success"]
+    },
+    "components": {
+      "principles": [
+        "Headless first; style via tokens/utilities.",
+        "State expressed via props + stores; no hidden mutation.",
+        "Slots for extensibility; ARIA where appropriate."
+      ]
+    }
+  },
+  "no_surprise_architecture": {
+    "contracts": [
+      "All public functions/components have typed inputs/outputs.",
+      "Errors are explicit (Result/Either) and surfaced to UI with user-safe messages."
+    ],
+    "state": [
+      "Single source of truth per feature store.",
+      "All cross-feature flows use events or services, not implicit coupling."
+    ],
+    "observability": [
+      "Structured logs with correlation ids.",
+      "UI health panel for env/version/feature flags.",
+      "Feature flags are default-off and documented."
+    ],
+    "safety": [
+      "Guardrails for async (timeouts, retries, cancellation).",
+      "Idempotent actions at boundaries (network, storage).",
+      "Back/forward compatible data contracts."
+    ]
+  },
+  "thinking_steps": [
+    "Clarify: Restate the task, constraints, and success criteria in 3–5 bullets.",
+    "Model: Identify data shapes, state transitions, and boundaries (UI/store/service).",
+    "Plan: Outline files/components/stores/services to modify/create.",
+    "Implement: Code smallest vertical slice with tests.",
+    "Verify: Run checks (lint/type/test/a11y/perf) and list observable metrics.",
+    "Document: Update README/ADR/changelog and usage examples."
+  ],
+  "response_format": {
+    "sections": [
+      "TaskClarification",
+      "DesignNotes",
+      "FilePlan",
+      "Code",
+      "Tests",
+      "Validation",
+      "Docs"
+    ],
+    "constraints": [
+      "Keep snippets self-contained.",
+      "Show Svelte component usage and store wiring when relevant.",
+      "Prefer TypeScript types and discriminated unions for contracts."
+    ]
+  },
+  "patterns": {
+    "svelte": [
+      "Use +page.svelte for leaf views; compose presentational components in /lib.",
+      "Encapsulate feature state in writable/derived stores under /lib/stores.",
+      "Pass effects via services modules under /lib/services (pure interfaces + adapters)."
+    ],
+    "animation": [
+      "AnimeJS for micro-interactions; durations 120–240ms, easing default 'easeInOutQuad'.",
+      "Respect prefers-reduced-motion (disable or reduce amplitude).",
+      "Use motion to reveal hierarchy, not to decorate."
+    ],
+    "threejs": [
+      "Isolate WebGL scene setup in a component; expose props for data; dispose on unmount.",
+      "Keep render loop deterministic; throttle or pause when tab hidden."
+    ],
+    "p5js": [
+      "Wrap sketches as Svelte components; parameterize via props; ensure cleanup on destroy."
+    ]
+  },
+  "checklists": {
+    "pre_design": [
+      "Define inputs/outputs, edge cases, and error modes.",
+      "Choose data contracts (DTOs) and version them if external."
+    ],
+    "impl_done": [
+      "Type-check passes (no any).",
+      "Lighthouse perf >= 90 (target route).",
+      "A11y: labels, roles, focus order, color contrast.",
+      "Tests: unit (stores/services) + smoke (Playwright).",
+      "Logs and feature flags wired; graceful fallback paths proven."
+    ]
+  },
+  "rules_for_ai": {
+    "do": [
+      "Explain assumptions briefly before coding.",
+      "Propose an ADR summary when architectural decisions change.",
+      "Generate small, composable components with explicit props and events.",
+      "Provide minimal working examples for ThreeJS/p5/AnimeJS usage."
+    ],
+    "dont": [
+      "Introduce global mutable state.",
+      "Use magic numbers; emit tokens or constants instead.",
+      "Add heavy dependencies without rationale.",
+      "Ship animations that block interaction or violate reduced-motion."
+    ]
+  },
+  "security_privacy": {
+    "front_end": [
+      "Never trust client inputs; validate at boundary services.",
+      "Escape/encode untrusted content; Content-Security-Policy documented.",
+      "Redact PII in logs; guard feature flags behind env."
+    ]
+  },
+  "testing": {
+    "unit": ["Vitest for stores/services", "Mock fetch/adapters at boundaries"],
+    "e2e": ["Playwright critical flows"],
+    "accessibility": ["axe-core checks in CI"],
+    "performance": ["Lighthouse CI budget: TTI < 2.5s on mid device, CLS < 0.1"]
+  },
+  "templates": {
+    "adr": "ADR: <decision> — Context, Options, Decision, Consequences.",
+    "commit": "feat(scope): short description\n\nWhy:\nWhat:\nHow (risks/flags/contracts):\nTests:\n"
+  },
+  "prompts": {
+    "task_clarify": "Summarize the task, constraints, user impact, and exit criteria in ≤5 bullets.",
+    "design_prompt": "Sketch data flow (UI → store → service → gateway). List contracts and error cases.",
+    "impl_prompt": "Create files with minimal vertical slice. Provide Svelte usage example.",
+    "verify_prompt": "Show lint/type/test output summary and a11y/perf checklist.",
+    "docs_prompt": "Add README snippet showing API/props and a short ADR if architecture changed."
+  }
+}
+{
+  "name": "Front-End Svelte • Elegant–Brutalism • No-Surprise",
+  "version": "1.0.0",
+  "audience": ["Senior Front-end SE", "Senior UX/UI"],
+  "goals": [
+    "Ship robust, elegant UIs with a Brutalist visual tone: bold hierarchy, stark contrast, grid discipline, minimal chrome.",
+    "Minimize surprises via explicit contracts, observability, and reversible changes.",
+    "Favor clarity, performance, and correctness over cleverness."
+  ],
+  "stack": {
+    "language": ["TypeScript >= 5.x"],
+    "framework": ["Svelte >= 4.x"],
+    "animation": ["AnimeJS"],
+    "graphics": ["ThreeJS (three)", "p5.js"],
+    "tooling": ["Vite", "ESLint", "Prettier", "Vitest/Playwright"]
+  },
+  "principles": {
+    "software": ["SOLID", "KISS", "YAGNI", "Design by Contract", "Idempotency at boundaries", "12-Factor for front-end"],
+    "architecture": [
+      "No-Surprise Architecture: explicit inputs/outputs, typed boundaries, predictable state, safe defaults, graceful failure.",
+      "Separation of concerns: UI (Svelte), state (stores), effects (services), I/O (gateways).",
+      "Progressive disclosure of complexity: simple path first, advanced via composition."
+    ],
+    "ux_ui": [
+      "Accessibility first (WCAG 2.2 AA).",
+      "Motion with purpose (reduce when prefers-reduced-motion).",
+      "Hierarchy via scale/space/contrast; consistent rhythm (4/8px grid)."
+    ]
+  },
+  "style_guide": {
+    "visual_tone": ["Elegant", "Brutalism"],
+    "layout": {
+      "grid": "CSS Grid/Flex with an 8px spacing scale",
+      "breakpoints": ["0-640", "641-960", "961-1280", "1281+"]
+    },
+    "typography": {
+      "rules": [
+        "One display family, one mono for code/numbers.",
+        "Tight line-height for headings, generous for body.",
+        "Use variable font weights to create hierarchy."
+      ]
+    },
+    "color": {
+      "palette": "High contrast, 1–2 accent hues max",
+      "modes": ["light", "dark"],
+      "tokens": ["--bg", "--fg", --muted, --accent, --danger, --warning, --success"]
+    },
+    "components": {
+      "principles": [
+        "Headless first; style via tokens/utilities.",
+        "State expressed via props + stores; no hidden mutation.",
+        "Slots for extensibility; ARIA where appropriate."
+      ]
+    }
+  },
+  "no_surprise_architecture": {
+    "contracts": [
+      "All public functions/components have typed inputs/outputs.",
+      "Errors are explicit (Result/Either) and surfaced to UI with user-safe messages."
+    ],
+    "state": [
+      "Single source of truth per feature store.",
+      "All cross-feature flows use events or services, not implicit coupling."
+    ],
+    "observability": [
+      "Structured logs with correlation ids.",
+      "UI health panel for env/version/feature flags.",
+      "Feature flags are default-off and documented."
+    ],
+    "safety": [
+      "Guardrails for async (timeouts, retries, cancellation).",
+      "Idempotent actions at boundaries (network, storage).",
+      "Back/forward compatible data contracts."
+    ]
+  },
+  "thinking_steps": [
+    "Clarify: Restate the task, constraints, and success criteria in 3–5 bullets.",
+    "Model: Identify data shapes, state transitions, and boundaries (UI/store/service).",
+    "Plan: Outline files/components/stores/services to modify/create.",
+    "Implement: Code smallest vertical slice with tests.",
+    "Verify: Run checks (lint/type/test/a11y/perf) and list observable metrics.",
+    "Document: Update README/ADR/changelog and usage examples."
+  ],
+  "response_format": {
+    "sections": [
+      "TaskClarification",
+      "DesignNotes",
+      "FilePlan",
+      "Code",
+      "Tests",
+      "Validation",
+      "Docs"
+    ],
+    "constraints": [
+      "Keep snippets self-contained.",
+      "Show Svelte component usage and store wiring when relevant.",
+      "Prefer TypeScript types and discriminated unions for contracts."
+    ]
+  },
+  "patterns": {
+    "svelte": [
+      "Use +page.svelte for leaf views; compose presentational components in /lib.",
+      "Encapsulate feature state in writable/derived stores under /lib/stores.",
+      "Pass effects via services modules under /lib/services (pure interfaces + adapters)."
+    ],
+    "animation": [
+      "AnimeJS for micro-interactions; durations 120–240ms, easing default 'easeInOutQuad'.",
+      "Respect prefers-reduced-motion (disable or reduce amplitude).",
+      "Use motion to reveal hierarchy, not to decorate."
+    ],
+    "threejs": [
+      "Isolate WebGL scene setup in a component; expose props for data; dispose on unmount.",
+      "Keep render loop deterministic; throttle or pause when tab hidden."
+    ],
+    "p5js": [
+      "Wrap sketches as Svelte components; parameterize via props; ensure cleanup on destroy."
+    ]
+  },
+  "checklists": {
+    "pre_design": [
+      "Define inputs/outputs, edge cases, and error modes.",
+      "Choose data contracts (DTOs) and version them if external."
+    ],
+    "impl_done": [
+      "Type-check passes (no any).",
+      "Lighthouse perf >= 90 (target route).",
+      "A11y: labels, roles, focus order, color contrast.",
+      "Tests: unit (stores/services) + smoke (Playwright).",
+      "Logs and feature flags wired; graceful fallback paths proven."
+    ]
+  },
+  "rules_for_ai": {
+    "do": [
+      "Explain assumptions briefly before coding.",
+      "Propose an ADR summary when architectural decisions change.",
+      "Generate small, composable components with explicit props and events.",
+      "Provide minimal working examples for ThreeJS/p5/AnimeJS usage."
+    ],
+    "dont": [
+      "Introduce global mutable state.",
+      "Use magic numbers; emit tokens or constants instead.",
+      "Add heavy dependencies without rationale.",
+      "Ship animations that block interaction or violate reduced-motion."
+    ]
+  },
+  "security_privacy": {
+    "front_end": [
+      "Never trust client inputs; validate at boundary services.",
+      "Escape/encode untrusted content; Content-Security-Policy documented.",
+      "Redact PII in logs; guard feature flags behind env."
+    ]
+  },
+  "testing": {
+    "unit": ["Vitest for stores/services", "Mock fetch/adapters at boundaries"],
+    "e2e": ["Playwright critical flows"],
+    "accessibility": ["axe-core checks in CI"],
+    "performance": ["Lighthouse CI budget: TTI < 2.5s on mid device, CLS < 0.1"]
+  },
+  "templates": {
+    "adr": "ADR: <decision> — Context, Options, Decision, Consequences.",
+    "commit": "feat(scope): short description\n\nWhy:\nWhat:\nHow (risks/flags/contracts):\nTests:\n"
+  },
+  "prompts": {
+    "task_clarify": "Summarize the task, constraints, user impact, and exit criteria in ≤5 bullets.",
+    "design_prompt": "Sketch data flow (UI → store → service → gateway). List contracts and error cases.",
+    "impl_prompt": "Create files with minimal vertical slice. Provide Svelte usage example.",
+    "verify_prompt": "Show lint/type/test output summary and a11y/perf checklist.",
+    "docs_prompt": "Add README snippet showing API/props and a short ADR if architecture changed."
+  }
+}

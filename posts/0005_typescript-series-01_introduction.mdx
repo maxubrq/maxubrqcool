@@ -1,0 +1,304 @@
+TypeScript is a powerful superset of JavaScript that adds static typing to the language. In this series, we'll explore TypeScript from the ground up and learn how to build robust, type-safe applications.
+
+## Why TypeScript?
+
+TypeScript has become the de facto standard for large-scale JavaScript applications. Here's why:
+
+- **Type Safety** - Catch errors at compile time, not runtime
+- **Better IDE Support** - IntelliSense, autocomplete, and refactoring tools
+- **Enhanced Documentation** - Types serve as inline documentation
+- **Improved Maintainability** - Easier to understand and modify code
+- **Modern JavaScript Features** - Use the latest JS features with confidence
+
+## What You'll Learn in This Series
+
+Throughout this 3-part series, you'll master:
+
+1. **Part 1 (This Post)** - TypeScript basics, setup, and fundamental types
+2. **Part 2** - Advanced types, generics, and type manipulation
+3. **Part 3** - Real-world patterns and best practices
+
+## Setting Up TypeScript
+
+Let's start by setting up a TypeScript project:
+
+```bash
+# Create a new project directory
+mkdir typescript-fundamentals
+cd typescript-fundamentals
+
+# Initialize npm
+npm init -y
+
+# Install TypeScript
+npm install --save-dev typescript
+
+# Create tsconfig.json
+npx tsc --init
+```
+
+## Basic Types
+
+TypeScript provides several basic types to work with:
+
+### Primitives
+
+```typescript
+// String
+let username: string = "John Doe";
+
+// Number
+let age: number = 25;
+let price: number = 19.99;
+
+// Boolean
+let isActive: boolean = true;
+
+// Undefined and Null
+let notDefined: undefined = undefined;
+let empty: null = null;
+```
+
+### Arrays
+
+```typescript
+// Array of numbers
+let scores: number[] = [95, 87, 92, 88];
+
+// Alternative syntax
+let names: Array<string> = ["Alice", "Bob", "Charlie"];
+
+// Mixed types (avoid if possible)
+let mixed: any[] = [1, "two", true];
+```
+
+### Objects
+
+```typescript
+// Object type
+let user: {
+  name: string;
+  age: number;
+  email: string;
+} = {
+  name: "John Doe",
+  age: 30,
+  email: "john@example.com"
+};
+
+// Optional properties
+let config: {
+  port: number;
+  host?: string; // Optional
+} = {
+  port: 3000
+};
+```
+
+## Type Inference
+
+TypeScript can infer types automatically:
+
+```typescript
+// TypeScript infers this is a number
+let count = 42;
+
+// TypeScript infers this is a string
+let message = "Hello, TypeScript!";
+
+// TypeScript infers the return type
+function add(a: number, b: number) {
+  return a + b; // Inferred as number
+}
+```
+
+## Functions
+
+Typing functions properly is crucial:
+
+```typescript
+// Function with typed parameters and return type
+function greet(name: string): string {
+  return `Hello, ${name}!`;
+}
+
+// Function with optional parameters
+function createUser(name: string, age?: number): void {
+  console.log(`User: ${name}, Age: ${age || 'N/A'}`);
+}
+
+// Function with default parameters
+function calculateTotal(price: number, tax: number = 0.1): number {
+  return price * (1 + tax);
+}
+
+// Arrow functions
+const multiply = (a: number, b: number): number => a * b;
+```
+
+## Interfaces
+
+Interfaces define the shape of objects:
+
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  isActive: boolean;
+}
+
+function createUser(user: User): void {
+  console.log(`Creating user: ${user.name}`);
+}
+
+// Using the interface
+const newUser: User = {
+  id: 1,
+  name: "Jane Doe",
+  email: "jane@example.com",
+  isActive: true
+};
+
+createUser(newUser);
+```
+
+## Type Aliases
+
+Type aliases create reusable type definitions:
+
+```typescript
+// Simple type alias
+type ID = string | number;
+
+// Complex type alias
+type Product = {
+  id: ID;
+  name: string;
+  price: number;
+  inStock: boolean;
+};
+
+// Using type alias
+let product: Product = {
+  id: "prod-123",
+  name: "Laptop",
+  price: 999.99,
+  inStock: true
+};
+```
+
+## Union Types
+
+Union types allow a value to be one of several types:
+
+```typescript
+// Union type
+type Status = "pending" | "approved" | "rejected";
+
+function updateStatus(status: Status): void {
+  console.log(`Status updated to: ${status}`);
+}
+
+updateStatus("approved"); // ✅ Valid
+// updateStatus("invalid"); // ❌ Error
+
+// Union with different types
+type StringOrNumber = string | number;
+
+function printId(id: StringOrNumber): void {
+  console.log(`ID: ${id}`);
+}
+
+printId(101);        // ✅ Valid
+printId("ABC-123");  // ✅ Valid
+```
+
+## Interactive Exercise: Type Checking
+
+Try this exercise to practice what you've learned:
+
+<Quiz 
+  question="What is the correct way to define an array of numbers in TypeScript?"
+  options={[
+    "let numbers: number = [1, 2, 3]",
+    "let numbers: number[] = [1, 2, 3]",
+    "let numbers: [number] = [1, 2, 3]",
+    "let numbers: Array = [1, 2, 3]"
+  ]}
+  correctAnswer={1}
+/>
+
+## Common Mistakes to Avoid
+
+Here are some pitfalls to watch out for:
+
+```typescript
+// ❌ Don't use 'any' unnecessarily
+let data: any = fetchData(); // Defeats the purpose of TypeScript
+
+// ✅ Use proper types
+let data: UserData = fetchData();
+
+// ❌ Don't ignore type errors
+// @ts-ignore
+const result = someFunction();
+
+// ✅ Fix the underlying issue
+const result: ExpectedType = someFunction();
+```
+
+## Try It Yourself
+
+Here's a code playground to experiment with TypeScript:
+
+<CodePlayground 
+  initialCode={`// TypeScript Playground
+interface Person {
+  name: string;
+  age: number;
+  city: string;
+}
+
+function introducePerson(person: Person): string {
+  return \`Hi, I'm \${person.name}, \${person.age} years old, from \${person.city}\`;
+}
+
+const person: Person = {
+  name: "Alice",
+  age: 28,
+  city: "New York"
+};
+
+console.log(introducePerson(person));`}
+  language="typescript"
+/>
+
+## Your Progress
+
+You've completed the first part of our TypeScript series!
+
+<ProgressBar 
+  steps={[
+    'TypeScript Basics',
+    'Advanced Types',
+    'Real-world Patterns'
+  ]}
+  currentStep={0}
+/>
+
+## What's Next?
+
+In **Part 2**, we'll dive into:
+- Advanced type features (Generics, Utility Types)
+- Type Guards and Narrowing
+- Conditional Types
+- Mapped Types
+- And much more!
+
+Stay tuned for the next installment where we'll take your TypeScript skills to the next level! 🚀
+
+---
+
+*This is Part 1 of the TypeScript Fundamentals series. Make sure to follow along with the code examples and experiment with the concepts!*
+

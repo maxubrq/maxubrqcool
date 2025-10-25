@@ -54,6 +54,9 @@ export default function RootLayout({
                     <a href="/series">Series</a>
                   </Button>
                   <Button variant="ghost" asChild>
+                    <a href="/tags">Tags</a>
+                  </Button>
+                  <Button variant="ghost" asChild>
                     <a href="/about">About</a>
                   </Button>
                   <SearchButton />

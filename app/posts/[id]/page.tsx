@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { TagList } from '@/components/TagList'
 import Link from 'next/link'
 
 export async function generateStaticParams() {
@@ -68,6 +69,16 @@ export default function Post({ params: { id } }: { params: { id: string } }) {
           <CardTitle className="text-3xl font-bold tracking-tight">
             {post.title}
           </CardTitle>
+          {post.tags && post.tags.length > 0 && (
+            <div className="mt-4">
+              <TagList 
+                tags={post.tags} 
+                variant="secondary" 
+                clickable={true}
+                basePath="/tags"
+              />
+            </div>
+          )}
         </CardHeader>
             <CardContent>
               {post.isMDX && MDXContent ? (

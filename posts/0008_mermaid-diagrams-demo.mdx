@@ -1,0 +1,163 @@
+# Mermaid Diagrams Demo
+
+This post demonstrates the integration of Mermaid diagrams in your blog. Mermaid is a powerful tool for creating diagrams and flowcharts using simple text syntax.
+
+## Flowchart Example
+
+Here's a simple flowchart showing a decision process:
+
+<Mermaid title="Decision Flow">
+{`graph TD
+    A[Start] --> B{Is it raining?}
+    B -->|Yes| C[Take umbrella]
+    B -->|No| D[Check weather app]
+    C --> E[Go outside]
+    D --> F{Will it rain?}
+    F -->|Yes| C
+    F -->|No| G[Enjoy the day]
+    E --> H[End]
+    G --> H`}
+</Mermaid>
+
+## Sequence Diagram
+
+Here's a sequence diagram showing a typical user authentication flow:
+
+<Mermaid title="User Authentication Flow">
+{`sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as Backend
+    participant D as Database
+
+    U->>F: Enter credentials
+    F->>B: POST /login
+    B->>D: Validate credentials
+    D-->>B: User data
+    B-->>F: JWT token
+    F-->>U: Redirect to dashboard`}
+</Mermaid>
+
+## Gantt Chart
+
+Here's a project timeline using a Gantt chart:
+
+<Mermaid title="Project Timeline">
+{`gantt
+    title Project Development Timeline
+    dateFormat  YYYY-MM-DD
+    section Planning
+    Requirements gathering    :done,    req, 2024-01-01, 2024-01-15
+    Design phase             :active,  design, 2024-01-16, 2024-02-01
+    section Development
+    Backend development      :         backend, 2024-02-01, 2024-03-15
+    Frontend development     :         frontend, 2024-02-15, 2024-03-30
+    section Testing
+    Unit testing            :         testing, 2024-03-01, 2024-03-31
+    Integration testing     :         integration, 2024-04-01, 2024-04-15`}
+</Mermaid>
+
+## Class Diagram
+
+Here's a class diagram showing a simple blog system:
+
+<Mermaid title="Blog System Architecture">
+{`classDiagram
+    class User {
+        +String id
+        +String email
+        +String name
+        +login()
+        +logout()
+    }
+    
+    class Post {
+        +String id
+        +String title
+        +String content
+        +Date createdAt
+        +publish()
+        +update()
+    }
+    
+    class Comment {
+        +String id
+        +String content
+        +Date createdAt
+        +addComment()
+    }
+`}
+</Mermaid>
+
+## State Diagram
+
+Here's a state diagram showing the lifecycle of a blog post:
+
+<Mermaid title="Post Lifecycle">
+{`stateDiagram-v2
+    [*] --> Draft
+    Draft --> Review : Submit for review
+    Review --> Draft : Request changes
+    Review --> Published : Approve
+    Published --> Archived : Archive
+    Archived --> Published : Restore
+    Published --> [*] : Delete`}
+</Mermaid>
+
+## Pie Chart
+
+Here's a pie chart showing the distribution of content types:
+
+<Mermaid title="Content Distribution">
+{`pie title Content Types
+    "Tutorials" : 40
+    "News" : 25
+    "Reviews" : 20
+    "Opinions" : 15`}
+</Mermaid>
+
+## Git Graph
+
+Here's a Git graph showing a typical development workflow:
+
+<Mermaid title="Git Workflow">
+{`gitGraph
+  commit id: "Initial commit"
+  branch develop
+  checkout develop
+  commit id: "Add feature A"
+  commit id: "Add feature B"
+  checkout main
+  merge develop
+  commit id: "Release v1.0"
+  branch hotfix
+  checkout hotfix
+  commit id: "Fix critical bug"
+  checkout main
+  merge hotfix
+  commit id: "Release v1.1"`}
+</Mermaid>
+
+## Features
+
+The Mermaid component includes several useful features:
+
+- **Theme Integration**: Diagrams automatically adapt to your light/dark theme
+- **Copy Code**: Copy the diagram source code to clipboard
+- **Download SVG**: Download diagrams as SVG files
+- **Refresh**: Re-render diagrams if needed
+- **Error Handling**: Clear error messages for invalid syntax
+- **Responsive**: Diagrams scale properly on all screen sizes
+
+## Usage
+
+To use Mermaid diagrams in your MDX files, simply wrap your diagram code in the `<Mermaid>` component:
+
+```jsx
+<Mermaid title="Your Diagram Title">
+{`graph TD
+    A[Start] --> B[End]`}
+</Mermaid>
+```
+
+The component supports all Mermaid diagram types including flowcharts, sequence diagrams, Gantt charts, class diagrams, state diagrams, pie charts, and Git graphs.

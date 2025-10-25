@@ -5,6 +5,7 @@
 
 import type { MDXComponents } from 'mdx/types'
 import { Counter, Quiz, CodePlayground, InteractiveTabs, ProgressBar } from './components/InteractiveComponents'
+import { Mermaid } from './components/Mermaid'
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -14,6 +15,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     CodePlayground,
     Tabs: InteractiveTabs,
     ProgressBar,
+    Mermaid,
     
     // Enhanced HTML elements with better styling
     h1: ({ children, ...props }) => (

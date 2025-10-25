@@ -136,29 +136,33 @@
     @apply max-w-none;
   }
   
-  /* Enhanced typography for dark theme */
+  /* Base prose styles - works for both themes */
+  .prose {
+    @apply text-foreground;
+  }
+  
   .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
-    @apply text-foreground font-bold tracking-tight;
+    @apply font-bold tracking-tight;
   }
   
   .prose h1 {
-    @apply text-4xl mb-6 text-white;
+    @apply text-4xl mb-6;
   }
   
   .prose h2 {
-    @apply text-3xl mb-4 text-white;
+    @apply text-3xl mb-4;
   }
   
   .prose h3 {
-    @apply text-2xl mb-3 text-white;
+    @apply text-2xl mb-3;
   }
   
   .prose p {
-    @apply text-foreground/90 leading-relaxed mb-4;
+    @apply leading-relaxed mb-4;
   }
   
   .prose strong {
-    @apply text-foreground font-semibold;
+    @apply font-semibold;
   }
   
   .prose a {
@@ -170,18 +174,48 @@
   }
   
   .prose ul, .prose ol {
-    @apply text-foreground/90;
+    @apply text-foreground;
   }
   
   .prose li {
     @apply mb-2;
   }
   
-  /* Enhanced card styling for dark theme */
-  .dark .prose {
+  /* Light theme specific prose styles */
+  .prose h1, 
+  .prose h2, 
+  .prose h3, 
+  .prose h4, 
+  .prose h5, 
+  .prose h6 {
     @apply text-foreground;
   }
   
+  .prose p {
+    @apply text-foreground/90;
+  }
+  
+  .prose strong {
+    @apply text-foreground;
+  }
+  
+  .prose ul, .prose ol {
+    @apply text-foreground/90;
+  }
+  
+  .prose li {
+    @apply text-foreground/90;
+  }
+  
+  .prose blockquote {
+    @apply text-foreground/80 border-l-primary/50 bg-muted/30;
+  }
+  
+  .prose code:not(pre code) {
+    @apply bg-muted text-foreground px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+  
+  /* Dark theme specific prose styles */
   .dark .prose h1, 
   .dark .prose h2, 
   .dark .prose h3, 
@@ -198,6 +232,22 @@
   .dark .prose strong {
     @apply text-white;
   }
+  
+  .dark .prose ul, .dark .prose ol {
+    @apply text-gray-200;
+  }
+  
+  .dark .prose li {
+    @apply text-gray-200;
+  }
+  
+  .dark .prose blockquote {
+    @apply text-gray-300 border-l-primary/50 bg-muted/30;
+  }
+  
+  .dark .prose code:not(pre code) {
+    @apply bg-muted text-white px-1.5 py-0.5 rounded text-sm font-mono;
+  }
 }
 
 /* Shiki Syntax Highlighting Styles */
@@ -206,7 +256,6 @@ pre {
   border-radius: 0.125rem;
   padding: 1rem;
   margin: 1.5rem 0;
-  background: oklch(0.1000 0 0) !important;
   border: 1px solid oklch(0.2000 0 0);
 }
 
@@ -223,12 +272,10 @@ pre code .line {
 }
 
 pre code .line--highlighted {
-  background-color: rgba(255, 255, 255, 0.1);
   border-left-color: oklch(0.7000 0.1500 250);
 }
 
 .word--highlighted {
-  background-color: rgba(200, 200, 255, 0.2);
   border-radius: 0.25rem;
   padding: 0.125rem 0.25rem;
 }
@@ -245,6 +292,25 @@ code > .line::before {
   margin-right: 1.5rem;
   text-align: right;
   color: oklch(0.5000 0 0);
+}
+
+/* Light theme code block styling */
+pre {
+  background: oklch(0.9800 0 0) !important;
+  border-color: oklch(0.8000 0 0);
+}
+
+pre code {
+  color: oklch(0.2000 0 0);
+}
+
+pre code .line--highlighted {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-left-color: oklch(0.7000 0.1500 250);
+}
+
+.word--highlighted {
+  background-color: rgba(0, 0, 255, 0.1);
 }
 
 /* Dark theme specific code block styling */
@@ -264,6 +330,425 @@ code > .line::before {
 
 .dark .word--highlighted {
   background-color: rgba(200, 200, 255, 0.2);
+}
+
+/* Mermaid Diagram Styling */
+.mermaid-container {
+  @apply w-full overflow-x-auto;
+}
+
+.mermaid-container svg {
+  @apply max-w-full h-auto;
+}
+
+/* Light theme Mermaid styling - override Mermaid's default colors */
+.mermaid-container svg {
+  filter: none;
+}
+
+/* Node styling */
+.mermaid-container .node rect,
+.mermaid-container .node circle,
+.mermaid-container .node ellipse,
+.mermaid-container .node polygon {
+  fill: #ffffff !important;
+  stroke: #d1d5db !important;
+  stroke-width: 2px;
+}
+
+.mermaid-container .node .label {
+  color: #1f2937 !important;
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+/* Edge styling */
+.mermaid-container .edgePath .path {
+  stroke: #374151 !important;
+  stroke-width: 2px;
+}
+
+.mermaid-container .edgeLabel {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mermaid-container .edgeLabel text {
+  fill: #374151 !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+}
+
+/* Cluster styling */
+.mermaid-container .cluster rect {
+  fill: #f9fafb !important;
+  stroke: #d1d5db !important;
+  stroke-width: 2px;
+  stroke-dasharray: 5,5;
+}
+
+.mermaid-container .cluster .label {
+  color: #1f2937 !important;
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+/* Decision node styling */
+.mermaid-container .node .decision {
+  fill: #f3f4f6 !important;
+  stroke: #6b7280 !important;
+}
+
+/* Process node styling */
+.mermaid-container .node .process {
+  fill: #ffffff !important;
+  stroke: #3b82f6 !important;
+}
+
+/* Dark theme Mermaid styling */
+.dark .mermaid-container svg {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark .mermaid-container .node rect,
+.dark .mermaid-container .node circle,
+.dark .mermaid-container .node ellipse,
+.dark .mermaid-container .node polygon {
+  fill: #1f2937 !important;
+  stroke: #4b5563 !important;
+}
+
+.dark .mermaid-container .node .label {
+  color: #f9fafb !important;
+  font-weight: 500;
+}
+
+.dark .mermaid-container .edgePath .path {
+  stroke: #d1d5db !important;
+}
+
+.dark .mermaid-container .edgeLabel {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border: 1px solid #4b5563 !important;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dark .mermaid-container .edgeLabel text {
+  fill: #f9fafb !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+}
+
+.dark .mermaid-container .cluster rect {
+  fill: #111827 !important;
+  stroke: #4b5563 !important;
+  stroke-dasharray: 5,5;
+}
+
+.dark .mermaid-container .cluster .label {
+  color: #f9fafb !important;
+  font-weight: 600;
+}
+
+.dark .mermaid-container .node .decision {
+  fill: #374151 !important;
+  stroke: #9ca3af !important;
+}
+
+.dark .mermaid-container .node .process {
+  fill: #1f2937 !important;
+  stroke: #3b82f6 !important;
+}
+
+/* Additional Mermaid element overrides for better coverage */
+.mermaid-container .actor {
+  fill: #ffffff !important;
+  stroke: #d1d5db !important;
+}
+
+.mermaid-container .actor .label {
+  color: #1f2937 !important;
+  font-weight: 500;
+}
+
+.mermaid-container .messageLine0 {
+  stroke: #374151 !important;
+  stroke-width: 2px;
+}
+
+.mermaid-container .messageLine1 {
+  stroke: #374151 !important;
+  stroke-width: 2px;
+}
+
+.mermaid-container .messageText {
+  fill: #374151 !important;
+  font-weight: 500;
+}
+
+.mermaid-container .labelText {
+  fill: #1f2937 !important;
+  font-weight: 500;
+}
+
+.mermaid-container .loopText {
+  fill: #1f2937 !important;
+  font-weight: 500;
+}
+
+.mermaid-container .loopLine {
+  stroke: #374151 !important;
+  stroke-width: 2px;
+}
+
+.mermaid-container .note {
+  fill: #f9fafb !important;
+  stroke: #d1d5db !important;
+}
+
+.mermaid-container .noteText {
+  fill: #1f2937 !important;
+  font-weight: 500;
+}
+
+.mermaid-container .section {
+  fill: #f3f4f6 !important;
+  stroke: #d1d5db !important;
+}
+
+.mermaid-container .sectionTitle {
+  fill: #1f2937 !important;
+  font-weight: 600;
+}
+
+/* Dark theme additional overrides */
+.dark .mermaid-container .actor {
+  fill: #1f2937 !important;
+  stroke: #4b5563 !important;
+}
+
+.dark .mermaid-container .actor .label {
+  color: #f9fafb !important;
+}
+
+.dark .mermaid-container .messageLine0,
+.dark .mermaid-container .messageLine1 {
+  stroke: #d1d5db !important;
+}
+
+.dark .mermaid-container .messageText {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .labelText {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .loopText {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .loopLine {
+  stroke: #d1d5db !important;
+}
+
+.dark .mermaid-container .note {
+  fill: #111827 !important;
+  stroke: #4b5563 !important;
+}
+
+.dark .mermaid-container .noteText {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .section {
+  fill: #374151 !important;
+  stroke: #4b5563 !important;
+}
+
+.dark .mermaid-container .sectionTitle {
+  fill: #f9fafb !important;
+}
+
+/* Additional comprehensive Mermaid overrides */
+.mermaid-container text {
+  fill: #1f2937 !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+}
+
+.mermaid-container .titleText {
+  fill: #1f2937 !important;
+  font-weight: 600 !important;
+}
+
+.mermaid-container .task {
+  fill: #ffffff !important;
+  stroke: #d1d5db !important;
+}
+
+.mermaid-container .taskText {
+  fill: #1f2937 !important;
+  font-weight: 500 !important;
+}
+
+.mermaid-container .taskTextOutside {
+  fill: #1f2937 !important;
+  font-weight: 500 !important;
+}
+
+.mermaid-container .taskTextOutsideRight {
+  fill: #1f2937 !important;
+  font-weight: 500 !important;
+}
+
+.mermaid-container .taskTextOutsideLeft {
+  fill: #1f2937 !important;
+  font-weight: 500 !important;
+}
+
+.mermaid-container .active {
+  fill: #3b82f6 !important;
+  stroke: #1d4ed8 !important;
+}
+
+.mermaid-container .active0 {
+  fill: #3b82f6 !important;
+  stroke: #1d4ed8 !important;
+}
+
+.mermaid-container .done0 {
+  fill: #10b981 !important;
+  stroke: #059669 !important;
+}
+
+.mermaid-container .done1 {
+  fill: #10b981 !important;
+  stroke: #059669 !important;
+}
+
+.mermaid-container .crit {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+}
+
+.mermaid-container .crit0 {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+}
+
+.mermaid-container .crit1 {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+}
+
+/* Dark theme comprehensive overrides */
+.dark .mermaid-container text {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .titleText {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .task {
+  fill: #1f2937 !important;
+  stroke: #4b5563 !important;
+}
+
+.dark .mermaid-container .taskText {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .taskTextOutside {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .taskTextOutsideRight {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .taskTextOutsideLeft {
+  fill: #f9fafb !important;
+}
+
+.dark .mermaid-container .active {
+  fill: #3b82f6 !important;
+  stroke: #1d4ed8 !important;
+}
+
+.dark .mermaid-container .active0 {
+  fill: #3b82f6 !important;
+  stroke: #1d4ed8 !important;
+}
+
+.dark .mermaid-container .done0 {
+  fill: #10b981 !important;
+  stroke: #059669 !important;
+}
+
+.dark .mermaid-container .done1 {
+  fill: #10b981 !important;
+  stroke: #059669 !important;
+}
+
+.dark .mermaid-container .crit {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+}
+
+.dark .mermaid-container .crit0 {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+}
+
+.dark .mermaid-container .crit1 {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+}
+
+/* Additional edge label positioning and visibility fixes */
+.mermaid-container .edgeLabel rect {
+  fill: #ffffff !important;
+  stroke: #e5e7eb !important;
+  stroke-width: 1px !important;
+}
+
+.dark .mermaid-container .edgeLabel rect {
+  fill: #1f2937 !important;
+  stroke: #4b5563 !important;
+  stroke-width: 1px !important;
+}
+
+/* Ensure edge labels are visible and properly positioned */
+.mermaid-container .edgeLabel {
+  pointer-events: none;
+  user-select: none;
+}
+
+.mermaid-container .edgeLabel foreignObject {
+  overflow: visible;
+}
+
+.mermaid-container .edgeLabel foreignObject div {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 @layer base {
@@ -293,9 +778,14 @@ code > .line::before {
   --accent: oklch(0.3000 0.1200 280);
 }
 
-/* Beautiful gradient backgrounds for cards */
+/* Beautiful gradient backgrounds for cards - Dark theme only */
 .dark .group:hover {
   background: linear-gradient(135deg, oklch(0.1200 0 0) 0%, oklch(0.1500 0 0) 100%);
+}
+
+/* Light theme group hover effects */
+.group:hover {
+  background: linear-gradient(135deg, oklch(0.9800 0 0) 0%, oklch(0.9600 0 0) 100%);
 }
 
 /* Enhanced button styling */
@@ -404,12 +894,21 @@ code > .line::before {
   margin-bottom: 1.5rem;
 }
 
-/* Beautiful gradient hover effects */
-.post-card:hover {
+/* Beautiful gradient hover effects - Dark theme only */
+.dark .post-card:hover {
   background: linear-gradient(135deg, 
     oklch(0.1200 0 0) 0%, 
     oklch(0.1500 0 0) 100%
   );
+}
+
+/* Light theme hover effects */
+.post-card:hover {
+  background: linear-gradient(135deg, 
+    oklch(0.9800 0 0) 0%, 
+    oklch(0.9600 0 0) 100%
+  );
+  border-color: oklch(0.8000 0 0);
 }
 
 /* Enhanced spacing for better breathing room */
@@ -455,6 +954,33 @@ code > .line::before {
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
 }
 
+/* List view styling */
+.post-list-item {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.post-list-item:hover {
+  @apply transform -translate-y-1 shadow-lg;
+}
+
+/* Light theme list hover effects */
+.post-list-item:hover {
+  background: linear-gradient(135deg, 
+    oklch(0.9800 0 0) 0%, 
+    oklch(0.9600 0 0) 100%
+  );
+  border-color: oklch(0.8000 0 0);
+}
+
+/* Dark theme list hover effects */
+.dark .post-list-item:hover {
+  background: linear-gradient(135deg, 
+    oklch(0.1200 0 0) 0%, 
+    oklch(0.1500 0 0) 100%
+  );
+  border-color: oklch(0.3000 0 0);
+}
+
 @media (min-width: 768px) {
   .posts-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -475,7 +1001,13 @@ code > .line::before {
   border-color: oklch(0.2000 0 0);
 }
 
+/* Light theme border hover */
 .post-card:hover {
+  border-color: oklch(0.4000 0 0);
+}
+
+/* Dark theme border hover */
+.dark .post-card:hover {
   border-color: oklch(0.3000 0 0);
 }
 
@@ -536,6 +1068,23 @@ code > .line::before {
   letter-spacing: 0.01em;
 }
 
+/* Light theme text color fixes for hover state */
+.post-card:hover .card-title {
+  @apply text-foreground;
+}
+
+.post-card:hover .card-excerpt {
+  @apply text-muted-foreground;
+}
+
+.post-card:hover .post-date {
+  @apply text-muted-foreground;
+}
+
+.post-card:hover .series-name {
+  @apply text-muted-foreground/80;
+}
+
 /* Improved button styling */
 .post-card .read-button {
   @apply relative overflow-hidden;
@@ -553,4 +1102,231 @@ code > .line::before {
 
 .post-card .read-button span {
   @apply relative z-10;
+}
+
+
+/* === Elegant-Brutalism Mermaid (scoped) === */
+.mermaid-elegant-brutal .mermaid-container svg {
+  /* remove any accidental filter tricks; keep native colors */
+  filter: none !important;
+}
+
+/* universal text */
+.mermaid-elegant-brutal .mermaid-container text,
+.mermaid-elegant-brutal .mermaid-container .label,
+.mermaid-elegant-brutal .mermaid-container .edgeLabel text {
+  font-family: Geist Mono, ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important; /* brutal ≠ shouting; keep refined */
+}
+
+/* nodes — square, thick borders, flat fills */
+.mermaid-elegant-brutal .mermaid-container .node rect,
+.mermaid-elegant-brutal .mermaid-container .node circle,
+.mermaid-elegant-brutal .mermaid-container .node ellipse,
+.mermaid-elegant-brutal .mermaid-container .node polygon {
+  rx: 0 !important;
+  ry: 0 !important;
+  stroke-width: 3px !important;
+  fill: var(--card, #fff) !important;
+  stroke: oklch(0.18 0 0) !important; /* ~ #111827 */
+}
+
+/* node labels */
+.mermaid-elegant-brutal .mermaid-container .node .label {
+  fill: var(--foreground, #111827) !important;
+}
+
+/* edges — straight, thick, sharp arrowheads */
+.mermaid-elegant-brutal .mermaid-container .edgePath .path {
+  stroke: oklch(0.18 0 0) !important;
+  stroke-width: 3px !important;
+  fill: none !important;
+}
+
+.mermaid-elegant-brutal .mermaid-container marker path {
+  fill: oklch(0.18 0 0) !important;
+  stroke: none !important;
+}
+
+/* edge labels — pill-less, boxed, high-contrast */
+.mermaid-elegant-brutal .mermaid-container .edgeLabel {
+  background: transparent !important;
+  padding: 0 !important;
+}
+.mermaid-elegant-brutal .mermaid-container .edgeLabel rect {
+  fill: var(--card, #fff) !important;
+  stroke: oklch(0.18 0 0) !important;
+  stroke-width: 2px !important;
+  rx: 0 !important;
+  ry: 0 !important;
+}
+
+/* clusters — dashed, heavy */
+.mermaid-elegant-brutal .mermaid-container .cluster rect {
+  fill: oklch(0.98 0 0) !important;
+  stroke: oklch(0.18 0 0) !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: 6,6 !important;
+  rx: 0 !important;
+  ry: 0 !important;
+}
+.mermaid-elegant-brutal .mermaid-container .cluster .label {
+  fill: var(--foreground, #111827) !important;
+}
+
+/* decision diamonds, process nodes (ensure square feel) */
+.mermaid-elegant-brutal .mermaid-container .node .decision,
+.mermaid-elegant-brutal .mermaid-container .node .process {
+  stroke-width: 3px !important;
+}
+
+/* sequence diagrams */
+.mermaid-elegant-brutal .mermaid-container .actor {
+  fill: var(--card, #fff) !important;
+  stroke: oklch(0.18 0 0) !important;
+  stroke-width: 3px !important;
+}
+.mermaid-elegant-brutal .mermaid-container .actor > rect {
+  rx: 0 !important; ry: 0 !important;
+}
+.mermaid-elegant-brutal .mermaid-container .messageLine0,
+.mermaid-elegant-brutal .mermaid-container .messageLine1 {
+  stroke: oklch(0.18 0 0) !important;
+  stroke-width: 3px !important;
+}
+.mermaid-elegant-brutal .mermaid-container .messageText {
+  fill: var(--foreground, #111827) !important;
+  font-weight: 600 !important;
+}
+
+/* notes */
+.mermaid-elegant-brutal .mermaid-container .note {
+  fill: oklch(0.98 0 0) !important;
+  stroke: oklch(0.18 0 0) !important;
+  stroke-width: 2px !important;
+  rx: 0 !important; ry: 0 !important;
+}
+.mermaid-elegant-brutal .mermaid-container .noteText {
+  fill: var(--foreground, #111827) !important;
+}
+
+/* gantt bars: flat, square, bold */
+.mermaid-elegant-brutal .mermaid-container .task {
+  rx: 0 !important; ry: 0 !important;
+  stroke: oklch(0.18 0 0) !important;
+  stroke-width: 2px !important;
+}
+
+/* DARK THEME FLIP — rely on your CSS vars */
+.dark .mermaid-elegant-brutal .mermaid-container .node rect,
+.dark .mermaid-elegant-brutal .mermaid-container .node circle,
+.dark .mermaid-elegant-brutal .mermaid-container .node ellipse,
+.dark .mermaid-elegant-brutal .mermaid-container .node polygon {
+  fill: oklch(0.10 0 0) !important; /* ~ #0F172A */
+  stroke: oklch(0.82 0 0) !important; /* ~ #E5E7EB */
+}
+
+.dark .mermaid-elegant-brutal .mermaid-container .edgePath .path,
+.dark .mermaid-elegant-brutal .mermaid-container marker path {
+  stroke: oklch(0.82 0 0) !important;
+  fill: oklch(0.82 0 0) !important;
+}
+
+.dark .mermaid-elegant-brutal .mermaid-container .edgeLabel rect,
+.dark .mermaid-elegant-brutal .mermaid-container .cluster rect,
+.dark .mermaid-elegant-brutal .mermaid-container .note {
+  fill: oklch(0.10 0 0) !important;
+  stroke: oklch(0.82 0 0) !important;
+}
+
+.dark .mermaid-elegant-brutal .mermaid-container text,
+.dark .mermaid-elegant-brutal .mermaid-container .label,
+.dark .mermaid-elegant-brutal .mermaid-container .edgeLabel text {
+  fill: oklch(0.98 0 0) !important;
+}
+
+/* === Zoom and Pan Enhancements === */
+.mermaid-elegant-brutal .mermaid-container {
+  transition: transform 0.1s ease-out;
+  user-select: none;
+}
+
+.mermaid-elegant-brutal .mermaid-container svg {
+  max-width: none !important;
+  height: auto !important;
+}
+
+/* Zoom controls styling */
+.mermaid-elegant-brutal .zoom-controls {
+  background: var(--card);
+  border: 2px solid oklch(0.18 0 0);
+  border-radius: 0;
+}
+
+.dark .mermaid-elegant-brutal .zoom-controls {
+  background: oklch(0.10 0 0);
+  border-color: oklch(0.82 0 0);
+}
+
+/* Pan cursor states */
+.mermaid-elegant-brutal .mermaid-container.cursor-grab {
+  cursor: grab;
+}
+
+.mermaid-elegant-brutal .mermaid-container.cursor-grabbing {
+  cursor: grabbing;
+}
+
+.mermaid-elegant-brutal .mermaid-container:active {
+  cursor: grabbing;
+}
+
+/* === Lightbox Styling === */
+.mermaid-lightbox {
+  animation: lightboxFadeIn 0.2s ease-out;
+}
+
+@keyframes lightboxFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mermaid-lightbox-content {
+  border: 3px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--background) !important;
+}
+
+.mermaid-lightbox-header {
+  border-bottom: 2px solid var(--border) !important;
+  background: var(--muted) !important;
+}
+
+/* Lightbox content styling */
+.mermaid-lightbox .mermaid-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.mermaid-lightbox .mermaid-container svg {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
 }

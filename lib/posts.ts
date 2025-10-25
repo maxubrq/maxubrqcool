@@ -19,6 +19,7 @@ export interface PostData {
   contentHtml?: string
   isMDX?: boolean
   series?: SeriesInfo
+  tags?: string[]
 }
 
 // Load metadata from JSON file
@@ -52,6 +53,7 @@ export function getSortedPostsData(): Omit<PostData, 'contentHtml'>[] {
         excerpt: metadata.excerpt || '',
         isMDX: isMDX as boolean,
         series: metadata.series || undefined,
+        tags: metadata.tags || [],
       }
     })
     .filter((post) => post !== null) as Omit<PostData, 'contentHtml'>[]
@@ -122,6 +124,7 @@ export function getPostData(id: string): PostData | null {
       excerpt: metadata.excerpt || '',
       isMDX,
       series: metadata.series || undefined,
+      tags: metadata.tags || [],
     }
   } catch (error) {
     return null
@@ -162,6 +165,30 @@ export function getAllSeries(): Array<{ slug: string; name: string; totalParts: 
 export function getSeriesBySlug(slug: string): { slug: string; name: string; totalParts: number; posts: Omit<PostData, 'contentHtml'>[] } | null {
   const allSeries = getAllSeries()
   return allSeries.find(series => series.slug === slug) || null
+}
+
+// Get all unique tags
+export function getAllTags(): Array<{ name: string; count: number }> {
+  const allPosts = getSortedPostsData()
+  const tagMap = new Map<string, number>()
+
+  allPosts.forEach(post => {
+    if (post.tags) {
+      post.tags.forEach(tag => {
+        tagMap.set(tag, (tagMap.get(tag) || 0) + 1)
+      })
+    }
+  })
+
+  return Array.from(tagMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count) // Sort by count descending
+}
+
+// Get posts by tag
+export function getPostsByTag(tag: string): Omit<PostData, 'contentHtml'>[] {
+  const allPosts = getSortedPostsData()
+  return allPosts.filter(post => post.tags?.includes(tag))
 }
 
 // Get previous and next posts in a series

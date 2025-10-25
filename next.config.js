@@ -1,9 +1,10 @@
 const rehypeShiki = require('@shikijs/rehype').default
+const remarkGfm = require('remark-gfm').default
 
 const withMDX = require('@next/mdx')({
   extension: /\.mdx?$/,
   options: {
-    remarkPlugins: [],
+    remarkPlugins: [remarkGfm],
     rehypePlugins: [
       [
         rehypeShiki,

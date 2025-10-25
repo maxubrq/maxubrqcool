@@ -1425,3 +1425,113 @@ pre code .line--highlighted {
 .bg-popover { background: var(--popover) !important; }
 .bg-background { background: var(--background) !important; }
 .border-border { border-color: var(--border) !important; }
+
+/* GitHub Flavored Markdown (GFM) Styles */
+.prose table {
+  @apply w-full border-collapse border border-gray-300 dark:border-gray-600;
+}
+
+.prose table th,
+.prose table td {
+  @apply border border-gray-300 dark:border-gray-600 px-4 py-2 text-left;
+}
+
+.prose table th {
+  @apply bg-gray-100 dark:bg-gray-800 font-semibold;
+}
+
+.prose table tr:nth-child(even) {
+  @apply bg-gray-50 dark:bg-gray-900/50;
+}
+
+.prose table tr:hover {
+  @apply bg-gray-100 dark:bg-gray-800/50;
+}
+
+/* Strikethrough text */
+.prose del {
+  @apply text-gray-500 dark:text-gray-400;
+  text-decoration: line-through;
+}
+
+/* Task list styles */
+.prose input[type="checkbox"] {
+  @apply mr-2 accent-primary;
+}
+
+/* Enhanced table alignment */
+.prose table th:first-child,
+.prose table td:first-child {
+  @apply pl-4;
+}
+
+.prose table th:last-child,
+.prose table td:last-child {
+  @apply pr-4;
+}
+
+/* Center and right alignment for table cells */
+.prose table th[align="center"],
+.prose table td[align="center"] {
+  @apply text-center;
+}
+
+.prose table th[align="right"],
+.prose table td[align="right"] {
+  @apply text-right;
+}
+
+/* O'Reilly-style Alert Components */
+.alert-container {
+  @apply relative my-6 rounded-lg border-l-4 p-4 shadow-sm;
+}
+
+.alert-container .alert-icon {
+  @apply flex-shrink-0;
+}
+
+.alert-container .alert-content {
+  @apply ml-3 flex-1;
+}
+
+.alert-container .alert-title {
+  @apply text-sm font-semibold;
+}
+
+.alert-container .alert-body {
+  @apply mt-2 text-sm;
+}
+
+/* Enhanced alert styling for better O'Reilly appearance */
+.alert-container {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.alert-container:hover {
+  @apply shadow-md;
+}
+
+/* Alert type specific enhancements */
+.alert-info {
+  @apply bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20;
+}
+
+.alert-warning {
+  @apply bg-gradient-to-r from-yellow-50 to-yellow-100/50 dark:from-yellow-950/30 dark:to-yellow-900/20;
+}
+
+.alert-error {
+  @apply bg-gradient-to-r from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20;
+}
+
+.alert-success {
+  @apply bg-gradient-to-r from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20;
+}
+
+.alert-tip {
+  @apply bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20;
+}
+
+.alert-note {
+  @apply bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-900/30 dark:to-gray-800/20;
+}

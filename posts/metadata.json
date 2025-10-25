@@ -70,6 +70,18 @@
     "date": "2024-02-20",
     "excerpt": "Discover the power of Kroki integration supporting PlantUML, Ditaa, BPMN, GraphViz, and 15+ other diagram types. Create professional diagrams with unified API.",
     "tags": ["kroki", "plantuml", "diagrams", "documentation", "visualization", "uml"]
+  },
+  "0010_gfm-demo": {
+    "title": "#10 - GitHub Flavored Markdown Demo - Tables, Strikethrough & More",
+    "date": "2024-02-25",
+    "excerpt": "Demonstrating GitHub Flavored Markdown features including tables, strikethrough, task lists, and more.",
+    "tags": ["markdown", "gfm", "demo", "tables", "strikethrough"]
+  },
+  "0011_alert-demo": {
+    "title": "#11 - Alert Components Demo - O'Reilly Style",
+    "date": "2024-02-28",
+    "excerpt": "Demonstrating O'Reilly-style alert components including info, warning, error, success, tip, and note alerts for enhanced content presentation.",
+    "tags": ["alerts", "components", "ui", "oreilly", "demo"]
   }
 }
 

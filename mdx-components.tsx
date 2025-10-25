@@ -7,6 +7,15 @@ import type { MDXComponents } from 'mdx/types'
 import { Counter, Quiz, CodePlayground, InteractiveTabs, ProgressBar } from './components/InteractiveComponents'
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
+import { 
+  Alert, 
+  InfoAlert, 
+  WarningAlert, 
+  ErrorAlert, 
+  SuccessAlert, 
+  TipAlert, 
+  NoteAlert 
+} from './components/Alert'
 
 // Utility function to generate IDs from heading text
 function generateHeadingId(text: string): string {
@@ -28,6 +37,15 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ProgressBar,
     Mermaid,
     Kroki,
+    
+    // Alert components
+    Alert,
+    InfoAlert,
+    WarningAlert,
+    ErrorAlert,
+    SuccessAlert,
+    TipAlert,
+    NoteAlert,
     
     // Enhanced HTML elements with better styling
     h1: ({ children, ...props }) => {

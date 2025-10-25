@@ -1,0 +1,121 @@
+# Alert Components Demo
+
+This post demonstrates the O'Reilly-style alert components that are now available in your MDX posts. These alerts help highlight important information, warnings, tips, and more.
+
+## Information Alert
+
+<InfoAlert title="Important Information">
+This is an information alert. Use it to provide additional context or background information that readers should know.
+</InfoAlert>
+
+## Warning Alert
+
+<WarningAlert title="Proceed with Caution">
+This is a warning alert. Use it to highlight potential issues or things that require careful attention before proceeding.
+</WarningAlert>
+
+## Error Alert
+
+<ErrorAlert title="Critical Error">
+This is an error alert. Use it to highlight critical errors, failures, or issues that need immediate attention.
+</ErrorAlert>
+
+## Success Alert
+
+<SuccessAlert title="Great Job!">
+This is a success alert. Use it to celebrate achievements, confirmations, or positive outcomes.
+</SuccessAlert>
+
+## Tip Alert
+
+<TipAlert title="Pro Tip">
+This is a tip alert. Use it to share helpful tips, tricks, or best practices that can improve the reader's experience.
+</TipAlert>
+
+## Note Alert
+
+<NoteAlert title="Important Note">
+This is a note alert. Use it to add supplementary information, clarifications, or additional details that support the main content.
+</NoteAlert>
+
+## Custom Titles
+
+You can also provide custom titles for any alert type:
+
+<InfoAlert title="Custom Information Title">
+This alert has a custom title instead of the default "Information".
+</InfoAlert>
+
+<WarningAlert title="⚠️ Custom Warning">
+This warning alert has a custom title with an emoji for extra visual impact.
+</WarningAlert>
+
+## Real-World Examples
+
+### Code Example with Warning
+
+```javascript
+// This function might throw an error
+function riskyOperation(data) {
+  if (!data) {
+    throw new Error('Data is required');
+  }
+  return data.process();
+}
+```
+
+<WarningAlert title="Code Safety Warning">
+The `riskyOperation` function above can throw an error if no data is provided. Always wrap calls to this function in a try-catch block.
+</WarningAlert>
+
+### Best Practice with Tip
+
+<TipAlert title="Performance Tip">
+When working with large datasets, consider using pagination or lazy loading to improve performance and user experience.
+</TipAlert>
+
+### Success Confirmation
+
+<SuccessAlert title="Setup Complete!">
+Your development environment is now configured and ready to use. You can start building your application.
+</SuccessAlert>
+
+## Usage in Different Contexts
+
+### Tutorial Steps
+
+<NoteAlert>
+This is the first step in our tutorial. Make sure you have all the prerequisites installed before proceeding.
+</NoteAlert>
+
+<InfoAlert title="Prerequisites">
+- Node.js 18+ installed
+- Git configured
+- Code editor ready
+</InfoAlert>
+
+### API Documentation
+
+<WarningAlert title="Rate Limiting">
+This API endpoint has a rate limit of 100 requests per minute. Exceeding this limit will result in a 429 status code.
+</WarningAlert>
+
+<ErrorAlert title="Deprecated Endpoint">
+The `/api/v1/users` endpoint is deprecated and will be removed in the next major version. Please migrate to `/api/v2/users`.
+</ErrorAlert>
+
+## Styling Features
+
+The alert components include:
+
+- **Color-coded backgrounds** for easy visual identification
+- **Dark mode support** with appropriate color schemes
+- **Responsive design** that works on all screen sizes
+- **Accessible icons** for better visual hierarchy
+- **Customizable titles** for flexible content organization
+
+## Conclusion
+
+These O'Reilly-style alert components provide a professional way to highlight important information in your blog posts. They help improve readability and ensure critical information doesn't get overlooked.
+
+Use them strategically to enhance your content and provide a better reading experience for your audience!

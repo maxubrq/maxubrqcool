@@ -51,24 +51,6 @@ export default function About() {
             </ul>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Badge variant="outline">Tech Stack</Badge>
-              Built With
-            </CardTitle>
-            <CardDescription>
-              Modern technologies powering this interactive experience
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              This blog showcases the power of combining static site generation 
-              with interactive React components for an engaging reading experience.
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>

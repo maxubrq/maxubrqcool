@@ -71,7 +71,6 @@ export default function RootLayout({
           <footer className="border-t mt-16 bg-muted/50">
             <div className="max-w-6xl mx-auto px-4 py-8 text-center text-muted-foreground">
               <p>&copy; 2024 Maxubrqcool. All rights reserved.</p>
-              <p className="text-sm mt-2">Built with Next.js, MDX, and Shadcn/ui</p>
             </div>
           </footer>
           </div>

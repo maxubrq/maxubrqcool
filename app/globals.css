@@ -1330,3 +1330,74 @@ pre code .line--highlighted {
   max-height: none !important;
   object-fit: contain !important;
 }
+
+/* === Kroki Diagram Styling === */
+.kroki-elegant-brutal .kroki-container {
+  @apply w-full overflow-x-auto;
+}
+
+.kroki-elegant-brutal .kroki-container svg {
+  @apply max-w-full h-auto;
+  filter: none;
+}
+
+/* Kroki Lightbox Styling */
+.kroki-lightbox {
+  animation: lightboxFadeIn 0.2s ease-out;
+}
+
+.kroki-lightbox-content {
+  border: 3px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--background) !important;
+}
+
+.kroki-lightbox-header {
+  border-bottom: 2px solid var(--border) !important;
+  background: var(--muted) !important;
+}
+
+/* Kroki content styling */
+.kroki-lightbox .kroki-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.kroki-lightbox .kroki-container svg {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
+}
+
+/* Zoom and Pan Enhancements for Kroki */
+.kroki-elegant-brutal .kroki-container {
+  transition: transform 0.1s ease-out;
+  user-select: none;
+}
+
+.kroki-elegant-brutal .kroki-container svg {
+  max-width: none !important;
+  height: auto !important;
+}
+
+/* Pan cursor states for Kroki */
+.kroki-elegant-brutal .kroki-container.cursor-grab {
+  cursor: grab;
+}
+
+.kroki-elegant-brutal .kroki-container.cursor-grabbing {
+  cursor: grabbing;
+}
+
+.kroki-elegant-brutal .kroki-container:active {
+  cursor: grabbing;
+}

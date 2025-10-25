@@ -64,6 +64,12 @@
     "date": "2024-02-15",
     "excerpt": "Explore the power of Mermaid diagrams in your blog posts. Create flowcharts, sequence diagrams, Gantt charts, and more with simple text syntax.",
     "tags": ["mermaid", "diagrams", "documentation", "visualization", "tutorial"]
+  },
+  "0009_kroki-diagrams-demo": {
+    "title": "#9 - Kroki Diagrams Demo - 20+ Diagram Types in One Integration",
+    "date": "2024-02-20",
+    "excerpt": "Discover the power of Kroki integration supporting PlantUML, Ditaa, BPMN, GraphViz, and 15+ other diagram types. Create professional diagrams with unified API.",
+    "tags": ["kroki", "plantuml", "diagrams", "documentation", "visualization", "uml"]
   }
 }
 

@@ -1,0 +1,323 @@
+# Kroki Diagrams Integration
+
+This post demonstrates the powerful Kroki integration that supports **20+ diagram types** beyond just Mermaid. Kroki provides a unified API for creating professional diagrams in your documentation.
+
+## PlantUML Class Diagram
+
+PlantUML is excellent for creating UML diagrams. Here's a simple class diagram:
+
+<Kroki type="plantuml" title="Simple Class Diagram">
+{`@startuml
+class User {
+  +String name
+  +login()
+}
+
+class Post {
+  +String title
+  +publish()
+}
+
+User ||--o{ Post
+@enduml`}
+</Kroki>
+
+## PlantUML Sequence Diagram
+
+Sequence diagrams show interactions between objects:
+
+<Kroki type="plantuml" title="Simple Login Flow">
+{`@startuml
+Alice -> Bob: Hello
+Bob --> Alice: Hi
+@enduml`}
+</Kroki>
+
+## Ditaa ASCII Art Diagram
+
+Ditaa converts ASCII art into beautiful diagrams:
+
+<Kroki type="ditaa" title="System Architecture">
+{`+------+    +--------+    +------+
+| User |----|  API   |----|Database|
++------+    +--------+    +------+`}
+</Kroki>
+
+## BlockDiag Network Diagram
+
+BlockDiag is perfect for network and infrastructure diagrams:
+
+<Kroki type="blockdiag" title="Network Topology">
+{`blockdiag {
+  A [label = "Load Balancer"];
+  B [label = "Web Server"];
+  C [label = "Database"];
+  
+  A -> B;
+  B -> C;
+}`}
+</Kroki>
+
+## GraphViz DOT Graph
+
+GraphViz is powerful for creating various types of graphs:
+
+<Kroki type="graphviz" title="Simple Dependency Graph">
+{`digraph G {
+  A [label="Frontend"];
+  B [label="API"];
+  C [label="Database"];
+  
+  A -> B;
+  B -> C;
+}`}
+</Kroki>
+
+## Complex PlantUML Class Diagram
+
+Let's test a more complex PlantUML class diagram with relationships and inheritance:
+
+<Kroki type="plantuml" title="E-commerce System Architecture">
+{`@startuml
+class User {
+  +String id
+  +String email
+  +String name
+  +login()
+  +logout()
+}
+
+class Customer {
+  +String address
+  +String phone
+  +placeOrder()
+  +viewOrders()
+}
+
+class Admin {
+  +String role
+  +manageUsers()
+  +viewReports()
+}
+
+class Product {
+  +String id
+  +String name
+  +String price
+  +String description
+  +updatePrice()
+}
+
+class Order {
+  +String id
+  +String createdAt
+  +String status
+  +String total
+  +addItem()
+  +calculateTotal()
+}
+
+class OrderItem {
+  +String productId
+  +String quantity
+  +String price
+  +calculateSubtotal()
+}
+
+' Relationships
+Customer --|> User
+Admin --|> User
+Order ||--o{ OrderItem
+Product ||--o{ OrderItem
+Customer ||--o{ Order
+Admin ||--o{ Product
+Admin ||--o{ Order
+@enduml`}
+</Kroki>
+
+## Complex PlantUML Sequence Diagram
+
+A more detailed sequence diagram showing a complete user registration flow:
+
+<Kroki type="plantuml" title="User Registration Flow">
+{`@startuml
+participant User
+participant Frontend
+participant AuthService
+participant Database
+participant EmailService
+
+User -> Frontend: Fill registration form
+Frontend -> AuthService: POST /register
+AuthService -> Database: Check if email exists
+Database --> AuthService: Email not found
+AuthService -> Database: Create user account
+Database --> AuthService: User created
+AuthService -> EmailService: Send verification email
+EmailService --> AuthService: Email sent
+AuthService --> Frontend: Registration successful
+Frontend --> User: Show success message
+
+User -> Frontend: Click verification link
+Frontend -> AuthService: GET /verify?token=xyz
+AuthService -> Database: Activate user account
+Database --> AuthService: Account activated
+AuthService --> Frontend: Account verified
+Frontend --> User: Show verification success
+@enduml`}
+</Kroki>
+
+## Complex GraphViz Network Diagram
+
+A detailed network architecture diagram:
+
+<Kroki type="graphviz" title="Microservices Architecture">
+{`digraph G {
+  rankdir=TB;
+  node [shape=box, style=filled];
+  edge [color=gray];
+  
+  subgraph cluster1 {
+    label="Load Balancer Layer";
+    LB [label="Load Balancer", fillcolor=lightgreen];
+  }
+  
+  subgraph cluster2 {
+    label="API Gateway Layer";
+    GW [label="API Gateway", fillcolor=lightyellow];
+  }
+  
+  subgraph cluster3 {
+    label="Application Layer";
+    US1 [label="User Service 1"];
+    US2 [label="User Service 2"];
+    PS1 [label="Product Service 1"];
+    PS2 [label="Product Service 2"];
+    OS1 [label="Order Service 1"];
+    OS2 [label="Order Service 2"];
+  }
+  
+  subgraph cluster4 {
+    label="Data Layer";
+    DB1 [label="Database Primary", fillcolor=lightcoral];
+    DB2 [label="Database Replica", fillcolor=lightcoral];
+    REDIS [label="Redis Cache", fillcolor=orange];
+    MQ [label="Message Queue", fillcolor=lightpink];
+  }
+  
+  subgraph cluster5 {
+    label="External Services";
+    EMAIL [label="Email Service", fillcolor=lightgray];
+    PAYMENT [label="Payment Gateway", fillcolor=lightgray];
+  }
+  
+  LB -> GW;
+  GW -> US1;
+  GW -> US2;
+  GW -> PS1;
+  GW -> PS2;
+  GW -> OS1;
+  GW -> OS2;
+  
+  US1 -> DB1;
+  US2 -> DB1;
+  PS1 -> DB1;
+  PS2 -> DB1;
+  OS1 -> DB1;
+  OS2 -> DB1;
+  
+  DB1 -> DB2;
+  
+  US1 -> REDIS;
+  US2 -> REDIS;
+  PS1 -> REDIS;
+  PS2 -> REDIS;
+  OS1 -> REDIS;
+  OS2 -> REDIS;
+  
+  OS1 -> MQ;
+  OS2 -> MQ;
+  
+  US1 -> EMAIL;
+  OS1 -> PAYMENT;
+  OS2 -> PAYMENT;
+}`}
+</Kroki>
+
+## Complex BlockDiag System Architecture
+
+A detailed system architecture using BlockDiag:
+
+<Kroki type="blockdiag" title="Enterprise System Architecture">
+{`blockdiag {
+  // User Layer
+  user [label = "User"];
+  mobile [label = "Mobile App"];
+  
+  // Web Layer
+  web [label = "Web App"];
+  cdn [label = "CDN"];
+  
+  // API Layer
+  api [label = "API Gateway"];
+  queue [label = "Message Queue"];
+  
+  // Data Layer
+  database [label = "Database"];
+  cache [label = "Cache"];
+  backup [label = "Backup"];
+  
+  // Admin Layer
+  admin [label = "Admin Panel"];
+  monitor [label = "Monitor"];
+  log [label = "Log System"];
+  archive [label = "Archive"];
+  analytics [label = "Analytics"];
+  
+  // Connections
+  user -> web;
+  mobile -> web;
+  web -> cdn;
+  web -> api;
+  api -> queue;
+  api -> database;
+  database -> cache;
+  database -> backup;
+  admin -> monitor;
+  admin -> log;
+  admin -> archive;
+  admin -> analytics;
+}`}
+</Kroki>
+
+## Features
+
+### 🎯 **Supported Diagram Types:**
+- **PlantUML**: UML diagrams, sequence, use case, activity
+- **Ditaa**: ASCII art to beautiful diagrams
+- **BlockDiag**: Network, rack, and block diagrams
+- **BPMN**: Business process modeling
+- **GraphViz**: DOT language graphs
+- **Excalidraw**: Hand-drawn style diagrams
+- **And 15+ more types!**
+
+### 🚀 **Key Features:**
+- **Unified API**: Same interface for all diagram types
+- **Zoom & Pan**: Full-screen lightbox with zoom controls
+- **Theme Support**: Light and dark theme compatibility
+- **Export Options**: Download as SVG
+- **Error Handling**: Graceful error display with code preview
+
+### 💡 **Usage:**
+```jsx
+<Kroki type="plantuml" title="My Diagram">
+{`@startuml
+class MyClass {
+  +String name
+  +void method()
+}
+@enduml`}
+</Kroki>
+```
+
+The Kroki integration provides a comprehensive solution for all your diagramming needs, supporting everything from simple flowcharts to complex UML diagrams and business processes!

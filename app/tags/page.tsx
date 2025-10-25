@@ -59,7 +59,7 @@ export default function TagsPage() {
                   </CardHeader>
                   <CardContent className="pt-0">
                     <p className="text-sm text-muted-foreground">
-                      Click to view all posts tagged with "{tag.name}"
+                      Click to view all posts tagged with &quot;{tag.name}&quot;
                     </p>
                   </CardContent>
                 </Card>

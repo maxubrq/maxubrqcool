@@ -8,6 +8,16 @@ import { Counter, Quiz, CodePlayground, InteractiveTabs, ProgressBar } from './c
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
 
+// Utility function to generate IDs from heading text
+function generateHeadingId(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .trim()
+}
+
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     // Interactive components
@@ -20,21 +30,60 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Kroki,
     
     // Enhanced HTML elements with better styling
-    h1: ({ children, ...props }) => (
-      <h1 className="text-3xl font-bold text-gray-900 mb-6 mt-8" {...props}>
-        {children}
-      </h1>
-    ),
-    h2: ({ children, ...props }) => (
-      <h2 className="text-2xl font-semibold text-gray-900 mb-4 mt-6" {...props}>
-        {children}
-      </h2>
-    ),
-    h3: ({ children, ...props }) => (
-      <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-5" {...props}>
-        {children}
-      </h3>
-    ),
+    h1: ({ children, ...props }) => {
+      const text = typeof children === 'string' ? children : children?.toString() || ''
+      const id = generateHeadingId(text)
+      return (
+        <h1 id={id} className="text-3xl font-bold text-gray-900 mb-6 mt-8" {...props}>
+          {children}
+        </h1>
+      )
+    },
+    h2: ({ children, ...props }) => {
+      const text = typeof children === 'string' ? children : children?.toString() || ''
+      const id = generateHeadingId(text)
+      return (
+        <h2 id={id} className="text-2xl font-semibold text-gray-900 mb-4 mt-6" {...props}>
+          {children}
+        </h2>
+      )
+    },
+    h3: ({ children, ...props }) => {
+      const text = typeof children === 'string' ? children : children?.toString() || ''
+      const id = generateHeadingId(text)
+      return (
+        <h3 id={id} className="text-xl font-semibold text-gray-900 mb-3 mt-5" {...props}>
+          {children}
+        </h3>
+      )
+    },
+    h4: ({ children, ...props }) => {
+      const text = typeof children === 'string' ? children : children?.toString() || ''
+      const id = generateHeadingId(text)
+      return (
+        <h4 id={id} className="text-lg font-semibold text-gray-900 mb-2 mt-4" {...props}>
+          {children}
+        </h4>
+      )
+    },
+    h5: ({ children, ...props }) => {
+      const text = typeof children === 'string' ? children : children?.toString() || ''
+      const id = generateHeadingId(text)
+      return (
+        <h5 id={id} className="text-base font-semibold text-gray-900 mb-2 mt-3" {...props}>
+          {children}
+        </h5>
+      )
+    },
+    h6: ({ children, ...props }) => {
+      const text = typeof children === 'string' ? children : children?.toString() || ''
+      const id = generateHeadingId(text)
+      return (
+        <h6 id={id} className="text-sm font-semibold text-gray-900 mb-2 mt-3" {...props}>
+          {children}
+        </h6>
+      )
+    },
     p: ({ children, ...props }) => (
       <p className="text-gray-700 mb-4 leading-relaxed" {...props}>
         {children}

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { TagList } from '@/components/TagList'
+import { TableOfContents } from '@/components/TableOfContents'
 import Link from 'next/link'
 
 export async function generateStaticParams() {
@@ -50,7 +51,10 @@ export default function Post({ params: { id } }: { params: { id: string } }) {
   }
 
   return (
-    <article className="max-w-4xl mx-auto space-y-8">
+    <>
+      <div className="flex gap-8 max-w-7xl mx-auto">
+        {/* Main Content */}
+        <article className="flex-1 max-w-4xl space-y-8">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between mb-4">
@@ -204,6 +208,11 @@ export default function Post({ params: { id } }: { params: { id: string } }) {
           {post.isMDX ? 'Interactive content' : 'Static content'}
         </div>
       </div>
-    </article>
+        </article>
+        
+        {/* Sidebar TOC */}
+        <TableOfContents />
+      </div>
+    </>
   )
 }

@@ -819,26 +819,32 @@ pre code .line--highlighted {
 
 /* Fix command palette and dropdown transparency issues */
 [cmdk-dialog] {
-  background: oklch(0.1000 0 0) !important;
-  backdrop-filter: blur(8px);
+  background: hsl(var(--background)) !important;
+  backdrop-filter: none !important;
 }
 
 [cmdk-dialog] [cmdk-root] {
-  background: oklch(0.1000 0 0) !important;
+  background: hsl(var(--background)) !important;
 }
 
 [cmdk-dialog] [cmdk-list] {
-  background: oklch(0.1000 0 0) !important;
+  background: hsl(var(--background)) !important;
 }
 
 [cmdk-dialog] [cmdk-input-wrapper] {
-  background: oklch(0.1000 0 0) !important;
+  background: hsl(var(--background)) !important;
+}
+
+/* Force solid background for command dialog content */
+[data-radix-dialog-content] {
+  background: hsl(var(--background)) !important;
+  backdrop-filter: none !important;
 }
 
 /* Ensure dropdown menus have solid backgrounds */
 [data-radix-dropdown-menu-content] {
-  background: oklch(0.1000 0 0) !important;
-  backdrop-filter: blur(8px);
+  background: hsl(var(--background)) !important;
+  backdrop-filter: none !important;
 }
 
 /* Dark theme specific fixes */
@@ -1401,3 +1407,22 @@ pre code .line--highlighted {
 .kroki-elegant-brutal .kroki-container:active {
   cursor: grabbing;
 }
+
+/* Use tokens directly – no hsl() wrapper */
+[cmdk-dialog],
+[cmdk-dialog] [cmdk-root],
+[cmdk-dialog] [cmdk-list],
+[cmdk-dialog] [cmdk-input-wrapper],
+[data-radix-dialog-content],
+[data-radix-dropdown-menu-content] {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* also align popover + border colors used by cmdk */
+.text-popover-foreground { color: var(--popover-foreground) !important; }
+.bg-popover { background: var(--popover) !important; }
+.bg-background { background: var(--background) !important; }
+.border-border { border-color: var(--border) !important; }

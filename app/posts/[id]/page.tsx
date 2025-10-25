@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { TagList } from '@/components/TagList'
 import { TableOfContents } from '@/components/TableOfContents'
+import { PostLikeButtonSSR } from '@/components/PostLikeButton'
 import Link from 'next/link'
 
 export async function generateStaticParams() {
@@ -73,6 +74,17 @@ export default function Post({ params: { id } }: { params: { id: string } }) {
           <CardTitle className="text-3xl font-bold tracking-tight">
             {post.title}
           </CardTitle>
+          
+          {/* Post Like Button */}
+          <div className="mt-4 flex items-center gap-4">
+            <PostLikeButtonSSR 
+              postId={post.id}
+              variant="text"
+              size="md"
+              showCount={true}
+            />
+          </div>
+          
           {post.tags && post.tags.length > 0 && (
             <div className="mt-4">
               <TagList 

@@ -52,6 +52,14 @@ export function PostLikeButton({
 
   const sizeConfig = sizeClasses[size];
 
+  // Check if like feature is enabled
+  const isLikeEnabled = process.env.NEXT_PUBLIC_POST_LIKE_ENABLED !== 'false';
+
+  // If like feature is disabled, don't render anything
+  if (!isLikeEnabled) {
+    return null;
+  }
+
   return (
     <div className="flex items-center gap-2">
       <button

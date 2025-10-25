@@ -10,6 +10,19 @@ export async function GET(request: NextRequest) {
   const clientIP = request.headers.get('x-forwarded-for') || 'unknown';
   const ipHash = hashIP(clientIP);
   
+  // Check if like feature is enabled
+  const isLikeEnabled = process.env.POST_LIKE_ENABLED !== 'false';
+  if (!isLikeEnabled) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Like feature is disabled',
+        code: 'FEATURE_DISABLED',
+      },
+      { status: 503 }
+    );
+  }
+  
   try {
     // Parse and validate query parameters
     const url = new URL(request.url);

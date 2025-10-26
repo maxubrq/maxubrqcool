@@ -4,9 +4,11 @@
 // other libraries.
 
 import type { MDXComponents } from 'mdx/types'
-import { Counter, Quiz, CodePlayground, InteractiveTabs, ProgressBar } from './components/InteractiveComponents'
+import { Counter, CodePlayground, InteractiveTabs, ProgressBar } from './components/InteractiveComponents'
+import { Quiz } from './components/quiz/Quiz'
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
+import { Figure, SimpleFigure } from './components/Figure'
 import { 
   Alert, 
   InfoAlert, 
@@ -37,6 +39,10 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ProgressBar,
     Mermaid,
     Kroki,
+    
+    // Figure components
+    Figure,
+    SimpleFigure,
     
     // Alert components
     Alert,

@@ -1,0 +1,105 @@
+# Figure Component Demo
+
+Welcome to the Figure component showcase! This post demonstrates the new Figure component that provides automatic Cloudinary URL handling, lightbox functionality, and enhanced image display capabilities.
+
+## Basic Usage
+
+The Figure component automatically transforms paths starting with `/maxubrqcool` to Cloudinary URLs:
+
+<Figure 
+  src="/maxubrqcool/Bhargava-Algorithms_hires_wccjn8.png"
+  alt="Bhargava Algorithms Book Cover"
+  title="Bhargava Algorithms"
+  caption="A comprehensive guide to algorithms and data structures"
+/>
+
+## With Custom Title and Caption
+
+You can add titles and captions to provide context:
+
+<Figure 
+  src="/maxubrqcool/Bhargava-Algorithms_hires_wccjn8.png"
+  alt="Algorithm Book"
+  title="Mastering Algorithms"
+  caption="This book covers essential algorithms every developer should know"
+/>
+
+## Regular Images (Non-Cloudinary)
+
+For images that don't start with `/maxubrqcool`, the component treats them as regular URLs:
+
+<Figure 
+  src="https://via.placeholder.com/400x300/4f46e5/ffffff?text=Regular+Image"
+  alt="Placeholder Image"
+  title="Regular Image Example"
+  caption="This image uses a regular URL and won't be transformed to Cloudinary"
+/>
+
+## Simple Figure (No Lightbox)
+
+For cases where you don't need lightbox functionality, use the SimpleFigure component:
+
+<SimpleFigure 
+  src="/maxubrqcool/Bhargava-Algorithms_hires_wccjn8.png"
+  alt="Simple Figure Example"
+  title="Simple Figure"
+  caption="This figure doesn't have lightbox functionality"
+/>
+
+## Multiple Figures
+
+You can use multiple figures in your content:
+
+<Figure 
+  src="/maxubrqcool/Bhargava-Algorithms_hires_wccjn8.png"
+  alt="First Algorithm Book"
+  title="Algorithms Book 1"
+  caption="Essential algorithms for beginners"
+/>
+
+<Figure 
+  src="/maxubrqcool/Bhargava-Algorithms_hires_wccjn8.png"
+  alt="Second Algorithm Book"
+  title="Algorithms Book 2"
+  caption="Advanced algorithms for experienced developers"
+/>
+
+## Features
+
+The Figure component includes:
+
+- **Automatic Cloudinary Integration**: Paths starting with `/maxubrqcool` are automatically transformed to Cloudinary URLs
+- **Lightbox Functionality**: Click any image to open it in a full-screen lightbox
+- **Title and Caption Support**: Add descriptive titles and captions
+- **Download and External Link**: In lightbox mode, you can download images or open them in new tabs
+- **Responsive Design**: Images adapt to different screen sizes
+- **Loading States**: Smooth loading animations
+- **Hover Effects**: Interactive hover states with zoom indicators
+
+## Cloudinary URL Transformation
+
+The component automatically transforms URLs like:
+- `/maxubrqcool/image.png` → `https://res.cloudinary.com/dmsb4anlx/image/upload/v1761479207/maxubrqcool/image.png`
+
+This ensures optimal image delivery through Cloudinary's CDN while maintaining a simple path structure in your content.
+
+## Usage in MDX
+
+To use the Figure component in your MDX files, simply import it and use it like any other React component:
+
+```jsx
+<Figure 
+  src="/maxubrqcool/Bhargava-Algorithms_hires_wccjn8.png"
+  alt="Description of the image"
+  title="Optional Title"
+  caption="Optional Caption"
+/>
+```
+
+## Conclusion
+
+The Figure component provides a powerful and flexible way to display images in your MDX content with automatic Cloudinary integration, lightbox functionality, and enhanced user experience. Try clicking on any of the images above to see the lightbox in action!
+
+---
+
+*Click on any image above to experience the lightbox functionality and explore the download and external link features.*

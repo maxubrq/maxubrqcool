@@ -36,10 +36,12 @@
     "date-fns": "^2.30.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.29.0",
+    "framer-motion": "^12.23.24",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.546.0",
     "mdx-mermaid": "^2.0.3",
     "mermaid": "^11.12.0",
+    "motion": "^12.23.24",
     "next": "14.0.4",
     "next-themes": "^0.4.6",
     "pako": "^2.1.0",
@@ -53,7 +55,8 @@
     "shiki": "^3.13.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

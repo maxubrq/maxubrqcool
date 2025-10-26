@@ -82,6 +82,12 @@
     "date": "2024-02-28",
     "excerpt": "Demonstrating O'Reilly-style alert components including info, warning, error, success, tip, and note alerts for enhanced content presentation.",
     "tags": ["alerts", "components", "ui", "oreilly", "demo"]
+  },
+  "0012_figure-component-demo": {
+    "title": "#12 - Figure Component Demo - Cloudinary Integration & Lightbox",
+    "date": "2024-03-01",
+    "excerpt": "Showcasing the new Figure component with automatic Cloudinary URL handling, lightbox functionality, and enhanced image display capabilities.",
+    "tags": ["components", "images", "cloudinary", "lightbox", "demo"]
   }
 }
 

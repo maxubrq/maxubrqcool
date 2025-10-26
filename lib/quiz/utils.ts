@@ -10,7 +10,7 @@ export function calculateScore(
 
   questions.forEach((question) => {
     const userAnswer = answers[question.id]
-    const correctAnswer = decryptAnswerAdvanced(question.correctAnswer, question.id)
+    const correctAnswer = decryptAnswerAdvanced(question.correctAnswer as string, question.id)
     
     let isCorrect = false
     if (question.type === 'multiple-choice') {

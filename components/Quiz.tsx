@@ -23,7 +23,7 @@ export function Quiz({ config, onComplete, onQuestionChange, className }: QuizPr
     currentQuestionIndex: 0,
     answers: {},
     isSubmitted: false,
-    timeRemaining: config.timeLimit ? config.timeLimit * 60 : undefined
+    timeRemaining: config?.timeLimit ? config.timeLimit * 60 : undefined
   })
 
   const [isPaused, setIsPaused] = useState(false)
@@ -69,12 +69,12 @@ export function Quiz({ config, onComplete, onQuestionChange, className }: QuizPr
       currentQuestionIndex: 0,
       answers: {},
       isSubmitted: false,
-      timeRemaining: config.timeLimit ? config.timeLimit * 60 : undefined
+      timeRemaining: config?.timeLimit ? config.timeLimit * 60 : undefined
     })
     setShowResults(false)
     setResult(null)
     setIsPaused(false)
-  }, [config.timeLimit])
+  }, [config?.timeLimit])
 
   const togglePause = useCallback(() => {
     setIsPaused(prev => !prev)
@@ -101,11 +101,20 @@ export function Quiz({ config, onComplete, onQuestionChange, className }: QuizPr
     }
   }, [state.timeRemaining, state.isSubmitted, handleSubmit])
 
+  // Guard against undefined config during SSR - after all hooks
+  if (!config || !config.questions || !config.questions.length) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-red-600">Quiz configuration is missing</div>
+      </div>
+    )
+  }
+
   const currentQuestion = config.questions[state.currentQuestionIndex]
   const progress = ((state.currentQuestionIndex + 1) / config.questions.length) * 100
 
   // Show loading state if no questions or current question is undefined
-  if (!config.questions.length || !currentQuestion) {
+  if (!currentQuestion) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

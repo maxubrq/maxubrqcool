@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getPostData, getAllPostIds, getSeriesNavigation } from '@/lib/posts'
 import { format } from 'date-fns'
-import dynamic from 'next/dynamic'
+import dynamicImport from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,10 @@ import { TagList } from '@/components/TagList'
 import { TableOfContents } from '@/components/TableOfContents'
 import { PostLikeButtonSSR } from '@/components/PostLikeButton'
 import Link from 'next/link'
+
+// Disable static generation for posts with interactive components
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function generateStaticParams() {
   const paths = getAllPostIds()
@@ -33,7 +37,7 @@ export default function Post({ params: { id } }: { params: { id: string } }) {
   
   if (post.isMDX) {
     try {
-      MDXContent = dynamic(() => import(`../../../posts/${id}.mdx`), {
+      MDXContent = dynamicImport(() => import(`../../../posts/${id}.mdx`), {
         loading: () => (
           <Card>
             <CardContent className="p-8">

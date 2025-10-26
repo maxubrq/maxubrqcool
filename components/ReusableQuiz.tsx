@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,9 +32,9 @@ interface ReusableQuizProps {
 }
 
 export function ReusableQuiz({
-  title,
+  title = "Quiz",
   description,
-  questions,
+  questions = [],
   timeLimit,
   passingScore = 70,
   allowRetake = true
@@ -47,11 +47,13 @@ export function ReusableQuiz({
   const [showResults, setShowResults] = useState(false)
   const [result, setResult] = useState<any>(null)
 
-  // Encrypt questions
-  const encryptedQuestions = questions.map(q => ({
-    ...q,
-    correctAnswer: encryptAnswerAdvanced(q.correctAnswer, q.id)
-  }))
+  // Encrypt questions safely - wrapped in useMemo to prevent re-creation on every render
+  const encryptedQuestions = useMemo(() => {
+    return (questions && Array.isArray(questions)) ? questions.map(q => ({
+      ...q,
+      correctAnswer: encryptAnswerAdvanced(q.correctAnswer, q.id)
+    })) : []
+  }, [questions])
 
   const currentQuestion = encryptedQuestions[currentQuestionIndex]
   const progress = ((currentQuestionIndex + 1) / encryptedQuestions.length) * 100
@@ -75,7 +77,7 @@ export function ReusableQuiz({
     }
   }, [currentQuestionIndex])
 
-  const calculateScore = () => {
+  const handleSubmit = useCallback(() => {
     let correctAnswers = 0
     const resultAnswers: any[] = []
 
@@ -108,7 +110,7 @@ export function ReusableQuiz({
 
     const percentage = Math.round((correctAnswers / encryptedQuestions.length) * 100)
     
-    return {
+    const quizResult = {
       score: correctAnswers,
       totalQuestions: encryptedQuestions.length,
       correctAnswers,
@@ -117,10 +119,7 @@ export function ReusableQuiz({
       timeSpent: 0,
       answers: resultAnswers
     }
-  }
-
-  const handleSubmit = useCallback(() => {
-    const quizResult = calculateScore()
+    
     setResult(quizResult)
     setIsSubmitted(true)
     setShowResults(true)
@@ -203,6 +202,15 @@ export function ReusableQuiz({
           </CardContent>
         </Card>
       </motion.div>
+    )
+  }
+
+  // Early return if no questions
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto p-6 text-center text-muted-foreground">
+        <p>No questions available for this quiz.</p>
+      </div>
     )
   }
 

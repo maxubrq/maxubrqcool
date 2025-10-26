@@ -95,7 +95,7 @@ export function ReactQuiz() {
     }
   }, [currentQuestionIndex])
 
-  const calculateScore = () => {
+  const handleSubmit = useCallback(() => {
     let correctAnswers = 0
     const resultAnswers: any[] = []
 
@@ -128,7 +128,7 @@ export function ReactQuiz() {
 
     const percentage = Math.round((correctAnswers / encryptedQuestions.length) * 100)
     
-    return {
+    const quizResult = {
       score: correctAnswers,
       totalQuestions: encryptedQuestions.length,
       correctAnswers,
@@ -137,14 +137,11 @@ export function ReactQuiz() {
       timeSpent: 0,
       answers: resultAnswers
     }
-  }
-
-  const handleSubmit = useCallback(() => {
-    const quizResult = calculateScore()
+    
     setResult(quizResult)
     setIsSubmitted(true)
     setShowResults(true)
-  }, [answers, calculateScore])
+  }, [answers])
 
   const handleRestart = useCallback(() => {
     setCurrentQuestionIndex(0)

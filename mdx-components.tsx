@@ -9,6 +9,7 @@ import { Quiz, QuizBuilder, QuizQuestion } from './components/QuizBuilder'
 import { QuizDemo } from './components/QuizDemo'
 import { ReactQuiz } from './components/ReactQuiz'
 import { ReusableQuiz } from './components/ReusableQuiz'
+import { SimpleQuiz } from './components/SimpleQuiz'
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
 import { Figure, SimpleFigure } from './components/Figure'
@@ -47,6 +48,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     QuizDemo,
     ReactQuiz,
     ReusableQuiz,
+    SimpleQuiz,
     Mermaid,
     Kroki,
     

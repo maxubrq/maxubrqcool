@@ -114,7 +114,7 @@ export function QuizDemo() {
     if (currentQuestionIndex < encryptedQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1)
     }
-  }, [currentQuestionIndex, encryptedQuestions.length])
+  }, [currentQuestionIndex])
 
   const handlePrevious = useCallback(() => {
     if (currentQuestionIndex > 0) {
@@ -122,7 +122,7 @@ export function QuizDemo() {
     }
   }, [currentQuestionIndex])
 
-  const calculateScore = () => {
+  const handleSubmit = useCallback(() => {
     let correctAnswers = 0
     const resultAnswers: any[] = []
 
@@ -155,7 +155,7 @@ export function QuizDemo() {
 
     const percentage = Math.round((correctAnswers / encryptedQuestions.length) * 100)
     
-    return {
+    const quizResult = {
       score: correctAnswers,
       totalQuestions: encryptedQuestions.length,
       correctAnswers,
@@ -164,14 +164,11 @@ export function QuizDemo() {
       timeSpent: 0,
       answers: resultAnswers
     }
-  }
-
-  const handleSubmit = useCallback(() => {
-    const quizResult = calculateScore()
+    
     setResult(quizResult)
     setIsSubmitted(true)
     setShowResults(true)
-  }, [answers, encryptedQuestions])
+  }, [answers])
 
   const handleRestart = useCallback(() => {
     setCurrentQuestionIndex(0)

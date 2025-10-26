@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -49,8 +49,13 @@ export function SimpleQuiz({
   const [showResults, setShowResults] = useState(false)
   const [result, setResult] = useState<any>(null)
 
-  const currentQuestion = questions[currentQuestionIndex]
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100
+  // Safely handle questions array - wrapped in useMemo to prevent re-creation on every render
+  const safeQuestions = useMemo(() => {
+    return (questions && Array.isArray(questions)) ? questions : []
+  }, [questions])
+
+  const currentQuestion = safeQuestions[currentQuestionIndex]
+  const progress = safeQuestions.length > 0 ? ((currentQuestionIndex + 1) / safeQuestions.length) * 100 : 0
 
   const handleAnswerChange = useCallback((questionId: string, answer: string | string[]) => {
     setAnswers(prev => ({
@@ -60,10 +65,10 @@ export function SimpleQuiz({
   }, [])
 
   const handleNext = useCallback(() => {
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentQuestionIndex < safeQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1)
     }
-  }, [currentQuestionIndex, questions.length])
+  }, [currentQuestionIndex, safeQuestions.length])
 
   const handlePrevious = useCallback(() => {
     if (currentQuestionIndex > 0) {
@@ -71,13 +76,13 @@ export function SimpleQuiz({
     }
   }, [currentQuestionIndex])
 
-  const calculateScore = () => {
+  const handleSubmit = useCallback(() => {
     let correctAnswers = 0
     const resultAnswers: any[] = []
 
-    questions.forEach((question) => {
+    safeQuestions.forEach((question) => {
       const userAnswer = answers[question.id]
-      const correctAnswer = decryptAnswerAdvanced(question.correctAnswer, question.id)
+      const correctAnswer = decryptAnswerAdvanced(question.correctAnswer as string, question.id)
       
       let isCorrect = false
       if (question.type === 'multiple-choice') {
@@ -102,25 +107,22 @@ export function SimpleQuiz({
       })
     })
 
-    const percentage = Math.round((correctAnswers / questions.length) * 100)
+    const percentage = safeQuestions.length > 0 ? Math.round((correctAnswers / safeQuestions.length) * 100) : 0
     
-    return {
+    const quizResult = {
       score: correctAnswers,
-      totalQuestions: questions.length,
+      totalQuestions: safeQuestions.length,
       correctAnswers,
       percentage,
       isPassed: percentage >= passingScore,
       timeSpent: 0,
       answers: resultAnswers
     }
-  }
-
-  const handleSubmit = useCallback(() => {
-    const quizResult = calculateScore()
+    
     setResult(quizResult)
     setIsSubmitted(true)
     setShowResults(true)
-  }, [answers, questions, passingScore])
+  }, [answers, safeQuestions, passingScore])
 
   const handleRestart = useCallback(() => {
     setCurrentQuestionIndex(0)
@@ -234,6 +236,15 @@ export function SimpleQuiz({
     )
   }
 
+  // Early return if no questions or invalid current question
+  if (!safeQuestions || safeQuestions.length === 0 || !currentQuestion) {
+    return (
+      <div className="w-full max-w-4xl mx-auto p-6 text-center text-muted-foreground">
+        <p>No questions available for this quiz.</p>
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -272,7 +283,7 @@ export function SimpleQuiz({
           {/* Progress */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
+              <span>Question {currentQuestionIndex + 1} of {safeQuestions.length}</span>
               <span>{Math.round(progress)}% Complete</span>
             </div>
             <Progress value={progress} className="w-full" />
@@ -309,7 +320,7 @@ export function SimpleQuiz({
             </Button>
 
             <div className="flex gap-2">
-              {currentQuestionIndex === questions.length - 1 ? (
+              {currentQuestionIndex === safeQuestions.length - 1 ? (
                 <Button onClick={handleSubmit} size="lg">
                   Submit Quiz
                 </Button>

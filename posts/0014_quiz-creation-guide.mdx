@@ -1,0 +1,149 @@
+# Quiz Creation Guide
+
+There are several ways to create quizzes in your MDX content. Let me show you the different approaches:
+
+## Approach 1: Dedicated Quiz Components (Recommended)
+
+For each quiz, create a dedicated component. This gives you full control and is the most flexible.
+
+### Example: React Quiz
+
+<ReactQuiz />
+
+## Approach 2: Reusable Quiz Component
+
+Use the `ReusableQuiz` component with inline question data:
+
+<ReusableQuiz
+  title="TypeScript Fundamentals Quiz"
+  description="Test your knowledge of TypeScript basics"
+  timeLimit={8}
+  passingScore={80}
+  questions={[
+    {
+      id: "ts-1",
+      question: "What is the main benefit of using TypeScript?",
+      type: "single-choice",
+      options: [
+        "Faster runtime performance",
+        "Static type checking",
+        "Smaller bundle size",
+        "Better SEO"
+      ],
+      correctAnswer: "Static type checking",
+      explanation: "TypeScript's main benefit is static type checking at compile time.",
+      points: 10,
+      difficulty: "easy",
+      tags: ["types", "benefits"]
+    },
+    {
+      id: "ts-2",
+      question: "Which of the following are valid TypeScript features?",
+      type: "multiple-choice",
+      options: [
+        "Interfaces",
+        "Generics",
+        "Union Types",
+        "Decorators",
+        "var declarations",
+        "class inheritance"
+      ],
+      correctAnswer: ["Interfaces", "Generics", "Union Types", "Decorators", "class inheritance"],
+      explanation: "All of these are valid TypeScript features. var declarations are JavaScript, not TypeScript-specific.",
+      points: 15,
+      difficulty: "medium",
+      tags: ["features", "syntax"]
+    },
+    {
+      id: "ts-3",
+      question: "Write a TypeScript interface for a User object with id (number), name (string), and email (string).",
+      type: "code",
+      correctAnswer: "interface User { id: number; name: string; email: string; }",
+      explanation: "A basic TypeScript interface definition.",
+      points: 20,
+      difficulty: "medium",
+      tags: ["interfaces", "types"]
+    }
+  ]}
+/>
+
+## Approach 3: QuizBuilder (Advanced)
+
+For complex quizzes with MDX content in questions, use the QuizBuilder:
+
+The QuizBuilder allows you to include rich MDX content within quiz questions, such as:
+
+- Code examples with syntax highlighting
+- Images and diagrams
+- Mathematical expressions
+- Interactive components
+- Custom styling and formatting
+
+This is perfect for technical quizzes where you need to show code snippets, explain concepts with visual aids, or provide detailed context within the question itself.
+
+## Best Practices
+
+### 1. **Choose the Right Approach**
+- **Dedicated Components**: For unique, complex quizzes
+- **ReusableQuiz**: For simple quizzes with standard questions
+- **QuizBuilder**: For quizzes with rich MDX content in questions
+
+### 2. **Question Design**
+- Use clear, concise questions
+- Provide good explanations
+- Set appropriate difficulty levels
+- Include relevant tags for organization
+
+### 3. **Quiz Configuration**
+- Set reasonable time limits
+- Choose appropriate passing scores
+- Consider question order and flow
+- Test your quiz before publishing
+
+### 4. **Encryption Benefits**
+All approaches use client-side encryption:
+- Answers are obfuscated in source code
+- Prevents casual inspection
+- Maintains quiz integrity
+
+## Creating Your Own Quiz
+
+To create a new quiz, follow these steps:
+
+1. **Create a new component** (e.g., `MyQuiz.tsx`)
+2. **Define your questions** with proper structure
+3. **Add encryption** using `encryptAnswerAdvanced`
+4. **Import in mdx-components.tsx**
+5. **Use in your MDX files**
+
+### Example Structure:
+
+```typescript
+const myQuestions = [
+  {
+    id: "q1",
+    question: "Your question here?",
+    type: "single-choice",
+    options: ["Option 1", "Option 2", "Option 3"],
+    correctAnswer: "Option 1",
+    explanation: "Why this is correct",
+    points: 10,
+    difficulty: "easy",
+    tags: ["topic1", "topic2"]
+  }
+]
+
+const encryptedQuestions = myQuestions.map(q => ({
+  ...q,
+  correctAnswer: encryptAnswerAdvanced(q.correctAnswer, q.id)
+}))
+```
+
+## Conclusion
+
+Choose the approach that best fits your needs:
+- **Simple quizzes**: Use `ReusableQuiz`
+- **Complex quizzes**: Create dedicated components
+- **Rich content**: Use `QuizBuilder`
+
+All approaches provide the same great UX with animations, encryption, and responsive design!

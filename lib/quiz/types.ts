@@ -1,94 +1,56 @@
-/**
- * Quiz System Types
- * Production-ready TypeScript definitions for the Next.js Quiz component system
- */
+export interface QuizQuestion {
+  id: string
+  question: string
+  type: 'multiple-choice' | 'single-choice' | 'text' | 'code'
+  options?: string[]
+  correctAnswer: string | string[] // Encrypted answer
+  explanation?: string
+  points?: number
+  difficulty?: 'easy' | 'medium' | 'hard'
+  tags?: string[]
+}
 
-export type QuizChoice = {
-  id: string;
-  label: string;
-  isCorrect?: boolean;
-  hint?: string;
-};
+export interface QuizConfig {
+  id: string
+  title: string
+  description?: string
+  questions: QuizQuestion[]
+  timeLimit?: number // in minutes
+  passingScore?: number // percentage
+  allowRetake?: boolean
+  showCorrectAnswers?: boolean
+  randomizeQuestions?: boolean
+  randomizeOptions?: boolean
+}
 
-export type QuizQuestion = {
-  id: string;
-  type: 'single' | 'multiple' | 'truefalse' | 'input';
-  prompt: string;
-  choices?: QuizChoice[];
-  answerPattern?: string; // For input type questions
-  explanation?: string;
-  points?: number;
-};
+export interface QuizState {
+  currentQuestionIndex: number
+  answers: Record<string, string | string[]>
+  timeRemaining?: number
+  isSubmitted: boolean
+  score?: number
+  isPassed?: boolean
+}
 
-export type QuizModel = {
-  id: string;
-  title: string;
-  description?: string;
-  questions: QuizQuestion[];
-  shuffle?: boolean;
-  timeLimitSec?: number;
-  version?: string;
-};
+export interface QuizResult {
+  score: number
+  totalQuestions: number
+  correctAnswers: number
+  percentage: number
+  isPassed: boolean
+  timeSpent: number
+  answers: Array<{
+    questionId: string
+    userAnswer: string | string[]
+    correctAnswer: string | string[]
+    isCorrect: boolean
+    explanation?: string
+  }>
+}
 
-export type QuizResult = {
-  correctCount: number;
-  total: number;
-  score: number;
-  maxScore: number;
-  perQuestion: Array<{
-    id: string;
-    correct: boolean;
-    earned: number;
-    max: number;
-  }>;
-};
-
-export type QuizState = {
-  currentQuestionIndex: number;
-  answers: Record<string, string | string[]>;
-  reveals: Record<string, boolean>;
-  startTime: number;
-  endTime?: number;
-  streak: number;
-  isComplete: boolean;
-};
-
-export type QuizMode = 'practice' | 'exam';
-
-export type QuizAnalyticsEvent = {
-  type: 'quiz.view' | 'quiz.start' | 'quiz.select_choice' | 'quiz.reveal_question' | 'quiz.finish' | 'quiz.review_open' | 'quiz.copy_mdx' | 'quiz.admin.save';
-  quizId: string;
-  questionId?: string;
-  choiceId?: string;
-  timestamp: number;
-  metadata?: Record<string, any>;
-};
-
-export type QuizSubmission = {
-  quizId: string;
-  version: string;
-  answers: Record<string, string | string[]>;
-  durationMs: number;
-  variantId?: string;
-  nonce: string;
-};
-
-export type QuizStats = {
-  attempts: number;
-  completionRate: number;
-  avgTimePerQuestion: number;
-  perQuestionStats: Array<{
-    questionId: string;
-    correctRate: number;
-    avgTime: number;
-    mostMissedChoice?: string;
-  }>;
-  scoreHistogram: Array<{
-    scoreRange: string;
-    count: number;
-  }>;
-  streakDistribution: Array<{
-    streak: number;
-    count: number;
-  }>;
-};
+export interface QuizProps {
+  config: QuizConfig
+  onComplete?: (result: QuizResult) => void
+  onQuestionChange?: (questionIndex: number) => void
+  className?: string
+}

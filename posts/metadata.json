@@ -88,6 +88,18 @@
     "date": "2024-03-01",
     "excerpt": "Showcasing the new Figure component with automatic Cloudinary URL handling, lightbox functionality, and enhanced image display capabilities.",
     "tags": ["components", "images", "cloudinary", "lightbox", "demo"]
+  },
+  "0013_quiz-system-demo": {
+    "title": "#13 - Interactive Quiz System Demo - Encrypted Answers, Animations, & MDX Support",
+    "date": "2024-03-05",
+    "excerpt": "A comprehensive demonstration of the new interactive quiz system with encryption, animations, and MDX support.",
+    "tags": ["quiz", "interactive", "demo", "encryption", "mdx"]
+  },
+  "0014_quiz-creation-guide": {
+    "title": "#14 - Quiz Creation Guide - Multiple Approaches",
+    "date": "2024-03-06",
+    "excerpt": "Learn different ways to create quizzes in your MDX content with dedicated components, reusable components, and advanced builders.",
+    "tags": ["quiz", "guide", "mdx", "tutorial"]
   }
 }
 

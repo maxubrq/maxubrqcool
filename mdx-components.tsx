@@ -5,7 +5,10 @@
 
 import type { MDXComponents } from 'mdx/types'
 import { Counter, CodePlayground, InteractiveTabs, ProgressBar } from './components/InteractiveComponents'
-import { Quiz } from './components/quiz/Quiz'
+import { Quiz, QuizBuilder, QuizQuestion } from './components/QuizBuilder'
+import { QuizDemo } from './components/QuizDemo'
+import { ReactQuiz } from './components/ReactQuiz'
+import { ReusableQuiz } from './components/ReusableQuiz'
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
 import { Figure, SimpleFigure } from './components/Figure'
@@ -33,10 +36,17 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     // Interactive components
     Counter,
-    Quiz,
     CodePlayground,
     Tabs: InteractiveTabs,
     ProgressBar,
+    
+    // Quiz components
+    Quiz,
+    QuizBuilder,
+    QuizQuestion,
+    QuizDemo,
+    ReactQuiz,
+    ReusableQuiz,
     Mermaid,
     Kroki,
     

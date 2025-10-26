@@ -1,166 +1,74 @@
----
-title: "Interactive Quiz System Demo"
-description: "Comprehensive demonstration of the new quiz system with various question types and features"
-date: "2024-01-15"
-tags: ["quiz", "interactive", "demo", "education"]
-series: "Interactive Components"
----
-
 # Interactive Quiz System Demo
 
-This post demonstrates the new interactive quiz system with various question types, scoring modes, and features.
+Welcome to the comprehensive quiz system! This system features:
 
-## Basic Quiz Example
+- **Encrypted answers** - Answers are encrypted client-side to prevent easy inspection
+- **Beautiful animations** - Smooth transitions and micro-interactions
+- **MDX support** - Use any MDX components within quiz questions
+- **Multiple question types** - Single choice, multiple choice, text, and code questions
+- **Timer support** - Optional time limits with pause/resume functionality
+- **Progress tracking** - Visual progress indicators and score calculation
+- **Responsive design** - Works great on all devices
 
-<Quiz
-  id="redis-basics"
-  title="Redis Cluster Basics"
-  description="Test your knowledge of Redis Cluster fundamentals"
-  shuffle
-  timeLimitSec={120}
-  questions={[
-    { 
-      id: 'q1', 
-      type: 'single', 
-      prompt: 'How many hash slots in Redis Cluster?',
-      choices: [
-        { id: 'a', label: '16384', isCorrect: true, hint: 'Power of two-ish.' },
-        { id: 'b', label: '1024' },
-        { id: 'c', label: '32768' }
-      ],
-      explanation: 'Redis Cluster uses 16384 hash slots for data distribution.'
-    },
-    { 
-      id: 'q2', 
-      type: 'multiple', 
-      points: 2, 
-      prompt: 'Pick valid RESP3 types:',
-      choices: [
-        { id: 'a', label: 'Map', isCorrect: true },
-        { id: 'b', label: 'Set', isCorrect: true },
-        { id: 'c', label: 'Tuple' }
-      ],
-      explanation: 'RESP3 includes Map and Set as new data types.'
-    },
-    { 
-      id: 'q3', 
-      type: 'truefalse', 
-      prompt: 'Redis Cluster requires at least 3 master nodes.',
-      choices: [
-        { id: 'a', label: 'True', isCorrect: true },
-        { id: 'b', label: 'False' }
-      ],
-      explanation: 'Redis Cluster requires a minimum of 3 master nodes for proper operation.'
-    },
-    { 
-      id: 'q4', 
-      type: 'input', 
-      prompt: 'What is the default Redis port?',
-      answerPattern: '^6379$',
-      explanation: 'Redis uses port 6379 by default.'
-    }
-  ]}
-/>
+## JavaScript Fundamentals Quiz
 
-## Advanced Quiz with Builder
+<QuizDemo />
 
-<Quiz
-  id="nextjs-advanced"
-  title="Next.js Advanced Concepts"
-  description="Comprehensive quiz covering advanced Next.js features"
-  mode="exam"
-  timeLimitSec={300}
-  questions={[
-    { 
-      id: 'q1', 
-      type: 'single', 
-      prompt: 'Which Next.js feature allows you to generate static pages at build time?',
-      choices: [
-        { id: 'a', label: 'Server Components' },
-        { id: 'b', label: 'Static Site Generation (SSG)', isCorrect: true },
-        { id: 'c', label: 'Client Components' },
-        { id: 'd', label: 'Edge Runtime' }
-      ],
-      explanation: 'Static Site Generation (SSG) pre-renders pages at build time.'
-    },
-    { 
-      id: 'q2', 
-      type: 'multiple', 
-      points: 3,
-      prompt: 'Which of the following are valid Next.js App Router features?',
-      choices: [
-        { id: 'a', label: 'Server Actions', isCorrect: true },
-        { id: 'b', label: 'Nested Layouts', isCorrect: true },
-        { id: 'c', label: 'Route Groups', isCorrect: true },
-        { id: 'd', label: 'Class Components' }
-      ],
-      explanation: 'Server Actions, Nested Layouts, and Route Groups are all App Router features.'
-    },
-    { 
-      id: 'q3', 
-      type: 'input', 
-      prompt: 'What is the file name for a loading UI in the App Router?',
-      answerPattern: '^loading\\.(js|jsx|ts|tsx)$',
-      explanation: 'The loading UI should be named loading.js (or .jsx, .ts, .tsx).'
-    }
-  ]}
-  showBuilder={true}
-/>
+## Features Showcase
 
-## Quiz Features
+### Encryption
 
-### Question Types
+The quiz system uses client-side encryption to protect answers from casual inspection. While not cryptographically secure, it prevents users from easily finding answers in the source code.
 
-1. **Single Choice**: Traditional multiple choice with one correct answer
-2. **Multiple Choice**: Select multiple correct answers with partial credit
-3. **True/False**: Simple binary questions
-4. **Text Input**: Free-form text with regex pattern matching
+### Animations
 
-### Scoring Modes
+The system includes smooth animations for:
+- Question transitions
+- Answer selection feedback
+- Progress indicators
+- Result displays
+- Button interactions
 
-- **Practice Mode**: Instant feedback, hints, and explanations
-- **Exam Mode**: Timed, with streak bonuses and time bonuses
+### MDX Support
 
-### Features
+You can use any MDX components within quiz questions, including:
+- Code blocks with syntax highlighting
+- Images and figures
+- Tables and lists
+- Custom components
+- Math equations (if configured)
 
-- ⏱️ **Timer**: Optional time limits with visual countdown
-- 🔀 **Shuffle**: Randomize question order
-- 🔥 **Streak Bonus**: Bonus points for consecutive correct answers
-- 📊 **Analytics**: Track completion rates and performance
-- ♿ **Accessibility**: Full keyboard navigation and screen reader support
-- 🎨 **Animations**: Smooth transitions with reduced motion support
+### Responsive Design
 
-### Usage in MDX
+The quiz system is fully responsive and works great on:
+- Desktop computers
+- Tablets
+- Mobile phones
+- Various screen sizes
+
+## Usage in MDX
+
+To use the quiz system in your MDX files, simply wrap your questions in a `QuizBuilder` component:
 
 ```mdx
-<Quiz
-  id="unique-quiz-id"
-  title="Quiz Title"
-  description="Optional description"
-  shuffle={true}
-  timeLimitSec={120}
-  mode="practice"
-  questions={[
-    {
-      id: 'q1',
-      type: 'single',
-      prompt: 'Your question here?',
-      choices: [
-        { id: 'a', label: 'Option A', isCorrect: true },
-        { id: 'b', label: 'Option B' }
-      ],
-      explanation: 'Why this answer is correct'
-    }
-  ]}
-/>
+<QuizBuilder
+  title="Your Quiz Title"
+  description="Quiz description"
+  timeLimit={15}
+  passingScore={80}
+>
+  <QuizQuestion
+    id="unique-id"
+    question="Your question here?"
+    type="single-choice"
+    options={["Option 1", "Option 2", "Option 3"]}
+    correctAnswer="Option 1"
+    explanation="Why this is correct"
+    difficulty="medium"
+  >
+    <!-- MDX content goes here -->
+  </QuizQuestion>
+</QuizBuilder>
 ```
 
-The quiz system is designed to be:
-
-- **Production Ready**: Full TypeScript support, validation, and error handling
-- **Accessible**: WCAG compliant with keyboard navigation and screen reader support
-- **Performant**: Optimized animations and efficient state management
-- **Extensible**: Easy to customize and extend with new question types
-- **Analytics Ready**: Built-in event tracking and result storage
-
-Try the quizzes above to see the system in action!
+The system is designed to be both powerful and easy to use, making it perfect for educational content, assessments, and interactive learning experiences.

@@ -1,0 +1,260 @@
+---
+alwaysApply: true
+---
+
+{
+  "name": "Front-End NextJS • Elegant–Brutalism • Swiss System",
+  "version": "2.1.0",
+  "audience": ["Senior Front-end SE", "Senior UX/UI Designer"],
+  "style_manifesto": {
+    "core": [
+      "Swiss Grid discipline meets digital Brutalism — functional clarity with typographic tension.",
+      "Elegance through restraint: whitespace as rhythm, typography as structure, color as signal.",
+      "Every layout should feel deliberate — architectural, not decorative."
+    ],
+    "visual_traits": {
+      "tone": ["Elegant", "Brutalist", "Swiss Modernism"],
+      "layout": [
+        "8px modular grid, strong alignment, large margins.",
+        "Left-aligned body text, rag-right, high leading for readability.",
+        "Negative space defines rhythm more than borders or lines."
+      ],
+      "typography": {
+        "families": ["Inter", "Suisse Intl", "Helvetica Now", "Space Grotesk (accent)"],
+        "weights": ["100–900 variable; hierarchy via size × weight × spacing"],
+        "treatment": [
+          "Large, confident headlines with generous tracking.",
+          "Monospace accents for meta or system text.",
+          "Use contrast: massive headlines × quiet body copy."
+        ]
+      },
+      "color": {
+        "palette": [
+          "Base: neutral white/black/gray.",
+          "Accent: one bold hue (red, blue, or yellow) per context.",
+          "High contrast: black on white, no gradients."
+        ],
+        "modes": ["light", "dark"],
+        "tokens": [
+          "--bg", "--fg", "--muted", "--accent", "--warning", "--success"
+        ]
+      },
+      "motion": {
+        "library": "Framer Motion (import { motion } from 'motion/react')",
+        "principles": [
+          "Motion clarifies relationships — not for ornament.",
+          "Easings: 'easeInOut', durations 120–240ms.",
+          "Use subtle parallax, fade, and scale to reveal hierarchy.",
+          "Disable/reduce when prefers-reduced-motion."
+        ]
+      }
+    }
+  },
+  "stack": {
+    "language": ["TypeScript >= 5.x"],
+    "framework": ["Next.js >= 15.x"],
+    "ui_library": ["Shadcn/UI (Tailwind + Radix)"],
+    "animation": ["Framer Motion (motion/react)"],
+    "graphics": ["ThreeJS", "D3.js", "p5.js", "AnimeJS"],
+    "tooling": ["ESLint", "Prettier", "Vitest", "Playwright", "Vercel"]
+  },
+  "principles": {
+    "software": [
+      "SOLID", "KISS", "YAGNI",
+      "Design by Contract",
+      "12-Factor for front-end",
+      "Predictability over cleverness"
+    ],
+    "architecture": [
+      "No-Surprise Architecture: explicit contracts, typed data flow, safe defaults.",
+      "UI → Hooks/Stores → Services → Gateways; no hidden coupling.",
+      "Composition > Inheritance; simplicity scales, complexity compounds."
+    ],
+    "ux_ui": [
+      "Accessible by design — WCAG 2.2 AA minimum.",
+      "Information hierarchy visualized, not implied.",
+      "Whitespace is an active design element, not a leftover."
+    ]
+  },
+  "patterns": {
+    "nextjs": [
+      "Use /app directory; server components by default, mark client explicitly.",
+      "Compose domains under /features/<domain>/ with co-located tests and docs.",
+      "Use server actions for mutations; ensure type contracts are shared."
+    ],
+    "shadcn_ui": [
+      "Adopt design tokens and utility classes over ad hoc CSS.",
+      "Respect motion system; integrate with Framer Motion via slots or wrappers.",
+      "Override styles through Tailwind variables, not inline patches."
+    ],
+    "motion": [
+      "Use motion.div, motion.section, etc., for layout and reveal transitions.",
+      "Compose entrance/exit variants; avoid over-layered animations.",
+      "Keep frame budget low; prefer transform over opacity-only tweens."
+    ],
+    "graphics": {
+      "threejs": [
+        "Isolate WebGL setup; dispose resources; expose props for data binding."
+      ],
+      "d3js": [
+        "Declarative render; data updates via React state; use Motion for transitions."
+      ],
+      "p5js": [
+        "Encapsulate sketch lifecycle; cleanup on destroy."
+      ],
+      "animejs": [
+        "Use for sequential/timeline motion when Framer Motion is overkill."
+      ]
+    }
+  },
+  "response_format": {
+    "sections": ["TaskClarification", "DesignNotes", "Implementation", "Code", "Tests", "Docs"],
+    "constraints": [
+      "All snippets self-contained.",
+      "Show component + motion integration when relevant.",
+      "Include type contracts and accessibility rationale."
+    ]
+  },
+  "rules_for_ai": {
+    "do": [
+      "Explain design intent before code.",
+      "Enforce grid, whitespace, and typographic rhythm.",
+      "Demonstrate composable animation with Framer Motion.",
+      "Integrate Shadcn UI with minimal overrides."
+    ],
+    "dont": [
+      "Break grid alignment.",
+      "Mix more than one accent color per layout.",
+      "Add dependencies without purpose.",
+      "Use arbitrary z-index or spacing magic numbers."
+    ]
+  }
+}
+{
+  "name": "Front-End NextJS • Elegant–Brutalism • Swiss System",
+  "version": "2.1.0",
+  "audience": ["Senior Front-end SE", "Senior UX/UI Designer"],
+  "style_manifesto": {
+    "core": [
+      "Swiss Grid discipline meets digital Brutalism — functional clarity with typographic tension.",
+      "Elegance through restraint: whitespace as rhythm, typography as structure, color as signal.",
+      "Every layout should feel deliberate — architectural, not decorative."
+    ],
+    "visual_traits": {
+      "tone": ["Elegant", "Brutalist", "Swiss Modernism"],
+      "layout": [
+        "8px modular grid, strong alignment, large margins.",
+        "Left-aligned body text, rag-right, high leading for readability.",
+        "Negative space defines rhythm more than borders or lines."
+      ],
+      "typography": {
+        "families": ["Inter", "Suisse Intl", "Helvetica Now", "Space Grotesk (accent)"],
+        "weights": ["100–900 variable; hierarchy via size × weight × spacing"],
+        "treatment": [
+          "Large, confident headlines with generous tracking.",
+          "Monospace accents for meta or system text.",
+          "Use contrast: massive headlines × quiet body copy."
+        ]
+      },
+      "color": {
+        "palette": [
+          "Base: neutral white/black/gray.",
+          "Accent: one bold hue (red, blue, or yellow) per context.",
+          "High contrast: black on white, no gradients."
+        ],
+        "modes": ["light", "dark"],
+        "tokens": [
+          "--bg", "--fg", "--muted", "--accent", "--warning", "--success"
+        ]
+      },
+      "motion": {
+        "library": "Framer Motion (import { motion } from 'motion/react')",
+        "principles": [
+          "Motion clarifies relationships — not for ornament.",
+          "Easings: 'easeInOut', durations 120–240ms.",
+          "Use subtle parallax, fade, and scale to reveal hierarchy.",
+          "Disable/reduce when prefers-reduced-motion."
+        ]
+      }
+    }
+  },
+  "stack": {
+    "language": ["TypeScript >= 5.x"],
+    "framework": ["Next.js >= 15.x"],
+    "ui_library": ["Shadcn/UI (Tailwind + Radix)"],
+    "animation": ["Framer Motion (motion/react)"],
+    "graphics": ["ThreeJS", "D3.js", "p5.js", "AnimeJS"],
+    "tooling": ["ESLint", "Prettier", "Vitest", "Playwright", "Vercel"]
+  },
+  "principles": {
+    "software": [
+      "SOLID", "KISS", "YAGNI",
+      "Design by Contract",
+      "12-Factor for front-end",
+      "Predictability over cleverness"
+    ],
+    "architecture": [
+      "No-Surprise Architecture: explicit contracts, typed data flow, safe defaults.",
+      "UI → Hooks/Stores → Services → Gateways; no hidden coupling.",
+      "Composition > Inheritance; simplicity scales, complexity compounds."
+    ],
+    "ux_ui": [
+      "Accessible by design — WCAG 2.2 AA minimum.",
+      "Information hierarchy visualized, not implied.",
+      "Whitespace is an active design element, not a leftover."
+    ]
+  },
+  "patterns": {
+    "nextjs": [
+      "Use /app directory; server components by default, mark client explicitly.",
+      "Compose domains under /features/<domain>/ with co-located tests and docs.",
+      "Use server actions for mutations; ensure type contracts are shared."
+    ],
+    "shadcn_ui": [
+      "Adopt design tokens and utility classes over ad hoc CSS.",
+      "Respect motion system; integrate with Framer Motion via slots or wrappers.",
+      "Override styles through Tailwind variables, not inline patches."
+    ],
+    "motion": [
+      "Use motion.div, motion.section, etc., for layout and reveal transitions.",
+      "Compose entrance/exit variants; avoid over-layered animations.",
+      "Keep frame budget low; prefer transform over opacity-only tweens."
+    ],
+    "graphics": {
+      "threejs": [
+        "Isolate WebGL setup; dispose resources; expose props for data binding."
+      ],
+      "d3js": [
+        "Declarative render; data updates via React state; use Motion for transitions."
+      ],
+      "p5js": [
+        "Encapsulate sketch lifecycle; cleanup on destroy."
+      ],
+      "animejs": [
+        "Use for sequential/timeline motion when Framer Motion is overkill."
+      ]
+    }
+  },
+  "response_format": {
+    "sections": ["TaskClarification", "DesignNotes", "Implementation", "Code", "Tests", "Docs"],
+    "constraints": [
+      "All snippets self-contained.",
+      "Show component + motion integration when relevant.",
+      "Include type contracts and accessibility rationale."
+    ]
+  },
+  "rules_for_ai": {
+    "do": [
+      "Explain design intent before code.",
+      "Enforce grid, whitespace, and typographic rhythm.",
+      "Demonstrate composable animation with Framer Motion.",
+      "Integrate Shadcn UI with minimal overrides."
+    ],
+    "dont": [
+      "Break grid alignment.",
+      "Mix more than one accent color per layout.",
+      "Add dependencies without purpose.",
+      "Use arbitrary z-index or spacing magic numbers."
+    ]
+  }
+}

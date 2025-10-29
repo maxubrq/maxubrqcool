@@ -1,13 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { 
   ChevronLeft, 
   ChevronRight, 
   ChevronsLeft, 
   ChevronsRight 
 } from "lucide-react"
+import { motion } from "motion/react"
 
 interface PaginationProps {
   currentPage: number
@@ -27,7 +27,7 @@ export function Pagination({
   }
 
   const getVisiblePages = () => {
-    const delta = 2
+    const delta = 1
     const range = []
     const rangeWithDots = []
 
@@ -59,73 +59,122 @@ export function Pagination({
   const visiblePages = getVisiblePages()
 
   return (
-    <Card className={`p-4 ${className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(1)}
-            disabled={currentPage === 1}
-            className="flex items-center gap-1"
-          >
-            <ChevronsLeft className="h-4 w-4" />
-            First
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="flex items-center gap-1"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {visiblePages.map((page, index) => (
-            <Button
-              key={index}
-              variant={page === currentPage ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => typeof page === 'number' && onPageChange(page)}
-              disabled={page === '...'}
-              className="min-w-[40px]"
+    <motion.div 
+      className={`relative ${className}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    >
+      {/* Swiss Grid Container */}
+      <div className="max-w-4xl mx-auto">
+        {/* Navigation Controls */}
+        <div className="flex items-center justify-between">
+          {/* Previous Controls */}
+          <div className="flex items-center gap-3">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              {page}
-            </Button>
-          ))}
-        </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(1)}
+                disabled={currentPage === 1}
+                className="h-12 px-4 font-mono text-xs tracking-widest uppercase hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronsLeft className="h-3 w-3 mr-2" />
+                First
+              </Button>
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-12 px-6 font-mono text-xs tracking-widest uppercase hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-3 w-3 mr-2" />
+                Previous
+              </Button>
+            </motion.div>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="flex items-center gap-1"
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(totalPages)}
-            disabled={currentPage === totalPages}
-            className="flex items-center gap-1"
-          >
-            Last
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
+          {/* Page Numbers - Swiss Typography */}
+          <div className="flex items-center gap-1">
+            {visiblePages.map((page, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {page === '...' ? (
+                  <div className="w-12 h-12 flex items-center justify-center">
+                    <span className="text-muted-foreground font-mono text-lg tracking-wider">
+                      ⋯
+                    </span>
+                  </div>
+                ) : (
+                  <Button
+                    variant={page === currentPage ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => typeof page === 'number' && onPageChange(page)}
+                    className={`
+                      w-12 h-12 font-mono text-sm font-bold tracking-wider
+                      ${page === currentPage 
+                        ? 'bg-primary text-primary-foreground shadow-lg' 
+                        : 'hover:bg-primary/10 text-foreground'
+                      }
+                      transition-all duration-200
+                    `}
+                  >
+                    {page}
+                  </Button>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Next Controls */}
+          <div className="flex items-center gap-3">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-12 px-6 font-mono text-xs tracking-widest uppercase hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="h-3 w-3 ml-2" />
+              </Button>
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                className="h-12 px-4 font-mono text-xs tracking-widest uppercase hover:bg-primary/10 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Last
+                <ChevronsRight className="h-3 w-3 ml-2" />
+              </Button>
+            </motion.div>
+          </div>
         </div>
       </div>
-
-      <div className="mt-3 text-center text-sm text-muted-foreground">
-        Page {currentPage} of {totalPages}
-      </div>
-    </Card>
+    </motion.div>
   )
 }

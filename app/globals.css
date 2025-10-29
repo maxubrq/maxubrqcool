@@ -778,6 +778,201 @@ pre code .line--highlighted {
   --accent: oklch(0.3000 0.1200 280);
 }
 
+/* Swiss Grid System - 8px modular grid */
+.swiss-grid {
+  display: grid;
+  gap: 2rem; /* 32px = 4 * 8px */
+}
+
+@media (min-width: 768px) {
+  .swiss-grid {
+    gap: 3rem; /* 48px = 6 * 8px */
+  }
+}
+
+@media (min-width: 1024px) {
+  .swiss-grid {
+    gap: 4rem; /* 64px = 8 * 8px */
+  }
+}
+
+/* Elegant Typography Scale */
+.text-display {
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+}
+
+.text-hero {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.text-meta {
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Swiss Grid Layout Components */
+.hero-section {
+  padding: 6rem 0; /* 96px = 12 * 8px */
+}
+
+@media (min-width: 768px) {
+  .hero-section {
+    padding: 8rem 0; /* 128px = 16 * 8px */
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-section {
+    padding: 12rem 0; /* 192px = 24 * 8px */
+  }
+}
+
+/* Elegant Card Design */
+.elegant-card {
+  border: 1px solid oklch(0.2000 0 0);
+  border-radius: 0;
+  transition: all 0.3s ease;
+  background: oklch(1.0000 0 0);
+}
+
+.dark .elegant-card {
+  border-color: oklch(0.2000 0 0);
+  background: oklch(0.1000 0 0);
+}
+
+.elegant-card:hover {
+  border-color: oklch(0.4000 0 0);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px oklch(0 0 0 / 0.1);
+}
+
+.dark .elegant-card:hover {
+  border-color: oklch(0.3000 0 0);
+  box-shadow: 0 8px 32px oklch(0 0 0 / 0.3);
+}
+
+/* Monospace Accents */
+.font-mono-accent {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* High Contrast Text */
+.text-high-contrast {
+  color: oklch(0.1000 0 0);
+}
+
+.dark .text-high-contrast {
+  color: oklch(0.9800 0 0);
+}
+
+/* Subtle Borders */
+.border-subtle {
+  border-color: oklch(0.2000 0 0);
+}
+
+.dark .border-subtle {
+  border-color: oklch(0.2000 0 0);
+}
+
+/* Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Responsive Typography */
+@media (max-width: 640px) {
+  .text-display {
+    font-size: 2.5rem;
+    line-height: 0.95;
+  }
+  
+  .text-hero {
+    font-size: 1.75rem;
+    line-height: 1.15;
+  }
+}
+
+/* Mobile-first responsive grid */
+@media (max-width: 768px) {
+  .swiss-grid {
+    gap: 1.5rem; /* 24px = 3 * 8px */
+  }
+  
+  .hero-section {
+    padding: 4rem 0; /* 64px = 8 * 8px */
+  }
+}
+
+/* Enhanced mobile navigation */
+@media (max-width: 1024px) {
+  .mobile-nav {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-contrast: high) {
+  .elegant-card {
+    border-width: 2px;
+  }
+  
+  .elegant-card:hover {
+    border-width: 3px;
+  }
+}
+
+/* Focus states for accessibility */
+.elegant-card:focus-within {
+  outline: 2px solid oklch(0.7000 0.1500 250);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .text-muted-foreground {
+    color: oklch(0.4000 0 0) !important;
+  }
+  
+  .dark .text-muted-foreground {
+    color: oklch(0.6000 0 0) !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .elegant-card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+  
+  .motion-safe {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Beautiful gradient backgrounds for cards - Dark theme only */
 .dark .group:hover {
   background: linear-gradient(135deg, oklch(0.1200 0 0) 0%, oklch(0.1500 0 0) 100%);

@@ -371,10 +371,10 @@ function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) 
                 key={index}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`flex items-center space-x-3 cursor-pointer p-4 rounded-lg border-2 transition-all ${
+                className={`flex items-center space-x-3 cursor-pointer p-4 rounded-lg border-2 transition-all focus-within:ring-2 focus-within:ring-primary/40 ${
                   value === option
                     ? 'border-primary bg-primary/5'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    : 'border-gray-200 hover:border-primary/50 hover:bg-primary/5 dark:border-gray-700 dark:hover:border-primary/50 dark:hover:bg-primary/10'
                 }`}
               >
                 <input
@@ -398,10 +398,10 @@ function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) 
                 key={index}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`flex items-center space-x-3 cursor-pointer p-4 rounded-lg border-2 transition-all ${
+                className={`flex items-center space-x-3 cursor-pointer p-4 rounded-lg border-2 transition-all focus-within:ring-2 focus-within:ring-primary/40 ${
                   Array.isArray(value) && value.includes(option)
                     ? 'border-primary bg-primary/5'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    : 'border-gray-200 hover:border-primary/50 hover:bg-primary/5 dark:border-gray-700 dark:hover:border-primary/50 dark:hover:bg-primary/10'
                 }`}
               >
                 <input

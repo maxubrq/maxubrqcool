@@ -59,7 +59,8 @@ export default function Post({ params: { id } }: { params: { id: string } }) {
     <PostContainer 
       post={post}
       seriesNav={seriesNav}
-      renderedContent={renderedContent}
-    />
+    >
+      {renderedContent}
+    </PostContainer>
   )
 }

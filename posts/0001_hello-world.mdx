@@ -19,16 +19,20 @@ In this blog, I'll be sharing:
 
 Let's test your knowledge about web development:
 
-<Quiz 
-  question="What is the main advantage of using MDX in a blog?"
-  options={[
-    "It makes the blog load faster",
-    "It allows you to use React components in markdown",
-    "It automatically optimizes images",
-    "It provides better SEO"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="Interactive Quiz" description="A quick check on MDX benefits">
+  <QuizQuestion
+    id="hello-world-mdx-advantages"
+    question="What is the main advantage of using MDX in a blog?"
+    type="single-choice"
+    options={[
+      "It makes the blog load faster",
+      "It allows you to use React components in markdown",
+      "It automatically optimizes images",
+      "It provides better SEO"
+    ]}
+    correctAnswer="It allows you to use React components in markdown"
+  />
+</QuizBuilder>
 
 ## About This Blog
 

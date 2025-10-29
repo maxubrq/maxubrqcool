@@ -7,6 +7,7 @@ import { encryptAnswerAdvanced } from '@/lib/quiz/encryption'
 interface QuizContextType {
   addQuestion: (question: QuizQuestion) => void
   questions: QuizQuestion[]
+  resetQuestions: () => void
 }
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined)
@@ -16,14 +17,24 @@ export function QuizProvider({ children }: { children: React.ReactNode }) {
 
   const addQuestion = useCallback((question: QuizQuestion) => {
     const encryptedAnswer = encryptAnswerAdvanced(question.correctAnswer, question.id)
-    setQuestions(prev => [...prev, {
-      ...question,
-      correctAnswer: encryptedAnswer
-    }])
+    setQuestions(prev => {
+      const nextQuestion = { ...question, correctAnswer: encryptedAnswer }
+      const existingIndex = prev.findIndex(q => q.id === question.id)
+      if (existingIndex !== -1) {
+        const updated = [...prev]
+        updated[existingIndex] = nextQuestion
+        return updated
+      }
+      return [...prev, nextQuestion]
+    })
+  }, [])
+
+  const resetQuestions = useCallback(() => {
+    setQuestions([])
   }, [])
 
   return (
-    <QuizContext.Provider value={{ addQuestion, questions }}>
+    <QuizContext.Provider value={{ addQuestion, questions, resetQuestions }}>
       {children}
     </QuizContext.Provider>
   )

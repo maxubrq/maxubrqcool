@@ -75,12 +75,12 @@ export function HeroSection({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight leading-none text-foreground">
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter leading-none text-foreground">
                 {title}
               </h1>
               
               {subtitle && (
-                <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-4xl">
+                <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-4xl font-light tracking-wider">
                   {subtitle}
                 </p>
               )}

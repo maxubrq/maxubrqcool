@@ -29,7 +29,7 @@ export function HeaderNav() {
               <div className="w-10 h-10 bg-black dark:bg-white rounded-sm flex items-center justify-center text-white dark:text-black font-bold text-lg group-hover:scale-110 transition-transform duration-200">
                 M
               </div>
-              <h1 className="text-2xl font-bold tracking-wider uppercase">
+              <h1 className="text-2xl font-black tracking-tighter uppercase">
                 Maxubrqcool
               </h1>
             </a>

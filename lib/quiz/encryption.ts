@@ -3,6 +3,8 @@
  * This is not cryptographically secure but prevents casual inspection
  */
 
+import { safeAtobUtf8, safeBtoaUtf8 } from '@/lib/utils'
+
 const ENCRYPTION_KEY = 'quiz-encryption-key-2024'
 
 // Simple XOR cipher for obfuscation
@@ -20,12 +22,12 @@ function xorCipher(text: string, key: string): string {
 export function encryptAnswer(answer: string | string[]): string {
   const answerStr = Array.isArray(answer) ? answer.join('|') : answer
   const encrypted = xorCipher(answerStr, ENCRYPTION_KEY)
-  return btoa(encrypted)
+  return safeBtoaUtf8(encrypted)
 }
 
 export function decryptAnswer(encryptedAnswer: string): string {
   try {
-    const decoded = atob(encryptedAnswer)
+    const decoded = safeAtobUtf8(encryptedAnswer)
     const decrypted = xorCipher(decoded, ENCRYPTION_KEY)
     return decrypted
   } catch (error) {
@@ -55,13 +57,13 @@ export function encryptAnswerAdvanced(answer: string | string[], questionId: str
   const answerStr = Array.isArray(answer) ? answer.join('|') : answer
   const key = generateQuestionKey(questionId)
   const encrypted = xorCipher(answerStr, key)
-  return btoa(encrypted)
+  return safeBtoaUtf8(encrypted)
 }
 
 export function decryptAnswerAdvanced(encryptedAnswer: string, questionId: string): string {
   try {
     const key = generateQuestionKey(questionId)
-    const decoded = atob(encryptedAnswer)
+    const decoded = safeAtobUtf8(encryptedAnswer)
     const decrypted = xorCipher(decoded, key)
     return decrypted
   } catch (error) {

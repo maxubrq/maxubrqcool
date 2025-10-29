@@ -12,27 +12,35 @@ A simple but effective way to engage readers:
 
 Test your knowledge with these interactive quizzes:
 
-<Quiz 
-  question="What makes MDX special compared to regular markdown?"
-  options={[
-    "It loads faster",
-    "It supports React components",
-    "It has better syntax highlighting",
-    "It's easier to write"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="MDX Basics Quiz" description="Quick check on MDX fundamentals">
+  <QuizQuestion
+    id="interactive-mdx-special"
+    question="What makes MDX special compared to regular markdown?"
+    type="single-choice"
+    options={[
+      "It loads faster",
+      "It supports React components",
+      "It has better syntax highlighting",
+      "It's easier to write"
+    ]}
+    correctAnswer="It supports React components"
+  />
+</QuizBuilder>
 
-<Quiz 
-  question="Which of these is NOT a benefit of interactive blog content?"
-  options={[
-    "Better reader engagement",
-    "Hands-on learning",
-    "Faster page loading",
-    "More memorable content"
-  ]}
-  correctAnswer={2}
-/>
+<QuizBuilder title="Interactivity Quiz" description="Benefits of interactive content">
+  <QuizQuestion
+    id="interactive-not-a-benefit"
+    question="Which of these is NOT a benefit of interactive blog content?"
+    type="single-choice"
+    options={[
+      "Better reader engagement",
+      "Hands-on learning",
+      "Faster page loading",
+      "More memorable content"
+    ]}
+    correctAnswer="Faster page loading"
+  />
+</QuizBuilder>
 
 ## Code Playground
 
@@ -126,16 +134,20 @@ You can combine multiple interactive elements:
 
 <Counter initialValue={0} />
 
-<Quiz 
-  question="How many interactive components are shown in this post?"
-  options={[
-    "3",
-    "5",
-    "7",
-    "More than 10"
-  ]}
-  correctAnswer={3}
-/>
+<QuizBuilder title="Components Count Quiz">
+  <QuizQuestion
+    id="interactive-components-count"
+    question="How many interactive components are shown in this post?"
+    type="single-choice"
+    options={[
+      "3",
+      "5",
+      "7",
+      "More than 10"
+    ]}
+    correctAnswer="More than 10"
+  />
+</QuizBuilder>
 
 <CodePlayground 
   initialCode={`// Count the components
@@ -176,16 +188,20 @@ Here's a more complex example with nested content:
       <div>
         <h3>Advanced Features</h3>
         <p>Explore advanced capabilities:</p>
-        <Quiz 
-          question="What's the most powerful feature of MDX?"
-          options={[
-            "Syntax highlighting",
-            "Component integration",
-            "Fast loading",
-            "Easy writing"
-          ]}
-          correctAnswer={1}
-        />
+        <QuizBuilder title="MDX Feature Quiz">
+          <QuizQuestion
+            id="interactive-mdx-powerful-feature"
+            question="What's the most powerful feature of MDX?"
+            type="single-choice"
+            options={[
+              "Syntax highlighting",
+              "Component integration",
+              "Fast loading",
+              "Easy writing"
+            ]}
+            correctAnswer="Component integration"
+          />
+        </QuizBuilder>
       </div>
     )
   }

@@ -70,7 +70,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h1 id={id} className="text-3xl font-bold text-gray-900 mb-6 mt-8" {...props}>
+        <h1 id={id} className="text-3xl font-black tracking-tighter text-gray-900 mb-6 mt-8" {...props}>
           {children}
         </h1>
       )
@@ -79,7 +79,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h2 id={id} className="text-2xl font-semibold text-gray-900 mb-4 mt-6" {...props}>
+        <h2 id={id} className="text-2xl font-black tracking-tighter text-gray-900 mb-4 mt-6" {...props}>
           {children}
         </h2>
       )
@@ -88,7 +88,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h3 id={id} className="text-xl font-semibold text-gray-900 mb-3 mt-5" {...props}>
+        <h3 id={id} className="text-xl font-black tracking-tighter text-gray-900 mb-3 mt-5" {...props}>
           {children}
         </h3>
       )
@@ -121,22 +121,22 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       )
     },
     p: ({ children, ...props }) => (
-      <p className="text-gray-700 mb-4 leading-relaxed" {...props}>
+      <p className="text-gray-700 mb-4 leading-relaxed font-light tracking-wider" {...props}>
         {children}
       </p>
     ),
     ul: ({ children, ...props }) => (
-      <ul className="list-disc list-inside mb-4 space-y-1 text-gray-700" {...props}>
+      <ul className="list-disc list-inside mb-4 space-y-1 text-gray-700 font-light tracking-wider" {...props}>
         {children}
       </ul>
     ),
     ol: ({ children, ...props }) => (
-      <ol className="list-decimal list-inside mb-4 space-y-1 text-gray-700" {...props}>
+      <ol className="list-decimal list-inside mb-4 space-y-1 text-gray-700 font-light tracking-wider" {...props}>
         {children}
       </ol>
     ),
     li: ({ children, ...props }) => (
-      <li className="text-gray-700" {...props}>
+      <li className="text-gray-700 font-light tracking-wider" {...props}>
         {children}
       </li>
     ),

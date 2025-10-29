@@ -146,19 +146,25 @@
   }
 
   .prose h1 {
-    @apply text-4xl mb-6;
+    @apply text-5xl md:text-6xl mb-8 leading-[0.95];
+    letter-spacing: -0.02em;
   }
 
   .prose h2 {
-    @apply text-3xl mb-4;
+    @apply text-3xl md:text-4xl mb-6 pt-2;
+    letter-spacing: -0.01em;
+    position: relative;
   }
+
 
   .prose h3 {
-    @apply text-2xl mb-3;
+    @apply text-2xl md:text-3xl mb-4 pt-1;
+    letter-spacing: -0.005em;
   }
 
+
   .prose p {
-    @apply leading-relaxed mb-4;
+    @apply leading-8 mb-5;
   }
 
   .prose strong {
@@ -166,19 +172,39 @@
   }
 
   .prose a {
-    @apply text-primary hover:text-primary/80 transition-colors;
+    @apply text-primary transition-colors underline underline-offset-4 decoration-1 hover:text-primary/80;
   }
 
   .prose blockquote {
-    @apply border-l-4 border-primary/30 bg-muted/50 p-4 my-6 italic;
+    @apply border-l-2 border-foreground/40 pl-4 my-6 italic;
   }
 
   .prose ul, .prose ol {
-    @apply text-foreground;
+    @apply text-foreground my-4;
   }
 
   .prose li {
-    @apply mb-2;
+    @apply mb-1.5 leading-7;
+  }
+
+  .prose ul {
+    @apply list-disc pl-6;
+  }
+
+  .prose ol {
+    @apply list-decimal pl-6;
+  }
+
+  .prose hr {
+    @apply my-10 border-0 h-px bg-border/80;
+  }
+
+  .prose figcaption {
+    @apply mt-2 text-[11px] font-mono tracking-widest uppercase text-muted-foreground;
+  }
+
+  .prose img {
+    @apply my-6;
   }
 
   /* Light theme specific prose styles */
@@ -189,10 +215,12 @@
   .prose h5, 
   .prose h6 {
     @apply text-foreground;
+    @apply font-black tracking-tighter;
   }
 
   .prose p {
     @apply text-foreground/90;
+    @apply font-light tracking-wider;
   }
 
   .prose strong {
@@ -208,11 +236,11 @@
   }
 
   .prose blockquote {
-    @apply text-foreground/80 border-l-primary/50 bg-muted/30;
+    @apply text-foreground/80 border-l-foreground/50;
   }
 
   .prose code:not(pre code) {
-    @apply bg-muted text-foreground px-1.5 py-0.5 rounded text-sm font-mono;
+    @apply bg-muted/60 text-foreground px-1 py-0.5 text-[13px] font-mono;
   }
 
   /* Dark theme specific prose styles */
@@ -242,11 +270,11 @@
   }
 
   .dark .prose blockquote {
-    @apply text-gray-300 border-l-primary/50 bg-muted/30;
+    @apply text-gray-300 border-l-gray-500;
   }
 
   .dark .prose code:not(pre code) {
-    @apply bg-muted text-white px-1.5 py-0.5 rounded text-sm font-mono;
+    @apply bg-muted text-white px-1 py-0.5 text-[13px] font-mono;
   }
 }
 

@@ -52,11 +52,11 @@ export function PostCard({ post, index = 0 }: PostCardProps) {
                 </div>
               )}
 
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight group-hover:text-primary transition-colors">
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter leading-tight group-hover:text-primary transition-colors">
                 {post.title}
               </h3>
 
-              <p className="text-muted-foreground leading-relaxed text-lg line-clamp-2">
+              <p className="text-muted-foreground leading-relaxed text-lg line-clamp-2 font-light">
                 {post.excerpt}
               </p>
             </div>

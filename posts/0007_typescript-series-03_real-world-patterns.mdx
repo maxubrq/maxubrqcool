@@ -451,27 +451,35 @@ try {
 
 Test your overall TypeScript knowledge:
 
-<Quiz 
-  question="What is the best way to handle potentially null values in TypeScript?"
-  options={[
-    "Use 'any' type",
-    "Use optional chaining and nullish coalescing",
-    "Disable strict null checks",
-    "Always use non-null assertion (!)"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="Patterns Quiz" description="Null handling best practices">
+  <QuizQuestion
+    id="ts-null-handling-best-way"
+    question="What is the best way to handle potentially null values in TypeScript?"
+    type="single-choice"
+    options={[
+      "Use 'any' type",
+      "Use optional chaining and nullish coalescing",
+      "Disable strict null checks",
+      "Always use non-null assertion (!)"
+    ]}
+    correctAnswer="Use optional chaining and nullish coalescing"
+  />
+</QuizBuilder>
 
-<Quiz 
-  question="Which pattern is best for handling async operations with multiple states?"
-  options={[
-    "Using boolean flags",
-    "Using discriminated unions",
-    "Using any type",
-    "Using multiple useState calls"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="Patterns Quiz">
+  <QuizQuestion
+    id="ts-async-multiple-states-pattern"
+    question="Which pattern is best for handling async operations with multiple states?"
+    type="single-choice"
+    options={[
+      "Using boolean flags",
+      "Using discriminated unions",
+      "Using any type",
+      "Using multiple useState calls"
+    ]}
+    correctAnswer="Using discriminated unions"
+  />
+</QuizBuilder>
 
 ## Series Complete! 🎉
 

@@ -18,10 +18,10 @@ interface PostContainerProps {
     prev: { id: string; title: string; series?: { part: number } } | null
     next: { id: string; title: string; series?: { part: number } } | null
   }
-  renderedContent: React.ReactNode
+  children: React.ReactNode
 }
 
-export function PostContainer({ post, seriesNav, renderedContent }: PostContainerProps) {
+export function PostContainer({ post, seriesNav, children }: PostContainerProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -37,77 +37,98 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
       
       {/* Navigation */}
       <motion.div 
-        className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 border-b border-border/20"
+        className="max-w-7xl mx-auto px-4 sm:px-6 py-5 border-b border-border/20"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 mobile-nav">
-          <Link 
-            href="/" 
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors font-mono tracking-wider"
-          >
-            ← Back to Home
-          </Link>
-          {post.series && (
+        <div className="flex items-center justify-between">
+          <div className="flex gap-6 mobile-nav">
             <Link 
-              href={`/series/${post.series.slug}`}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors font-mono tracking-wider"
+              href="/" 
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono tracking-widest uppercase"
             >
-              View Series →
+              ← Back
             </Link>
-          )}
+            {post.series && (
+              <Link 
+                href={`/series/${post.series.slug}`}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono tracking-widest uppercase"
+              >
+                Series
+              </Link>
+            )}
+          </div>
+          <div className="hidden sm:block text-xs font-mono tracking-widest uppercase text-muted-foreground">
+            {format(new Date(post.date), 'MMM dd, yyyy')}
+          </div>
         </div>
       </motion.div>
       
-      {/* Tags and Like Button */}
-      <motion.div 
-        className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-      >
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              <TagList 
-                tags={post.tags} 
-                variant="outline" 
-                clickable={true}
-                basePath="/tags"
-                className="text-xs font-mono tracking-wider"
-              />
-            </div>
-          )}
-          
-          <PostLikeButtonSSR 
-            postId={post.id}
-            variant="text"
-            size="lg"
-            showCount={true}
-            className="text-sm font-mono tracking-wider"
-          />
-        </div>
-      </motion.div>
+      {/* Editorial Grid */}
+      {/* The meta column (left) will also contain tags/likes on large screens */}
+
 
       {/* Main Content */}
       <motion.main 
         className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.5 }}
+        transition={{ duration: 0.6, delay: 0.45 }}
       >
-        <div className="grid grid-cols-12 gap-6 lg:gap-8">
-          {/* Content */}
-          <article className="col-span-12 lg:col-span-8">
+        <div className="grid grid-cols-12 gap-6 lg:gap-10">
+          {/* Left Meta Column */}
+          <aside className="col-span-12 lg:col-span-2 order-2 lg:order-1">
+            <div className="lg:sticky lg:top-16 lg:pr-6 lg:border-r lg:border-border/30">
+              <div className="space-y-6">
+                <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
+                  {format(new Date(post.date), 'MMM dd, yyyy')}
+                </div>
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <TagList 
+                      tags={post.tags} 
+                      variant="outline" 
+                      clickable={true}
+                      basePath="/tags"
+                      className="text-[11px] font-mono tracking-widest uppercase"
+                    />
+                  </div>
+                )}
+                <div>
+                  <PostLikeButtonSSR 
+                    postId={post.id}
+                    variant="text"
+                    size="lg"
+                    showCount={true}
+                    className="text-xs font-mono tracking-widest uppercase"
+                  />
+                </div>
+                {post.series && (
+                  <div className="pt-4 border-t border-border/20">
+                    <Link 
+                      href={`/series/${post.series.slug}`}
+                      className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground"
+                    >
+                      {post.series.name}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Article */}
+          <article className="col-span-12 lg:col-span-7 order-1 lg:order-2">
             <div className="prose prose-lg max-w-none">
-              {renderedContent}
+              {children}
             </div>
           </article>
-          
-          {/* Sidebar TOC */}
-          <aside className="col-span-12 lg:col-span-4">
-            <div className="sticky top-8">
+
+          {/* Right TOC */}
+          <aside className="col-span-12 lg:col-span-3 order-3">
+            <div className="sticky top-16">
+              <div className="mb-4 text-xs font-mono tracking-widest uppercase text-muted-foreground">Contents</div>
               <TableOfContents />
             </div>
           </aside>
@@ -124,8 +145,8 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
         >
           <div className="space-y-8">
             <div className="flex items-center gap-4">
-              <div className="w-2 h-2 bg-primary rounded-full"></div>
-              <span className="text-sm font-mono tracking-wider uppercase text-muted-foreground">
+              <div className="w-1 h-4 bg-primary"></div>
+              <span className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
                 Series: {seriesNav.series.name}
               </span>
             </div>
@@ -138,17 +159,15 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
                   transition={{ duration: 0.2 }}
                 >
                   <Link href={`/posts/${seriesNav.prev.id}`} className="block group">
-                    <div className="border border-border/20 p-8 hover:border-border transition-colors">
+                    <div className="border border-border/40 p-8 hover:border-foreground/60 transition-colors">
                       <div className="space-y-4">
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-mono tracking-wider text-muted-foreground">
-                            ← Previous
-                          </span>
-                          <Badge variant="outline" className="text-xs font-mono">
+                          <span className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground">← Previous</span>
+                          <Badge variant="outline" className="text-[11px] font-mono tracking-widest uppercase">
                             Part {seriesNav.prev.series?.part}
                           </Badge>
                         </div>
-                        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                        <h3 className="text-xl font-semibold tracking-tight group-hover:text-primary transition-colors">
                           {seriesNav.prev.title.split(' - ').slice(1).join(' - ')}
                         </h3>
                       </div>
@@ -156,11 +175,9 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
                   </Link>
                 </motion.div>
               ) : (
-                <div className="border border-border/10 p-8 opacity-50">
+                <div className="border border-border/20 p-8 opacity-60">
                   <div className="space-y-4">
-                    <span className="text-xs font-mono tracking-wider text-muted-foreground">
-                      ← Previous
-                    </span>
+                    <span className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground">← Previous</span>
                     <p className="text-sm text-muted-foreground">
                       This is the first post in the series
                     </p>
@@ -175,17 +192,15 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
                   transition={{ duration: 0.2 }}
                 >
                   <Link href={`/posts/${seriesNav.next.id}`} className="block group">
-                    <div className="border border-primary/30 p-8 hover:border-primary transition-colors bg-primary/5">
+                    <div className="border border-primary/60 p-8 hover:border-primary transition-colors bg-primary/5">
                       <div className="space-y-4">
                         <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="text-xs font-mono">
+                          <Badge variant="outline" className="text-[11px] font-mono tracking-widest uppercase">
                             Part {seriesNav.next.series?.part}
                           </Badge>
-                          <span className="text-xs font-mono tracking-wider text-muted-foreground">
-                            Next →
-                          </span>
+                          <span className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground">Next →</span>
                         </div>
-                        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                        <h3 className="text-xl font-semibold tracking-tight group-hover:text-primary transition-colors">
                           {seriesNav.next.title.split(' - ').slice(1).join(' - ')}
                         </h3>
                       </div>
@@ -193,11 +208,9 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
                   </Link>
                 </motion.div>
               ) : (
-                <div className="border border-border/10 p-8 opacity-50">
+                <div className="border border-border/20 p-8 opacity-60">
                   <div className="space-y-4">
-                    <span className="text-xs font-mono tracking-wider text-muted-foreground">
-                      Next →
-                    </span>
+                    <span className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground">Next →</span>
                     <p className="text-sm text-muted-foreground">
                       This is the last post in the series
                     </p>
@@ -208,9 +221,9 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
 
             {/* View All Parts Link */}
             <div className="pt-8 border-t border-border/20">
-              <Button variant="outline" asChild className="font-mono tracking-wider">
-                <Link href={`/series/${seriesNav.series.slug}`}>
-                  View All Parts in {seriesNav.series.name} →
+              <Button variant="outline" asChild className="font-mono tracking-widest uppercase text-xs">
+                <Link href={`/series/${seriesNav.series?.slug}`}>
+                  View All Parts in {seriesNav.series?.name} →
                 </Link>
               </Button>
             </div>
@@ -229,16 +242,16 @@ export function PostContainer({ post, seriesNav, renderedContent }: PostContaine
           <div className="space-y-2">
             <Link 
               href="/" 
-              className="text-sm font-mono tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
             >
-              ← Back to Home
+              ← Back
             </Link>
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="text-[11px] text-muted-foreground font-mono tracking-widest uppercase">
               {post.isMDX ? 'Interactive content' : 'Static content'}
             </p>
           </div>
           
-          <div className="text-xs text-muted-foreground font-mono tracking-wider">
+          <div className="text-[11px] text-muted-foreground font-mono tracking-widest uppercase">
             © {new Date().getFullYear()} Maxubrqcool
           </div>
         </div>

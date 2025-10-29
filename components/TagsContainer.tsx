@@ -65,10 +65,10 @@ export function TagsContainer({ tags }: TagsContainerProps) {
           <span className="w-8 h-px bg-muted" />
           <span className="font-mono">Tags</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4">
+        <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">
           All Tags
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm font-light tracking-wider">
           Explore posts by topic. Click on any tag to see all posts with that tag.
         </p>
       </motion.header>
@@ -90,7 +90,7 @@ export function TagsContainer({ tags }: TagsContainerProps) {
             >
               <div className="flex items-center justify-between px-4">
                 <div className="flex items-center gap-8">
-                  <h2 className="text-lg font-medium tracking-tight group-hover:text-primary transition-colors">
+                  <h2 className="text-lg font-light tracking-wider group-hover:text-primary transition-colors">
                     #{tag.name} ({tag.count})
                   </h2>
                 </div>

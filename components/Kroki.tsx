@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Copy, Download, RefreshCw, ZoomIn, ZoomOut, RotateCcw, Maximize2, X } from 'lucide-react'
 import * as pako from 'pako'
+import { safeBtoaBinary } from '@/lib/utils'
 
 interface KrokiProps {
   children: React.ReactNode
@@ -18,7 +19,7 @@ interface KrokiProps {
 function toBase64Url(u8: Uint8Array): string {
   let binary = ''
   for (let i = 0; i < u8.length; i++) binary += String.fromCharCode(u8[i])
-  const b64 = btoa(binary)
+  const b64 = safeBtoaBinary(binary)
   return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 

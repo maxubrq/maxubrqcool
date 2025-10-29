@@ -1,4 +1,3 @@
-import { Tag } from "@/components/ui/tag"
 import Link from "next/link"
 
 interface TagListProps {
@@ -23,23 +22,30 @@ export function TagList({
   }
 
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
-      {tags.map((tag, index) => {
-        const tagElement = (
-          <Tag key={index} variant={variant} size={size}>
-            {tag}
-          </Tag>
+    <div className={`flex flex-wrap gap-x-3 gap-y-1 ${className}`}>
+      {tags.map((tag) => {
+        const label = `#${tag}`
+        const TagText = (
+          <span
+            className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground focus:outline-none focus-visible:underline"
+            title={label}
+          >
+            {label}
+          </span>
         )
 
-        if (clickable) {
-          return (
-            <Link key={index} href={`${basePath}/${encodeURIComponent(tag)}`}>
-              {tagElement}
-            </Link>
-          )
-        }
-
-        return tagElement
+        return clickable ? (
+          <Link
+            key={tag}
+            href={`${basePath}/${encodeURIComponent(tag)}`}
+            aria-label={`View posts tagged ${tag}`}
+            className="transition-colors"
+          >
+            {TagText}
+          </Link>
+        ) : (
+          <span key={tag}>{TagText}</span>
+        )
       })}
     </div>
   )

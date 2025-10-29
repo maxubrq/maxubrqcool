@@ -100,6 +100,12 @@
     "date": "2024-03-06",
     "excerpt": "Learn different ways to create quizzes in your MDX content with dedicated components, reusable components, and advanced builders.",
     "tags": ["quiz", "guide", "mdx", "tutorial"]
+  },
+  "0015_xin-chao-viet": {
+    "title": "#15 - Xin chào! Bài viết đầu tiên bằng tiếng Việt",
+    "date": "2024-03-10",
+    "excerpt": "Bài viết tiếng Việt đầu tiên: tối giản, giàu tính biên tập, có ví dụ và tương tác.",
+    "tags": ["vietnamese", "intro", "mdx"]
   }
 }
 

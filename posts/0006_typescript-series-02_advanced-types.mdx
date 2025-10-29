@@ -290,27 +290,35 @@ type StringifiedUser = Stringify<User>;
 
 Test your understanding of advanced types:
 
-<Quiz 
-  question="What does the Partial<T> utility type do?"
-  options={[
-    "Makes all properties required",
-    "Makes all properties optional",
-    "Makes all properties readonly",
-    "Removes all properties"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="Advanced Types Quiz" description="Utility types refresher">
+  <QuizQuestion
+    id="ts-utility-partial"
+    question="What does the Partial<T> utility type do?"
+    type="single-choice"
+    options={[
+      "Makes all properties required",
+      "Makes all properties optional",
+      "Makes all properties readonly",
+      "Removes all properties"
+    ]}
+    correctAnswer="Makes all properties optional"
+  />
+</QuizBuilder>
 
-<Quiz 
-  question="Which utility type would you use to create a type with only specific properties from an interface?"
-  options={[
-    "Omit<T, K>",
-    "Pick<T, K>",
-    "Partial<T>",
-    "Required<T>"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="Advanced Types Quiz">
+  <QuizQuestion
+    id="ts-utility-pick"
+    question="Which utility type would you use to create a type with only specific properties from an interface?"
+    type="single-choice"
+    options={[
+      "Omit<T, K>",
+      "Pick<T, K>",
+      "Partial<T>",
+      "Required<T>"
+    ]}
+    correctAnswer="Pick<T, K>"
+  />
+</QuizBuilder>
 
 ## Practical Example: API Response Handler
 

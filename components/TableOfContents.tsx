@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronUp, ChevronDown, List } from 'lucide-react'
 
@@ -86,86 +85,72 @@ export function TableOfContents({ className = '' }: TableOfContentsProps) {
 
   return (
     <>
-      {/* Desktop Sidebar TOC */}
-      <div className={`hidden lg:block w-80 flex-shrink-0 ${className}`}>
-        <div className="sticky top-4">
-          <Card className="shadow-lg border">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <List className="h-4 w-4" />
-                Table of Contents
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3">
-              <nav className="space-y-1">
-                {headings.map((heading) => (
-                  <button
-                    key={heading.id}
-                    onClick={() => scrollToHeading(heading.id)}
-                    className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-200 hover:bg-muted/50 ${
-                      activeHeading === heading.id
-                        ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                    }`}
-                    style={{
-                      paddingLeft: `${(heading.level - 1) * 16 + 12}px`
-                    }}
-                  >
-                    <span className="truncate block">{heading.text}</span>
-                  </button>
-                ))}
-              </nav>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Desktop Sidebar TOC — Swiss editorial: flat, rule-based, no card */}
+      <div className={`hidden lg:block w-full ${className}`}>
+        <nav className="border-l border-border/30 pl-4 space-y-1">
+          {headings.map((heading) => {
+            const isActive = activeHeading === heading.id
+            return (
+              <button
+                key={heading.id}
+                onClick={() => scrollToHeading(heading.id)}
+                className={
+                  `block w-full text-left py-1.5 transition-colors ` +
+                  `text-sm font-normal ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`
+                }
+                style={{
+                  paddingLeft: `${(heading.level - 1) * 12}px`
+                }}
+              >
+                <span className={`block whitespace-normal break-words border-l-2 pl-3 ${isActive ? 'border-primary font-medium' : 'border-transparent'}`}>
+                  {heading.text}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
       </div>
 
-      {/* Mobile TOC */}
+      {/* Mobile TOC — minimal collapsible, flat */}
       <div className="lg:hidden mb-6">
-        <Card className="w-full">
-          <CardHeader className="pb-3">
-            <Button
-              variant="outline"
-              onClick={toggleMobileToc}
-              className="w-full justify-between"
-            >
-              <span className="flex items-center gap-2">
-                <List className="h-4 w-4" />
-                Table of Contents
-              </span>
-              {isMobileTocOpen ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </CardHeader>
-          {isMobileTocOpen && (
-            <CardContent className="pt-0">
-              <nav className="space-y-1 max-h-60 overflow-y-auto">
-                {headings.map((heading) => (
-                  <button
-                    key={heading.id}
-                    onClick={() => {
-                      scrollToHeading(heading.id)
-                      setIsMobileTocOpen(false)
-                    }}
-                    className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-200 hover:bg-muted/50 ${
-                      activeHeading === heading.id
-                        ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                    }`}
-                    style={{
-                      paddingLeft: `${(heading.level - 1) * 16 + 12}px`
-                    }}
-                  >
-                    <span className="truncate block">{heading.text}</span>
-                  </button>
-                ))}
-              </nav>
-            </CardContent>
+        <Button
+          variant="outline"
+          onClick={toggleMobileToc}
+          className="w-full justify-between"
+        >
+          <span className="flex items-center gap-2">
+            <List className="h-4 w-4" />
+            Table of Contents
+          </span>
+          {isMobileTocOpen ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
           )}
-        </Card>
+        </Button>
+        {isMobileTocOpen && (
+          <nav className="mt-2 border-l border-border/30 pl-4 space-y-1 max-h-60 overflow-y-auto">
+            {headings.map((heading) => (
+              <button
+                key={heading.id}
+                onClick={() => {
+                  scrollToHeading(heading.id)
+                  setIsMobileTocOpen(false)
+                }}
+                className={`block w-full text-left py-1.5 text-sm transition-colors ${
+                  activeHeading === heading.id
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                style={{ paddingLeft: `${(heading.level - 1) * 12}px` }}
+              >
+                <span className={`block whitespace-normal break-words border-l-2 pl-3 ${activeHeading === heading.id ? 'border-primary font-medium' : 'border-transparent'}`}>
+                  {heading.text}
+                </span>
+              </button>
+            ))}
+          </nav>
+        )}
       </div>
     </>
   )

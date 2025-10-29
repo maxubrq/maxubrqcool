@@ -64,16 +64,20 @@ export default async function BlogPost({ id }: { id: string }) {
 
 Test your understanding of Next.js features:
 
-<Quiz 
-  question="What is the main benefit of Server Components in Next.js?"
-  options={[
-    "They run faster on the client",
-    "They reduce bundle size and improve performance",
-    "They provide better SEO automatically",
-    "They make debugging easier"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="Next.js Concepts Quiz" description="Test your understanding of Server Components">
+  <QuizQuestion
+    id="nextjs-server-components-benefit"
+    question="What is the main benefit of Server Components in Next.js?"
+    type="single-choice"
+    options={[
+      "They run faster on the client",
+      "They reduce bundle size and improve performance",
+      "They provide better SEO automatically",
+      "They make debugging easier"
+    ]}
+    correctAnswer="They reduce bundle size and improve performance"
+  />
+</QuizBuilder>
 
 ## Key Features Overview
 
@@ -135,16 +139,20 @@ Next.js 14 continues to push the boundaries of what's possible with React, makin
 
 ## Final Quiz
 
-<Quiz 
-  question="Which command creates a new Next.js 14 project?"
-  options={[
-    "npm create next-app",
-    "npx create-next-app@latest",
-    "yarn create next-app",
-    "All of the above"
-  ]}
-  correctAnswer={3}
-/>
+<QuizBuilder title="Final Quiz" description="Quick wrap-up question">
+  <QuizQuestion
+    id="nextjs-create-project-command"
+    question="Which command creates a new Next.js 14 project?"
+    type="single-choice"
+    options={[
+      "npm create next-app",
+      "npx create-next-app@latest",
+      "yarn create next-app",
+      "All of the above"
+    ]}
+    correctAnswer="All of the above"
+  />
+</QuizBuilder>
 
 Happy coding! 🚀
 

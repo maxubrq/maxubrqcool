@@ -95,6 +95,9 @@ function QuizBuilderContent({
 export function QuizBuilder(props: QuizBuilderProps) {
   return (
     <QuizProvider>
+      <QuizResetter />
+      {/* Render children so questions can register with context */}
+      {props.children}
       <QuizBuilderContent {...props} />
     </QuizProvider>
   )
@@ -157,3 +160,11 @@ export function QuizQuestion({
 
 // Export the main components
 export { Quiz }
+
+function QuizResetter() {
+  const { resetQuestions } = useQuizContext()
+  React.useEffect(() => {
+    resetQuestions()
+  }, [resetQuestions])
+  return null
+}

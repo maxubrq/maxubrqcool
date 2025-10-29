@@ -218,16 +218,20 @@ printId("ABC-123");  // ✅ Valid
 
 Try this exercise to practice what you've learned:
 
-<Quiz 
-  question="What is the correct way to define an array of numbers in TypeScript?"
-  options={[
-    "let numbers: number = [1, 2, 3]",
-    "let numbers: number[] = [1, 2, 3]",
-    "let numbers: [number] = [1, 2, 3]",
-    "let numbers: Array = [1, 2, 3]"
-  ]}
-  correctAnswer={1}
-/>
+<QuizBuilder title="Quick Quiz" description="Array typing in TypeScript">
+  <QuizQuestion
+    id="ts-arrays-correct-definition"
+    question="What is the correct way to define an array of numbers in TypeScript?"
+    type="single-choice"
+    options={[
+      "let numbers: number = [1, 2, 3]",
+      "let numbers: number[] = [1, 2, 3]",
+      "let numbers: [number] = [1, 2, 3]",
+      "let numbers: Array = [1, 2, 3]"
+    ]}
+    correctAnswer="let numbers: number[] = [1, 2, 3]"
+  />
+</QuizBuilder>
 
 ## Common Mistakes to Avoid
 

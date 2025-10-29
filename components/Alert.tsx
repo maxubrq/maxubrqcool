@@ -74,23 +74,14 @@ export function Alert({ type, title, children, className = '' }: AlertProps) {
   const displayTitle = title || defaultTitles[type]
 
   return (
-    <div className={`
-      relative my-6 rounded-lg border-l-4 p-4 shadow-sm
-      ${config.bgColor}
-      ${config.borderColor}
-      ${className}
-    `}>
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          <Icon className={`h-5 w-5 ${config.iconColor}`} />
-        </div>
-        <div className="ml-3 flex-1">
-          <div className="flex items-center">
-            <h4 className={`text-sm font-semibold ${config.titleColor}`}>
-              {displayTitle}
-            </h4>
-          </div>
-          <div className={`mt-2 text-sm ${config.textColor}`}>
+    <div className={`relative my-8 pl-4 py-3 border-l-2 ${config.borderColor} ${className}`}>
+      <div className="flex items-start gap-3">
+        <Icon className={`h-4 w-4 mt-0.5 ${config.iconColor}`} />
+        <div className="flex-1 space-y-2">
+          <h4 className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground">
+            {displayTitle}
+          </h4>
+          <div className="text-sm leading-7 text-foreground">
             {children}
           </div>
         </div>

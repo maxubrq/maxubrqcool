@@ -4,9 +4,8 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TagList } from '@/components/TagList'
-import { TableOfContents } from '@/components/TableOfContents'
 import { PostLikeButtonSSR } from '@/components/PostLikeButton'
+import { TagList } from '@/components/TagList'
 import { HeroSection } from '@/components/HeroSection'
 import { motion } from 'motion/react'
 import { PostData } from '@/lib/posts'
@@ -65,74 +64,45 @@ export function PostContainer({ post, seriesNav, children }: PostContainerProps)
         </div>
       </motion.div>
       
-      {/* Editorial Grid */}
-      {/* The meta column (left) will also contain tags/likes on large screens */}
-
-
-      {/* Main Content */}
+      {/* Main Content - Book layout */}
       <motion.main 
-        className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16"
+        className="max-w-5xl xl:max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.45 }}
       >
-        <div className="grid grid-cols-12 gap-6 lg:gap-10">
-          {/* Left Meta Column */}
-          <aside className="col-span-12 lg:col-span-2 order-2 lg:order-1">
-            <div className="lg:sticky lg:top-16 lg:pr-6 lg:border-r lg:border-border/30">
-              <div className="space-y-6">
-                <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
-                  {format(new Date(post.date), 'MMM dd, yyyy')}
-                </div>
-                {post.tags && post.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    <TagList 
-                      tags={post.tags} 
-                      variant="outline" 
-                      clickable={true}
-                      basePath="/tags"
-                      className="text-[11px] font-mono tracking-widest uppercase"
-                    />
-                  </div>
-                )}
-                <div>
-                  <PostLikeButtonSSR 
-                    postId={post.id}
-                    variant="text"
-                    size="lg"
-                    showCount={true}
-                    className="text-xs font-mono tracking-widest uppercase"
-                  />
-                </div>
-                {post.series && (
-                  <div className="pt-4 border-t border-border/20">
-                    <Link 
-                      href={`/series/${post.series.slug}`}
-                      className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground"
-                    >
-                      {post.series.name}
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-          </aside>
+        <article className="mx-auto">
+          <div className="prose prose-lg lg:prose-xl max-w-none leading-relaxed tracking-tight
+                          prose-headings:font-serif prose-headings:tracking-tight prose-headings:leading-tight
+                          prose-blockquote:border-l-2 prose-blockquote:border-muted/50">
+            {children}
+          </div>
 
-          {/* Main Article */}
-          <article className="col-span-12 lg:col-span-7 order-1 lg:order-2">
-            <div className="prose prose-lg max-w-none">
-              {children}
-            </div>
-          </article>
+          {/* Inline meta — subtle, book-like */}
+          <div className="mt-10 pt-6 border-t border-border/30 flex items-center justify-between text-xs font-mono tracking-widest uppercase text-muted-foreground">
+            <span>{format(new Date(post.date), 'MMM dd, yyyy')}</span>
+            <PostLikeButtonSSR 
+              postId={post.id}
+              variant="text"
+              size="lg"
+              showCount={true}
+              className="text-[11px]"
+            />
+          </div>
 
-          {/* Right TOC */}
-          <aside className="col-span-12 lg:col-span-3 order-3">
-            <div className="sticky top-16">
-              <div className="mb-4 text-xs font-mono tracking-widest uppercase text-muted-foreground">Contents</div>
-              <TableOfContents />
+          {/* Tags at the end */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="mt-6">
+              <TagList 
+                tags={post.tags}
+                variant="outline"
+                clickable={true}
+                basePath="/tags"
+                className="text-[11px] font-mono tracking-widest uppercase"
+              />
             </div>
-          </aside>
-        </div>
+          )}
+        </article>
       </motion.main>
 
       {/* Series Navigation */}

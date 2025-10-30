@@ -1,10 +1,12 @@
 const rehypeShiki = require('@shikijs/rehype').default
 const remarkGfm = require('remark-gfm').default
+const remarkMath = require('remark-math').default
+const rehypeKatex = require('rehype-katex').default
 
 const withMDX = require('@next/mdx')({
   extension: /\.mdx?$/,
   options: {
-    remarkPlugins: [remarkGfm],
+    remarkPlugins: [remarkGfm, remarkMath],
     rehypePlugins: [
       [
         rehypeShiki,
@@ -16,6 +18,11 @@ const withMDX = require('@next/mdx')({
           defaultColor: 'dark',
         },
       ],
+      [rehypeKatex, {
+        inlineClass: 'inline-math',
+        displayClass: 'display-math',
+        throwOnError: true,
+      }],
     ],
   },
 })

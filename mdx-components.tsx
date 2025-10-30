@@ -13,6 +13,7 @@ import { SimpleQuiz } from './components/SimpleQuiz'
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
 import { Figure, SimpleFigure } from './components/Figure'
+import { MathJax, MathJaxProvider, InlineMath, BlockMath } from './components/MathJax'
 import { 
   Alert, 
   InfoAlert, 
@@ -51,6 +52,11 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     SimpleQuiz,
     Mermaid,
     Kroki,
+    // MathJax components
+    MathJax,
+    MathJaxProvider,
+    InlineMath,
+    BlockMath,
     
     // Figure components
     Figure,

@@ -1,0 +1,38 @@
+# Book-Style Article Layout — Reading as Craft
+
+> Typography is information architecture made visible. This article explores a calm, book-like reading experience in the browser.
+
+## Why a book-like layout?
+
+On the web, we often optimize for scanning. For long-form thinking, we favor rhythm: line length ~65–80 characters, generous leading, and quiet margins. The new article layout embraces that, removing lateral UI noise so the narrative carries.
+
+## Design notes
+
+- Single column with ample measure for text
+- Quiet micro-accents: small caps meta, subtle rules, restrained motion
+- Consistent hierarchy across headings and pull-quotes
+
+## A short story in code
+
+```ts
+export function composeLayout({ grid, rhythm }: { grid: number; rhythm: number }) {
+  const baseline = rhythm * grid
+  return {
+    column: Math.round(72 / grid) * grid,
+    baseline,
+  }
+}
+```
+
+## Reading flow
+
+1. Title sets tone, not volume.
+2. Intro frames questions.
+3. Sections advance one idea at a time.
+4. Finish with references or next steps.
+
+### Closing
+
+Thanks for reading. If this resonates, explore other posts where we apply the same Swiss-influenced discipline to UI and motion.
+
+

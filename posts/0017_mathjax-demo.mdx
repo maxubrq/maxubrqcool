@@ -1,0 +1,40 @@
+<MathJax>
+
+# MathJax Demo
+
+This page demonstrates rendering TeX math via MathJax in MDX.
+
+## Inline math
+
+Inline expressions flow with text. For example, Euler’s identity
+<InlineMath>{String.raw`e^{i\\pi} + 1 = 0`}</InlineMath> sits inside a sentence.
+
+A quadratic solution looks like <InlineMath>{String.raw`x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}`}</InlineMath>.
+
+## Display equations
+
+Use block display for emphasis and alignment.
+
+<BlockMath>{String.raw`\\int_{-\\infty}^{\\infty} e^{-x^2}\\,dx = \\sqrt{\\pi}`}</BlockMath>
+
+<BlockMath>{String.raw`\\nabla \\cdot \\mathbf{E} = \\frac{\\rho}{\\varepsilon_0}`}</BlockMath>
+
+## Matrices
+
+<BlockMath>{String.raw`\\mathbf{A} = \\begin{bmatrix}
+1 & 2 \\\\
+3 & 4 \\\\
+\\end{bmatrix}`}</BlockMath>
+
+## Systems and cases
+
+<BlockMath>{String.raw`f(x) = \\begin{cases}
+x^2 & x \\ge 0 \\\\
+-x & x < 0 \\\\
+\\end{cases}`}</BlockMath>
+
+Prose continues after equations to show layout harmony and rhythm.
+
+</MathJax>
+
+

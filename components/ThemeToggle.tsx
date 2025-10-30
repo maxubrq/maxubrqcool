@@ -15,8 +15,11 @@ import {
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
 
   const getCurrentIcon = () => {
+    if (!mounted) return <Monitor className="h-4 w-4" />
     switch (theme) {
       case 'light':
         return <Sun className="h-4 w-4" />
@@ -28,6 +31,7 @@ export function ThemeToggle() {
   }
 
   const getCurrentLabel = () => {
+    if (!mounted) return 'SYSTEM'
     switch (theme) {
       case 'light':
         return 'LIGHT'
@@ -52,7 +56,7 @@ export function ThemeToggle() {
             className="h-10 px-4 gap-3 font-mono text-sm tracking-wide border-2 hover:border-accent transition-all duration-200 rounded-none"
           >
             <motion.div
-              key={theme}
+              key={mounted ? theme : 'init'}
               initial={{ opacity: 0, rotate: -90, scale: 0.8 }}
               animate={{ opacity: 1, rotate: 0, scale: 1 }}
               exit={{ opacity: 0, rotate: 90, scale: 0.8 }}

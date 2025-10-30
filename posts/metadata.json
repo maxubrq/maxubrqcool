@@ -107,5 +107,26 @@
     "excerpt": "Bài viết tiếng Việt đầu tiên: tối giản, giàu tính biên tập, có ví dụ và tương tác.",
     "tags": ["vietnamese", "intro", "mdx"]
   }
+  ,
+  "0016_book-layout-article": {
+    "title": "#16 - Book-Style Article Layout — Reading as Craft",
+    "date": "2025-10-30",
+    "excerpt": "A calm, Swiss-influenced, book-like layout for long-form reading with thoughtful rhythm.",
+    "tags": ["design", "typography", "layout", "reading"]
+  }
+  ,
+  "0017_mathjax-demo": {
+    "title": "#17 - MathJax Demo — Typeset TeX in MDX",
+    "date": "2025-10-30",
+    "excerpt": "Examples of inline and block math rendered with MathJax components in MDX.",
+    "tags": ["math", "latex", "mdx", "demo"]
+  }
+  ,
+  "0018_katex-demo": {
+    "title": "#18 - KaTeX Demo — Fast TeX Rendering",
+    "date": "2025-10-30",
+    "excerpt": "Inline and block math via KaTeX ($ and $$) using rehype-katex.",
+    "tags": ["math", "katex", "mdx", "demo"]
+  }
 }
 

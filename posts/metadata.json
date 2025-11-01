@@ -146,6 +146,12 @@
     "date": "2025-11-03",
     "excerpt": "Một race condition xảy ra giữa lúc ta \"kiểm tra điều kiện\" và lúc \"thực sự hành động\". Trong hệ thống phân tán, dữ liệu \"đúng tại thời điểm kiểm tra\" có thể trở thành \"sai tại thời điểm sử dụng\". Giữa hai thời điểm ấy là một khoảng trống mong manh — race window — nơi thực tại có thể đã đổi hình.",
     "tags": ["vietnamese", "tocttou", "race-condition", "distributed-systems", "redis", "engineering", "systems-design"]
+  },
+  "0022_danh-cho-nguoi-luon-tim-kiem-y-nghia": {
+    "title": "#22 - Dành cho những ai luôn tìm kiếm ý nghĩa trong mọi việc mình làm",
+    "date": "2025-11-04",
+    "excerpt": "Ý nghĩa không phải là thứ để tìm thấy, mà là thứ để định nghĩa lại. Một suy nghĩ về việc học tập, giá trị của giáo dục, và cách chúng ta gán ý nghĩa cho những việc tưởng chừng nhàm chán hay vô nghĩa.",
+    "tags": ["vietnamese", "personal", "reflection", "education", "meaning", "purpose", "philosophy"]
   }
 }
 

@@ -128,5 +128,12 @@
     "excerpt": "Inline and block math via KaTeX ($ and $$) using rehype-katex.",
     "tags": ["math", "katex", "mdx", "demo"]
   }
+  ,
+  "0019_danh-cho-nhung-nguoi-khac-la": {
+    "title": "#19 - Dành cho những người khác lạ",
+    "date": "2025-11-01",
+    "excerpt": "Có những người, dù cố gắng thế nào, vẫn không thể làm yên trong khuôn của người khác. Một suy nghĩ về tự do, khác biệt, và sống đúng với chính mình.",
+    "tags": ["vietnamese", "personal", "reflection", "freedom", "authenticity"]
+  }
 }
 

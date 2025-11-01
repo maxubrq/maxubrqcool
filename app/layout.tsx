@@ -11,8 +11,8 @@ const inter = Inter({ subsets: ['latin'] })
 
 export function generateMetadata(): Metadata {
   return {
-    title: 'Maxubrqcool - Interactive Personal Blog',
-    description: 'An interactive personal blog about technology, life, and everything in between. Experience engaging content with interactive components.',
+    title: 'Maxubrqcool - Blog cá nhân về công nghệ, cuộc sống, và những thứ khác — có thể đọc, thử, và suy nghĩ cùng nhau.',
+    description: 'Blog cá nhân về công nghệ, cuộc sống, và những thứ khác — có thể đọc, thử, và suy nghĩ cùng nhau.',
     icons: {
       icon: [
         { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -60,7 +60,7 @@ export default function RootLayout({
           </main>
           <footer className="border-t mt-16 bg-muted/50">
             <div className="max-w-6xl mx-auto px-4 py-8 text-center text-muted-foreground">
-              <p>&copy; 2024 Maxubrqcool. All rights reserved.</p>
+              <p>&copy; 2025 Maxubrqcool. All rights reserved.</p>
             </div>
           </footer>
           </div>

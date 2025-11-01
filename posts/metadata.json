@@ -134,6 +134,18 @@
     "date": "2025-11-01",
     "excerpt": "Có những người, dù cố gắng thế nào, vẫn không thể làm yên trong khuôn của người khác. Một suy nghĩ về tự do, khác biệt, và sống đúng với chính mình.",
     "tags": ["vietnamese", "personal", "reflection", "freedom", "authenticity"]
+  },
+  "0020_ve-code-review": {
+    "title": "#20 - Về Code Review",
+    "date": "2025-11-02",
+    "excerpt": "Code Review không nên là một cơ chế kiểm soát hay nghi thức hành chính. Nó tồn tại để nhắc chúng ta cùng nhìn về một hướng, nơi người viết và người đọc hiểu nhau, và hiểu rõ hơn về tác động lên hệ thống.",
+    "tags": ["vietnamese", "code-review", "engineering", "team", "reflection", "best-practices"]
+  },
+  "0021_tocttou": {
+    "title": "#21 - Time of check to time of use (TOCTTOU)",
+    "date": "2025-11-03",
+    "excerpt": "Một race condition xảy ra giữa lúc ta \"kiểm tra điều kiện\" và lúc \"thực sự hành động\". Trong hệ thống phân tán, dữ liệu \"đúng tại thời điểm kiểm tra\" có thể trở thành \"sai tại thời điểm sử dụng\". Giữa hai thời điểm ấy là một khoảng trống mong manh — race window — nơi thực tại có thể đã đổi hình.",
+    "tags": ["vietnamese", "tocttou", "race-condition", "distributed-systems", "redis", "engineering", "systems-design"]
   }
 }
 

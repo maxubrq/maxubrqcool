@@ -1,0 +1,101 @@
+## Về Code Review
+
+Khi làm trong một team phát triển sản phẩm phần mềm, Code Review gần như là nghi thức bắt buộc.
+Ai cũng hiểu mục tiêu là “giữ chất lượng”, “giảm lỗi”, “tăng an toàn”.
+Nhưng nếu để ý kỹ, nhiều team càng thêm review, càng "kỹ lưỡng", thì lại càng chậm, và căng thẳng hơn.
+Không phải vì review vô dụng, mà vì ta đang hiểu sai vai trò của nó.
+
+### Code Review không phải phanh, mà là dây cương
+
+Phanh dùng để dừng, dây cương dùng để giữ hướng.
+Code Review cũng vậy – nó không nên được dùng để chặn lại mọi thứ, mà để đảm bảo thay đổi vẫn đi đúng hướng với hệ thống.
+Nếu team xem review như “hàng rào kiểm soát”, nó sẽ trở thành gánh nặng.
+Nếu xem nó như một **khoảnh khắc đồng bộ nhận thức**, nó lại trở thành chỗ mà team hiểu nhau hơn.
+
+Reviewer không phải là QA.
+Reviewer không có nhiệm vụ chạy thử sản phẩm hay test lại bug fix.
+Họ chỉ cần đọc code và xác nhận rằng *ý định* của người viết rõ ràng, logic hợp lý, và không tạo side effect nguy hiểm.
+Nếu reviewer phải “chạy thử mới hiểu”, nghĩa là PR đó chưa đủ rõ.
+Lúc đó, vấn đề không nằm ở review, mà nằm ở **clarity** của người viết.
+
+### Giới hạn và vai trò của từng người
+
+<Figure 
+  src="/maxubrqcool/0020/0020_code_review_1_x4pt9m.png"
+  alt="Giới hạn và vai trò của từng người"
+  title="Giới hạn và vai trò của từng người"
+/>
+
+Mỗi tầng kỹ sư sẽ nhìn review khác nhau.
+_Junior_ đọc để học — họ tập hiểu cách người khác viết, chia module, đặt tên.
+_Mid-level_ đọc để giữ coherence trong phạm vi mình phụ trách: API, domain, invariant.
+_Senior_ đọc để giữ coherence toàn hệ thống – họ hỏi “liệu hướng đi này có làm phức tạp cấu trúc dài hạn không?”.
+Còn _Lead_ thì nhìn vào cách team review, xem cả đội có cùng hiểu một hệ quy chiếu hay chưa.
+
+Giữa các vai trò, ranh giới cần phải phân biệt rõ:
+
+* **Dev** đảm bảo code chạy đúng và test đủ.
+* **Reviewer** đảm bảo logic và ý định rõ ràng.
+* **QA** kiểm tra behavior.
+* **PM** xác nhận kết quả nghiệp vụ.
+
+Khi ai cũng biết phần mình, review tự nhiên sẽ trở nên nhẹ nhàng.
+Không ai test hộ, không ai làm thay.
+Chỉ cùng nhau đảm bảo rằng mọi thứ đều được hiểu đúng.
+
+### Ba tầng của Code Review
+
+Một review tốt thường có ba lớp:
+
+1. **Correctness** – code không sai hiển nhiên, test pass, logic ổn. Phần này, có thể được xử lý bởi máy.
+2. **Coherence** – thay đổi mới vẫn khớp với cách hệ thống đang vận hành.
+3. **Cognition** – giúp người đọc và người viết hiểu nhau hơn, học được điều gì đó mới.
+
+Hầu hết team dừng ở tầng một, nhưng giá trị thật lại nằm ở tầng ba.
+Một comment đúng chỗ, như “retry này trùng với logic dưới, có thể gây double log”,
+vừa giữ an toàn cho hệ thống, vừa làm team thông minh hơn.
+
+### Ghì cương nhẹ
+
+Review không nên quá nặng nề.
+Một người có kinh nghiệm thường chỉ đặt vài câu hỏi, đúng lúc.
+Họ không tìm lỗi, họ tìm *độ lệch* giữa ý định của người viết và hệ thống đang vận hành.
+Một nhắc nhở nhẹ nhàng, nếu đúng hướng, còn giá trị hơn hàng chục comment chi tiết.
+
+Ngược lại, một review sai là khi reviewer cố chứng minh mình biết nhiều hơn,
+soi từng dấu phẩy, tranh luận style, hay bắt người khác viết lại theo cách mình thích.
+Làm vậy không giúp code tốt hơn, chỉ làm người viết mệt hơn và trở nên phòng thủ hơn.
+
+Reviewer giỏi là review vừa đủ.
+
+### Sự rõ ràng (Clarity) chính là xăng cho tốc độ
+
+Tốc độ của team không đến từ việc bỏ bớt review,
+mà từ việc rõ ràng ngay từ đầu.
+Rõ ràng trong ticket, rõ ràng khi viết code, PR rõ ràng.
+
+Một PR mô tả rõ intent, test đủ, rollback plan, log minh bạch –
+reviewer chỉ mất vài phút để hiểu và approve.
+Còn một PR mơ hồ, dù nhỏ đến đâu, cũng có thể mất cả tuần.
+
+Tốc độ thật đến từ sự rõ ràng, không phải sự gấp gáp.
+Càng rõ, càng ít phải tranh cãi, càng ít review lại.
+Khi mọi người hiểu nhau, dây cương sẽ tự nhẹ đi.
+
+### Khi review trở thành văn hoá
+
+Một team trưởng thành không xem Code Review là “bước cuối”,
+mà xem nó là “vòng phản xạ”.
+Mỗi review là một lần hệ thống con người và hệ thống kỹ thuật gặp nhau,
+tự chỉnh lại nhịp hiểu chung.
+Sau hàng trăm PR, team bắt đầu có bản năng chung — biết “cái gì đúng”, “cái gì đủ”, “cái gì nên bỏ qua”.
+Đó là dấu hiệu của sự trưởng thành của team.
+
+Lúc đó, không cần ép, không cần nhắc. Review tự diễn ra nhẹ nhàng, đúng đắn, và tự nhiên.
+Giống như cơ thể tự điều chỉnh nhịp tim vậy.
+
+### Kết
+
+Code Review không làm cho hệ thống hoàn hảo hơn,
+nó chỉ giữ cho hệ thống nhận thức và kỹ thuật đồng bộ.
+Giữa những dòng code, test, và ticket, nó nhắc ta rằng đây không chỉ là công việc của máy, mà là công việc của con người — những người đang cố hiểu nhau qua code.

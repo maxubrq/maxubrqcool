@@ -38,9 +38,10 @@ export function Mermaid({ children, title, className = "" }: MermaidProps) {
       flowchart: {
         htmlLabels: true,
         curve: 'linear',            // brutalist: straight lines
-        nodeSpacing: 48,
-        rankSpacing: 48,
-        diagramPadding: 12,
+        nodeSpacing: 60,            // Increased for longer text
+        rankSpacing: 60,            // Increased for longer text
+        diagramPadding: 16,        // Increased padding to prevent clipping
+        padding: 16,                // Additional padding
       },
       sequence: {
         diagramMarginX: 48,
@@ -267,7 +268,7 @@ export function Mermaid({ children, title, className = "" }: MermaidProps) {
       {title && (
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
                 Diagram
               </Badge>

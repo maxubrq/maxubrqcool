@@ -3,6 +3,7 @@ import { getAllPostIds, getPostData, getSeriesNavigation } from '@/lib/posts'
 import { Card, CardContent } from '@/components/ui/card'
 import dynamicImport from 'next/dynamic'
 import { notFound } from 'next/navigation'
+import { Metadata } from 'next'
 
 // Disable static generation for posts with interactive components
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,17 @@ export async function generateStaticParams() {
   return paths.map((path) => ({
     id: path.params.id,
   }))
+}
+
+export async function generateMetadata({ params: { id } }: { params: { id: string } }): Promise<Metadata> {
+  const post = getPostData(id)
+  if (!post) {
+    notFound()
+  }
+  return {
+    title: `${post.title} - Maxubrqcool`,
+    description: post.excerpt,
+  }
 }
 
 export default function Post({ params: { id } }: { params: { id: string } }) {

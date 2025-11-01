@@ -167,9 +167,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       return <code {...props}>{children}</code>
     },
     pre: ({ children, ...props }) => {
-      // Let Shiki handle pre styling with dark theme support
+      // Let Shiki handle pre styling - CSS handles all theming
       return (
-        <pre className="dark:bg-gray-900 dark:border-gray-700" {...props}>
+        <pre {...props}>
           {children}
         </pre>
       )

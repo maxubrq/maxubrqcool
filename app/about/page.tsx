@@ -1,191 +1,173 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { motion } from 'motion/react'
+import Link from 'next/link'
+import Image from 'next/image'
 
 export default function About() {
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-8">
-      {/* Hero Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.4, ease: 'easeInOut' }}
-        className="pt-20 md:pt-32 pb-16"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16">
-          {/* Left Column - Meta Info */}
-          <div className="md:col-span-3 space-y-8">
+    <div className="min-h-screen bg-background -mx-4 md:-mx-8 px-4 md:px-8 py-8 md:py-12">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+          {/* Left Column - Text Content */}
+          <div className="space-y-8 md:space-y-12">
+            {/* Top Navigation */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.3, ease: 'easeInOut', delay: 0.1 }}
-              className="space-y-4"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="flex items-center justify-between"
             >
-              <div className="space-y-2">
-                <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">SCOPE</h2>
-                <div className="space-y-1 text-sm">
-                  <div>Front-end Architecture</div>
-                  <div>Design Systems</div>
-                  <div>Interactive Components</div>
-                  <div>Educational Content</div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">FOCUS</h2>
-                <div className="space-y-1 text-sm">
-                  <div>Swiss Design Principles</div>
-                  <div>TypeScript & React</div>
-                  <div>Accessibility First</div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">YEAR</h2>
-                <div className="text-sm">Twenty Twenty-Four</div>
+              <Link 
+                href="/"
+                className="text-sm font-medium hover:opacity-70 transition-opacity duration-200"
+              >
+                MAXUBRQCOOL
+              </Link>
+              <div className="flex items-center gap-6">
+                <Link 
+                  href="/"
+                  className="text-sm font-medium hover:opacity-70 transition-opacity duration-200"
+                >
+                  HOME
+                </Link>
+                <Link 
+                  href="/posts"
+                  className="text-sm font-medium hover:opacity-70 transition-opacity duration-200"
+                >
+                  BÀI VIẾT
+                </Link>
               </div>
             </motion.div>
-          </div>
 
-          {/* Right Column - Main Content */}
-          <div className="md:col-span-9">
+            {/* Send Email Link */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+            >
+              <a 
+                href="mailto:hungtp.play@gmail.com"
+                className="text-sm font-medium hover:opacity-70 transition-opacity duration-200 inline-block"
+              >
+                Gửi email
+              </a>
+            </motion.div>
+
+            {/* Main Content */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.4, ease: 'easeInOut', delay: 0.2 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
               className="space-y-8"
             >
-              <div>
-                <h1 className="text-6xl md:text-8xl font-bold tracking-tight leading-[0.9] mb-6">
-                  Building quietly opinionated interfaces.
+              {/* Heading */}
+              <div className="space-y-4">
+                <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight pb-4 border-b-2 border-foreground">
+                  Hưng Trần (Max)
                 </h1>
-                <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-4xl">
-                  I explore practical front-end architectures, interaction patterns, and teaching through
-                  interactive content. Elegance through restraint; clarity over flourish.
+              </div>
+
+              {/* Biography */}
+              <div className="space-y-6 text-sm md:text-base font-light tracking-wider leading-relaxed">
+                <p>
+                  Tôi làm kỹ sư phần mềm, nhưng thật ra phần lớn thời gian tôi chỉ đang cố hiểu xem thế giới — và chính mình — vận hành thế nào.
+                </p>
+                <p>
+                  Có ngày tôi nghĩ về kiến trúc hệ thống, có ngày lại tự hỏi vì sao một đoạn code nhỏ có thể khiến cả team thức trắng. Tất cả dường như liên quan đến nhau: cách ta thiết kế phần mềm, cách ta làm việc, cách ta sống.
+                </p>
+                <p>
+                  Tôi không viết để dạy ai điều gì. Tôi viết để ghi lại quá trình của chính bản thân mình — khi một ý tưởng lóe lên, một lỗi làm sập hệ thống, hay một câu trong sách khiến tôi dừng lại thật lâu. Viết, với tôi, giống như log lại trạng thái nhận thức: lúc rõ ràng, lúc hỗn độn.
+                </p>
+                <p>
+                  Ở đây tôi chia sẻ những gì tôi quan tâm: công nghệ, khoa học, triết học, nghệ thuật, và những dự án đang làm dở. Chúng chẳng có trật tự gì, vì suy nghĩ thật thường không có cấu trúc đẹp đẽ như code.
+                </p>
+                <p>
+                  Tôi tin vào câu nói của Đức Phật:
+                </p>
+                <p className="text-lg md:text-xl font-medium italic pl-4 border-l-2 border-foreground my-8 tracking-wider">
+                  &ldquo;Hãy tự mình thắp đuốc lên mà đi.&rdquo;
+                </p>
+                <p>
+                  Nó không phải lời khuyên, mà là một nhắc nhở: <strong> rằng không ai có thể soi đường thay mình mãi.</strong>
+                </p>
+                <p>
+                  Blog này là cách tôi giữ cho ngọn đuốc đó không tắt.
                 </p>
               </div>
             </motion.div>
-          </div>
-        </div>
-      </motion.section>
 
-      {/* Separator */}
-      <motion.div
-        initial={{ opacity: 0, scaleX: 0 }}
-        whileInView={{ opacity: 1, scaleX: 1 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, ease: 'easeInOut', delay: 0.3 }}
-        className="w-full h-px bg-border mb-16 md:mb-24"
-      />
-
-      {/* Content Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 mb-16 md:mb-24">
-        {/* Left Column */}
-        <div className="md:col-span-4 space-y-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.3, ease: 'easeInOut', delay: 0.1 }}
-          >
-            <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">PRINCIPLES</h2>
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Composition over cleverness</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Explicit contracts, typed data flow, predictable patterns that scale.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Motion reveals hierarchy</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Subtle transitions that clarify relationships, not ornament.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Accessibility as foundation</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  WCAG AA minimum, keyboard-first interactions, semantic structure.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right Column */}
-        <div className="md:col-span-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.3, ease: 'easeInOut', delay: 0.2 }}
-            className="space-y-8"
-          >
-            <div>
-              <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">WHAT YOU&apos;LL FIND</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  'Interactive tutorials and components',
-                  'Engineering notes and patterns', 
-                  'Project breakdowns and autopsies',
-                  'Type-safe APIs and contracts',
-                  'Design systems and tokens',
-                  'Quizzes for spaced learning'
-                ].map((item, index) => (
-                  <motion.div
-                    key={item}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                    transition={{ duration: 0.2, ease: 'easeInOut', delay: 0.1 + index * 0.05 }}
-                    className="flex items-start gap-3"
+            {/* Contact Info */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.4, ease: 'easeOut' }}
+              className="space-y-4 pt-8 border-t-2 border-foreground"
+            >
+              <h2 className="text-xs font-medium uppercase tracking-widest">Thông tin liên hệ</h2>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium">Email: </span>
+                  <a 
+                    href="mailto:hungtp.play@gmail.com"
+                    className="hover:opacity-70 transition-opacity duration-200"
                   >
-                    <div className="w-1 h-1 bg-foreground rounded-full mt-2 flex-shrink-0" />
-                    <span className="text-sm leading-relaxed">{item}</span>
-                  </motion.div>
-                ))}
+                    hungtp.play@gmail.com
+                  </a>
+                </div>
+                <div>
+                  <span className="font-medium">GitHub: </span>
+                  <a 
+                    href="https://github.com/maxubrq"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-70 transition-opacity duration-200"
+                  >
+                    github.com/maxubrq
+                  </a>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+            </motion.div>
+          </div>
 
-      {/* Bottom Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.4, ease: 'easeInOut', delay: 0.3 }}
-        className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16"
-      >
-        <div className="md:col-span-6">
-          <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">PASSION</h2>
-          <p className="text-lg leading-relaxed">
-            I enjoy leading and building teams, establishing new processes, and bringing innovative 
-            design experiences to users. Teaching through interaction and creating systems that 
-            scale with intention.
-          </p>
-        </div>
-        
-        <div className="md:col-span-6">
-          <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">CONTACT</h2>
-          <p className="text-lg leading-relaxed mb-4">
-            I&apos;m open to collaboration and thoughtful conversations about architecture, 
-            design systems, and teaching through interaction.
-          </p>
-          <div className="text-sm text-muted-foreground">
-            Reach out via the footer links or connect on social media.
+          {/* Right Column - Portrait Image */}
+          <div className="relative">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
+              className="sticky top-8"
+            >
+              {/* Portrait Image */}
+              <div className="relative w-full aspect-[3/4] bg-muted overflow-hidden border-2 border-foreground">
+                <Image
+                  src="https://res.cloudinary.com/dmsb4anlx/image/upload/v1761963269/maxubrqcool/avatar_1_zzkqc9.png"
+                  alt="Hưng Trần (Max)"
+                  fill
+                  className="object-cover grayscale"
+                  priority
+                />
+              </div>
+
+              {/* Go Back Link */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.6, ease: 'easeOut' }}
+                className="mt-8"
+              >
+                <Link 
+                  href="/"
+                  className="text-sm font-medium hover:opacity-70 transition-opacity duration-200 inline-flex items-center gap-2"
+                >
+                  <span>←</span>
+                  <span>TRỞ VỀ</span>
+                </Link>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
-      </motion.section>
-
-      <div className="h-32 md:h-40" />
+      </div>
     </div>
   )
 }

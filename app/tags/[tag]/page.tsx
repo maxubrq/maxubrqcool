@@ -53,11 +53,6 @@ export default function TagPage({ params: { tag } }: { params: { tag: string } }
                   {format(new Date(post.date), 'MMMM dd, yyyy')}
                 </time>
                 <div className="flex gap-2">
-                  {post.isMDX && (
-                    <Badge variant="secondary" className="animate-pulse">
-                      Interactive
-                    </Badge>
-                  )}
                   {post.series && (
                     <Badge variant="outline">
                       Part {post.series.part}

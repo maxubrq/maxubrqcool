@@ -31,7 +31,6 @@ export function PostContainer({ post, seriesNav, children }: PostContainerProps)
           label: "Article",
           value: format(new Date(post.date), 'MMM dd, yyyy').toUpperCase()
         }}
-        badges={post.isMDX ? ['Interactive'] : []}
       />
       
       {/* Navigation */}

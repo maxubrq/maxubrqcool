@@ -1,0 +1,625 @@
+## Time of check to time of use (TOCTTOU)
+
+### Mở đầu — Quan sát tại hiện trường
+
+Không dưới chục lần, tôi nhìn vào log system và thấy một thứ kỳ lạ: 
+dữ liệu “đúng” từng phần, nhưng sai toàn cục. Một bản ghi vừa được update bởi 
+service A, nhưng vài giây sau service B ghi đè lại bằng một giá trị cũ hơn — 
+giá trị mà nó “tin tưởng” vì đã được kiểm tra hợp lệ trước đó. Không có lỗi rõ ràng, 
+không có crash, chỉ là… thế giới đã đổi giữa lúc hai service cùng tin rằng mình 
+đang làm điều đúng.
+
+Nhìn rộng ra hơn thì chuyện này không phải là hiếm trong hệ thống phân tán của chúng tôi. 
+Redis đóng vai trò primary DB, nơi mọi state tạm trú trước khi được aggregate sang 
+các service khác. Một request đi qua hàng chục hop: đọc cache, tính toán, 
+rồi ghi lại kết quả. Mỗi bước diễn ra trong mili-giây, nhưng trong một hệ thống sống, 
+vài mili-giây cũng đủ để thế giới chuyển mình. Dữ liệu “đúng tại thời điểm kiểm tra” 
+trở thành “sai tại thời điểm sử dụng”.
+
+Tôi nghĩ lỗi này chỉ là thiếu lock, hoặc update thiếu atomic. 
+Nhưng càng nhìn sâu hơn, tôi nhận ra nó không đơn giản là bug — 
+mà là một vấn đề của thời điểm. Trong kỹ thuật, ta gọi nó là **TOCTTOU**, 
+viết tắt của _Time-Of-Check to Time-Of-Use_. Một race condition xảy ra giữa lúc ta 
+“kiểm tra điều kiện” và lúc “thực sự hành động”. Giữa hai thời điểm ấy là một khoảng 
+trống mong manh — race window — nơi thực tại có thể đã đổi hình, trong khi logic của 
+ta vẫn tin vào quá khứ.
+
+Hầu hết kỹ sư đều đã từng gặp **TOCTTOU** mà không gọi tên nó. Mỗi khi ta `GET` một key 
+trong Redis, tính toán dựa trên giá trị ấy rồi `SET` lại kết quả, ta đang sống trong 
+vùng xám ấy — nơi logic đúng bị đánh bại bởi độ trễ.
+
+Trong thế giới phân tán, độ trễ chính là entropy. Và lỗi không nằm ở chỗ ta kiểm tra 
+sai, mà ở chỗ ta tin vào kết quả quá lâu.
+
+### TOCTTOU trong kiến trúc hiện tại
+
+Khi hệ thống mở rộng, TOCTTOU không còn là một dòng lỗi ngẫu nhiên trong log, 
+mà trở thành thứ ẩn mình khắp nơi — len lỏi qua cache, message queue, và các luồng 
+aggregate. Nó giống như độ ẩm trong tường: không thấy rõ, nhưng luôn có mặt.
+
+Trong kiến trúc mà Redis đóng vai trò primary DB, TOCTTOU thường hiện ra ở ba tầng — 
+mỗi tầng một dáng khác nhau, nhưng cùng bản chất: kiểm tra một trạng thái, tin vào nó, 
+rồi hành động trên một thực tại đã thay đổi.
+
+#### 1. Cache-aside (read-through, write-back)
+
+<Mermaid title="Cache-aside (read-through, write-back)">
+{`sequenceDiagram
+  autonumber
+  participant SvcA as Service A (Reader/Writer)
+  participant Redis
+  participant SvcB as Service B (Updater)
+
+  SvcA->>Redis: GET {user}{balance} -> v10, val=100
+  Note over SvcA,Redis: Time of Check (snapshot v10)
+  SvcB->>Redis: EVAL Lua(CAS v10→v11, +50) -> val=150
+  Note over Redis: Race window mở do network + fan-out
+  SvcA->>Redis: SET {user}{balance}=120 (không CAS)
+  Redis-->>SvcA: OK (overwrite v11 bằng snapshot v10)
+  Note over Redis: TOCTTOU: ghi đè dữ liệu mới bằng bản cũ
+`}
+</Mermaid>
+
+Một service đọc dữ liệu từ Redis, thấy key tồn tại và hợp lệ. 
+Nó lấy snapshot ấy làm cơ sở tính toán: aggregate, transform, hoặc ghi vào một nơi khác. 
+Nhưng trong lúc nó đang tính, một service khác — có thể từ queue khác — 
+đã cập nhật giá trị mới hơn. Khi service đầu ghi lại kết quả cũ (vì "tôi đã kiểm tra rồi"), 
+nó vô tình đè lên trạng thái mới.
+
+Hệ thống không báo lỗi. Mọi thứ đều "thành công", chỉ có dữ liệu là không đúng.
+
+#### Write-through và write-behind
+
+Một số pipeline chọn cách đẩy dữ liệu vào queue hoặc log trước rồi flush dần về Redis. 
+Trên lý thuyết, ta “đảm bảo eventual consistency”. Nhưng thực tế, nhiều service vẫn 
+kiểm tra trạng thái trước khi flush — "nếu chưa thấy update thì mới ghi".
+
+Trong môi trường có fan-out nhiều consumer, chỉ cần một node chạy chậm là “Time-Of-Use” 
+của nó rơi sau “Time-Of-Check” của người khác. Kết quả là bản ghi bị overwrite, 
+hoặc aggregate thiếu một phần.
+
+#### 3. Aggregate-service (fan-in)
+
+
+<Mermaid title="Aggregate-service (fan-in)">
+{`sequenceDiagram
+  autonumber
+  participant Agg as Aggregate Service
+  participant Svc1 as Svc 1 (partial A)
+  participant Svc2 as Svc 2 (partial B)
+  participant Redis as Redis
+
+  Agg->>Redis: GET {agg}{A} -> v5
+  Agg->>Redis: GET {agg}{B} -> v7
+  Note over Agg,Redis: Agg "đủ N phần" -> bắt đầu combine
+  Svc2->>Redis: EVAL Lua update {agg}{B} v7→v8
+  Agg->>Redis: SET {agg}{result} = combine(v5,v7)  %% stale
+  Note over Redis: TOCTTOU: kết quả tổng hợp dùng bản B cũ
+`}
+</Mermaid>
+
+Một dịch vụ tổng hợp dữ liệu từ nhiều service con — ví dụ: thống kê order, session, 
+hoặc usage — thường “đợi đủ N phần” rồi combine. Nhưng khi nó bắt đầu combine, 
+một phần khác vừa được cập nhật. Aggregate hoàn tất, lưu snapshot tổng hợp cũ; 
+hệ thống nhìn tưởng đầy đủ, nhưng bên trong là dữ liệu trượt nhịp.
+
+Càng nhiều nguồn, race window càng rộng.
+
+#### 4. Message bus và event version
+
+Trong các pipeline có Kafka hoặc Redis Streams, ta tưởng rằng thứ tự event đã được 
+đảm bảo. Nhưng TOCTTOU vẫn chen vào khi consumer kiểm tra version, rồi process, 
+trong khi producer đã gửi version mới hơn. Một bản ghi "đã pass check" giờ trở nên 
+lỗi thời chỉ vì mạng chậm 50 mili-giây.
+
+Khi xem lại, ta nhận ra TOCTTOU không nằm ở một điểm cụ thể, mà là ở độ trễ lan truyền 
+giữa service này và service kia. Trong một hệ thống phân tán, **Time** không bao giờ đồng 
+bộ hoàn toàn — mỗi service sống trong một thực tại riêng, một timeline riêng. 
+Và mỗi khi ta lấy một snapshot, ta đang chọn tin vào một khoảnh khắc — 
+hy vọng rằng nó vẫn còn đúng khi hành động đến nơi.
+
+<Mermaid title="Message bus và event version">
+{`sequenceDiagram
+  autonumber
+  participant Prod as Producer
+  participant Stream as Redis Stream
+  participant Cons as Consumer
+
+  Prod->>Stream: XADD events * {id, seq=10}
+  Cons->>Stream: XREADGROUP ... -> recv seq=10
+  Note over Cons,Stream: Time of Check (seq=10 ok)
+  Prod->>Stream: XADD events * {id, seq=11}
+  Note over Stream: Race window: v+1 đã tới
+  Cons->>Cons: process seq=10 -> write view@v10 (late)
+
+`}
+</Mermaid>
+
+### Cơ chế Redis — nơi an toàn và nơi rủi ro
+
+Redis là một trong những công cụ hiếm hoi khiến kỹ sư cảm thấy “nhẹ tay” khi thao tác 
+với dữ liệu. Mọi thứ diễn ra nhanh chóng, đơn luồng, và có vẻ nguyên tử — như thể chỉ có một 
+sợi thời gian duy nhất chảy trong toàn hệ thống. Nhưng chính cảm giác ấy dễ làm ta 
+quên rằng nguyên tử trong Redis chỉ đúng trong phạm vi của một lệnh, còn hệ thống 
+của ta thì không dừng lại ở một lệnh.
+
+#### Atomicity — đúng, nhưng chưa đủ
+
+Redis chạy đơn luồng, nên mỗi command (như `SET`, `HINCRBY`, `LPUSH`) được thực thi 
+trọn vẹn trước khi command khác xen vào. Ở cấp độ micro, điều này ngăn race giữa các 
+lệnh riêng lẻ. Nhưng TOCTTOU không nằm ở một lệnh, mà nằm ở khoảng giữa hai 
+lệnh liên tiếp.
+
+Khi ta thực hiện `GET` rồi `SET` — hai lệnh khác nhau, qua hai round-trip — Redis 
+chỉ đảm bảo từng lệnh là atomic, chứ không đảm bảo cả chuỗi là atomic.
+
+Đó chính là race window kinh điển:
+
+<Mermaid title="Atomicity — Get/Set race window">
+{`flowchart LR
+  A[GET key -> value@v10] --> B[Compute locally]
+  B --> C[SET key -> newValue]
+  subgraph RaceWindow[Race window]
+    X1[Other writer updates key -> v11]:::warn
+  end
+  A -.->|network + compute delay| RaceWindow
+  style RaceWindow fill:#fff3,stroke-dasharray: 3 3
+  classDef warn fill:transparent,stroke:#f66,color:#900
+`}
+</Mermaid>
+
+Khoảng giữa `GET` và `SET`, thế giới xung quanh đã có thể đã thay đổi. 
+Độ trễ mạng, CPU spike, GC pause, hay một tác nhân khác cùng ghi khiến 
+_“Time-Of-Check”_ trở nên lỗi thời khi _“Time-Of-Use”_ đến nơi. 
+
+Redis vẫn nhanh, chỉ là không thể làm nhanh hơn tốc độ đổi thay của thực tại.
+
+#### WATCH / MULTI / EXEC — optimistic lock
+
+Redis cung cấp bộ công cụ để rút hẹp race window:
+`WATCH` đặt một optimistic lock trên key; nếu trong lúc ta chuẩn bị `EXEC`, key bị thay đổi, 
+transaction sẽ bị hủy.
+
+Cơ chế này không thực sự khóa, mà chỉ cảnh báo rằng “bạn đang tin vào snapshot cũ”.
+
+Đó là cách nhẹ nhàng để Redis nhắc ta:
+> Bạn có thể tiếp tục, nhưng tôi không chắc thế giới còn như bạn nghĩ.
+
+#### Lua scripting — đóng kín thời gian
+
+Cách chắc chắn hơn là gộp check-and-use vào một khối Lua script. 
+
+Khi `EVAL` chạy, toàn bộ logic bên trong được xử lý như một command duy nhất — 
+race window biến mất.
+
+Chẳng hạn, đoạn script dưới đây thực hiện compare-and-swap bằng version:
+
+```lua
+local v = redis.call('HGET', KEYS[1], 'version')
+if not v then v = '0' end
+if tonumber(v) ~= tonumber(ARGV[1]) then
+  return {err="VERSION_MISMATCH"}
+end
+
+redis.call('HINCRBY', KEYS[1], 'balance', tonumber(ARGV[2]))
+local newv = tonumber(v) + 1
+redis.call('HSET', KEYS[1], 'version', newv)
+return newv
+
+```
+
+Diễn giải trực quan hơn:
+
+<Mermaid title="Lua scripting — đóng kín thời gian">
+{`sequenceDiagram
+  participant Svc as Service
+  participant Redis as Redis
+
+  Svc->>Redis: EVAL(CAS v10→v11, +50)
+  alt Version matched
+    Redis-->>Svc: OK (v=11)
+  else Version mismatch
+    Redis-->>Svc: ERR VERSION_MISMATCH
+  end
+`}
+</Mermaid>
+
+Ở đây, thời gian được “đóng lại”: check và update cùng nằm trong một nhịp. 
+Không còn khoảng trống cho **TOCTTOU**.
+
+#### Redis Cluster và ảo giác atomicity
+
+Khi chuyển sang làm việc với Redis Cluster, atomicity của **Lua** hay `MULTI` chỉ còn
+hiệu lực nếu tất cả key nằm trong cùng một **slot**. 
+
+Nếu thao tác chạm tới nhiều slot, Redis buộc phải từ chối — vì không thể thực thi 
+nguyên tử qua shard khác.
+
+Do đó, quy tắc đầu tiên của chống TOCTTOU trong Cluster là:
+
+> Một entity = một slot.
+Dùng hash tag để ép cùng slot: \{user:42\}:profile, \{user:42\}:balance.
+
+Diagram bên dưới minh họa:
+
+<Mermaid title="Redis Cluster và ảo giác atomicity">
+{`graph LR
+  subgraph Shard1["Shard #1 (slot 5321)"]
+    K1["{user:42}:profile"]:::k
+    K2["{user:42}:balance"]:::k
+  end
+  subgraph Shard2["Shard #2 (slot 8812)"]
+    K3["{user:77}:balance"]:::k
+  end
+
+  A[Service] -->|GET K1,K2| Shard1
+  A -->|GET K3| Shard2
+  classDef k fill:#eef,stroke:#99f,color:#113;
+`}
+</Mermaid>
+
+Chỉ khi co-locate keys một entity trong cùng slot, các thao tác check-and-update mới 
+thực sự atomic.
+
+#### Streams, consumer group, và ranh giới “event time”
+
+_Redis Streams_ mang đến khả năng xử lý tuần tự, nhưng không bảo đảm processing 
+time đồng bộ với event time. Một consumer đọc event `seq=10` và bắt đầu xử lý; 
+trước khi nó commit, event `seq=11` đã xuất hiện.
+
+Nếu không có **idempotency** hoặc **version check**, ta lại rơi vào TOCTTOU:
+
+<Mermaid title="Streams, consumer group, và ranh giới “event time”">
+{`sequenceDiagram
+  participant Prod as Producer
+  participant Stream as Redis Stream
+  participant Cons as Consumer
+
+  Prod->>Stream: XADD {seq=10}
+  Cons->>Stream: XREADGROUP -> recv seq=10
+  Note over Cons,Stream: Time of Check
+  Prod->>Stream: XADD {seq=11}
+  Cons->>Cons: process seq=10 -> write stale view
+`}
+</Mermaid>
+
+Cách thoát là lưu `last_seq` của từng entity, chỉ apply nếu `seq == last_seq + 1`. 
+
+Khi event đến trễ, consumer bỏ qua hoặc xếp hàng lại.
+
+#### Tự phản tỉnh — “atomicity” chỉ là một thỏa ước
+
+Redis làm rất tốt trong phạm vi nó hứa hẹn, nhưng phần lớn lỗi TOCTTOU trong hệ 
+phân tán không đến từ Redis, mà đến từ niềm tin sai phạm vi. Ta tưởng rằng một 
+thao tác atomic nhỏ có thể giữ nguyên vẹn toàn hệ thống, trong khi thực tế, 
+hệ thống ấy trải rộng qua mạng, queue, và thời gian.
+
+> Cái khó không phải là khiến Redis nguyên tử hơn, mà là khiến ta thiết kế quanh độ 
+trễ và bất định của nó.
+
+### Layer con người — Khi ta cũng “check rồi use”
+
+Nếu nhìn đủ lâu, ta sẽ thấy rằng TOCTTOU không chỉ là một race condition trong code, 
+mà là một pattern nhận thức lặp lại trong chính cách con người vận hành hệ thống.
+Khi kỹ sư đọc một giá trị từ Redis và hành động dựa trên nó, họ tin rằng 
+“trạng thái vẫn như thế” — giống như khi ta đọc một báo cáo tuần trước và ra 
+quyết định cho hôm nay. Cả hai đều hợp lý ở thời điểm kiểm tra, nhưng sai ở thời 
+điểm sử dụng.
+
+#### Con người cũng có “cache”
+
+Trong tổ chức, mỗi người đều mang theo những snapshot riêng: 
+ấn tượng về hệ thống, giả định về hành vi của service khác, niềm tin rằng 
+“module kia vẫn ổn”.
+
+Những giả định ấy chính là cache nhận thức — chúng tiết kiệm thời gian, 
+giảm chi phí suy nghĩ, nhưng cũng chứa cùng một rủi ro: staleness.
+
+Một kỹ sư tin rằng “aggregate service” vẫn hoạt động ổn, nên không kiểm tra 
+kỹ khi thêm trường mới. Một product manager tin rằng latency trung bình đủ thấp, 
+nên không xem p99.
+Giữa lúc họ “check” và “use”, thế giới kỹ thuật đã thay đổi — nhưng nhận thức thì 
+chưa được invalidate.
+
+Cũng như cache trong Redis, cache của con người cần chính sách invalidation: 
+review định kỳ, feedback thực, telemetry thay vì suy đoán.
+
+#### Quyết định trong môi trường phân tán
+
+Mỗi nhóm kỹ sư giống như một shard trong cluster lớn: có trách nhiệm riêng, 
+nhưng cùng chia sẻ dữ liệu về một thực tại chung.
+Khi không có clock đồng bộ — nghĩa là khi mỗi nhóm vận hành theo 
+nhịp riêng — TOCTTOU xuất hiện ở cấp tổ chức: team này “đã kiểm tra”, 
+team kia “đã triển khai”, và giữa hai hành động đó, điều kiện ban đầu đã đổi.
+
+Một quyết định đúng thời điểm tháng trước có thể trở thành lỗi vận hành tháng sau, 
+chỉ vì hệ thống không đồng bộ về thời gian ra quyết định.
+
+Và cũng như Redis Cluster, giải pháp không phải đồng bộ toàn hệ thống, 
+mà là đặt version và lock rõ ràng cho từng domain — những cơ chế giao tiếp 
+thay cho niềm tin mơ hồ.
+
+#### Niềm tin sai thời điểm
+
+Có một nghịch lý y hệt giữa kỹ sư và hệ thống họ tạo ra: chúng ta đều muốn chắc chắn, 
+nhưng sống trong một thế giới bất định.
+TOCTTOU nhắc ta rằng mọi sự chắc chắn đều có hạn sử dụng; mọi “điều kiện kiểm tra” 
+đều đúng… cho đến khi thời gian trôi đi.
+
+Điều đó không có nghĩa là ta phải ngờ vực tất cả, mà là ta cần thiết kế lại cách 
+tin tưởng:
+
+* Tin trong phạm vi thời điểm.
+* Tin có điều kiện, có version, có cơ chế xác nhận lại.
+* Tin và biết rằng thời gian có thể phản bội ta.
+
+#### Kết cho tầng này
+
+Khi tôi nhìn những race condition trong log, tôi không chỉ thấy code lỗi, 
+mà còn thấy chính cách đội ngũ của mình tương tác — nơi mỗi người, mỗi service, 
+mỗi quyết định đều có độ trễ riêng.
+
+Hóa ra, hệ thống phân tán không chỉ là tập hợp của server và queue, mà còn là một 
+mô hình tinh vi của nhận thức con người trong môi trường thay đổi liên tục.
+
+Và nếu có một bài học chung cho cả hai tầng, thì đó là:
+
+>Đừng tin vào snapshot quá lâu — dù nó ở trong Redis hay trong đầu mình.
+
+### Thiết kế cho thế giới thay đổi — từ “xóa race window” sang “chịu đựng race window”
+
+Sau nhiều lần cố triệt tiêu TOCTTOU bằng đủ loại lock và transaction, 
+tôi nhận ra: **không thể xoá bỏ khoảng trống giữa “check” và “use”**.
+
+Thế giới phân tán không vận hành theo đồng hồ của ta. Dữ liệu luôn di chuyển, 
+network luôn có độ trễ, và những gì “đúng” luôn chỉ đúng trong một khung thời gian hữu hạn.
+Nếu cố tìm sự chắc chắn tuyệt đối, ta sẽ trả giá bằng hiệu năng, độ trễ, 
+và đôi khi là chính khả năng tiến hóa của hệ thống.
+
+Giải pháp thực tế hơn là học cách sống chung với TOCTTOU: thiết kế để race window 
+có thể tồn tại mà không phá hủy tính đúng đắn toàn cục.
+
+#### Atomic khi có thể, không phải ở mọi nơi
+
+Ở cấp micro, ta vẫn cần atomic operation để tránh lỗi hiển nhiên:
+
+* Gộp chuỗi `GET → compute → SET` vào Lua script.
+* Hoặc dùng `WATCH + MULTI` để rollback nếu version thay đổi.
+
+Nhưng đó chỉ là lớp đầu tiên — lớp “chốt cửa khi đi ra ngoài”.
+
+Ở lớp hệ thống, atomicity cần trở thành tính chất tương đối: 
+chỉ atomic trong phạm vi entity hoặc bounded context chứ không toàn hệ thống.
+Một entity (vd. `{user:42}`) nên được gom về cùng shard qua hash tag để mọi thay 
+đổi nằm trong cùng “dòng thời gian”.
+
+#### Versioning — kiểm tra lại trước khi tin
+
+Mọi ghi đè đều phải đi cùng version.
+Mỗi record lưu version hoặc `last_seq`; mọi update phải gửi `expected_version`.
+Nếu mismatch, hệ thống không hỏng — nó retry với thế giới mới hơn.
+
+<Mermaid title="Versioning — kiểm tra lại trước khi tin">
+{`sequenceDiagram
+  participant Svc as Service
+  participant Redis
+  Svc->>Redis: EVAL CAS(key, expected=10)
+  alt matched
+    Redis-->>Svc: OK -> v=11
+  else mismatch
+    Redis-->>Svc: ERR VERSION_MISMATCH
+    Svc->>Svc: reread → recalc → retry
+  end
+`}
+</Mermaid>
+Đây không chỉ là kỹ thuật; đó là thói quen tốt: mỗi hành động đều xác nhận lại xem 
+“điều mình tin” còn đúng không.
+
+#### Idempotency — lặp lại an toàn
+
+Mọi side-effect cần idempotent key (`SETNX idem:{op}:{id}`) để dù event có tới hai lần, 
+kết quả vẫn như một.
+Redis hỗ trợ điều này rất đơn giản, nhưng giá trị của nó nằm ở triết lý:
+
+> Nếu thế giới có thể lặp, hãy khiến mỗi lần lặp đều vô hại.
+
+#### Fencing token — chống writer cũ ghi đè writer mới
+
+Thay vì lock cứng, dùng token tăng dần mỗi khi cấp quyền ghi.
+Mỗi writer gửi token cùng request; downstream chỉ chấp nhận token mới hơn.
+
+<Mermaid title="Fencing token — chống writer cũ ghi đè writer mới">
+{`sequenceDiagram
+  participant A as Writer A
+  participant B as Writer B
+  participant Redis
+  participant Down as Downstream
+
+  A->>Redis: INCR lock:{resource} -> 41
+  B->>Redis: INCR lock:{resource} -> 42
+  A->>Down: write(token=41)
+  B->>Down: write(token=42)
+  Down->>Down: accept token >= current (42)
+`}
+</Mermaid>
+
+Đây là lock có thời gian: ta không giữ mãi, chỉ xác nhận “phiên bản mới hơn thắng”.
+
+#### Stale-while-revalidate — chấp nhận cũ tạm thời, vá chữa dần về sau
+
+Không phải lúc nào cũng cần chính xác tức thì.
+Với dữ liệu hiển thị, cho phép dùng snapshot cũ trong giới hạn cụ thể, trong khi background task làm mới dần.
+Người dùng có trải nghiệm nhanh hơn, hệ thống ít race hơn, và nhất quán dần theo thời gian.
+
+Đó là cách thiết kế chịu đựng race window: không ép mọi thứ cùng nhịp, mà để mỗi phần 
+tự hồi phục về nhất quán.
+
+#### Design for reordering — hệ thống biết chấp nhận sai thứ tự
+
+Trong Streams hoặc queue, sự trễ và trượt thứ tự là không tránh khỏi.
+Hãy gắn `seq` hoặc `logical clock` cho mỗi event; chỉ apply nếu `seq == last_seq + 1`.
+Nếu không đủ điều kiện, event được xếp lại hoặc bỏ qua — thay vì phá vỡ consistency toàn cục.
+
+<Mermaid title="Design for reordering — hệ thống biết chấp nhận sai thứ tự">
+{`flowchart TB
+  E1((seq=100))
+  E2((seq=101))
+  C[Consumer]
+  C --> E1
+  C --> E2
+  C --> Check{seq == last_seq + 1?}
+  Check -- yes --> Apply[Update state]
+  Check -- no --> Skip[Skip event]
+`}
+</Mermaid>
+
+#### Triết lý tổng quát
+
+Khi hệ thống đủ lớn, không có khái niệm “đúng tức thì”.
+Ta không thể loại bỏ TOCTTOU — chỉ có thể chấp nhận và thuần hóa nó: thu nhỏ nơi nó gây 
+hại, và xây cơ chế để phần còn lại tự chữa lành.
+
+Giống như thiết kế cầu chịu gió, ta không cố ngăn gió, mà tạo độ linh hoạt để cầu không gãy khi gió đến.
+
+> Không phải mọi race đều phải thắng; một số chỉ cần sống sót.
+
+### Quy tắc thực thi cho Redis — Playbook chống TOCTTOU
+
+Tôi gom lại thành một playbook ngắn, đủ “cầm đi làm ngay”. 
+Vừa là checklist triển khai, vừa là tiêu chí review. 
+Mỗi mục đều hướng tới một nguyên tắc cốt lõi: đừng tin vào snapshot quá lâu; 
+hãy xác nhận lại ngay trước khi chạm vào thế giới.
+
+#### Keyspace & sharding: “một entity = một slot”
+
+* Quy ước key: `{entityId}:<domain>:<field>` và bắt buộc hash tag: `{user:42}:profile`, `{user:42}:balance`.
+* Mọi thao tác đa-key trên cùng entity phải co-locate (cùng slot) để dùng Lua/MULTI nguyên tử.
+* Anti-pattern: cross-slot RMW (read-modify-write) cho nhiều entity trong một lệnh.
+
+#### Write path mặc định: CAS theo version
+
+* Mọi record có `version` (hoặc `last_seq`).
+* Mọi cập nhật gửi `expected_version` và dùng **Lua CAS**; mismatch → re-read → re-calc → retry (backoff).
+* Chỉ dùng `SET` mù (không CAS) cho dữ liệu ephemeral hoặc append-only không ghi đè trạng thái.
+
+**Lua CAS (mẫu tối thiểu)**
+
+```lua
+-- KEYS[1] = "{user:42}:state"
+-- ARGV = [expected_version, field, mode, value]
+local v = tonumber(redis.call('HGET', KEYS[1], 'version') or '0')
+if v ~= tonumber(ARGV[1]) then return {err="VERSION_MISMATCH"} end
+if ARGV[3] == 'incr' then
+  redis.call('HINCRBY', KEYS[1], ARGV[2], tonumber(ARGV[4]))
+else
+  redis.call('HSET', KEYS[1], ARGV[2], ARGV[4])
+end
+v = v + 1
+redis.call('HSET', KEYS[1], 'version', v)
+return v
+```
+
+#### Read-modify-write: không round-trip trần
+
+* Cấm pattern `GET → compute → SET` qua hai round-trip nếu dữ liệu có thể bị cạnh tranh.
+* Chuyển sang `Lua` gộp hoặc `WATCH/MULTI/EXEC` (optimistic).
+* Nếu buộc phải RMW (tính toán nặng): lấy snapshot + etag, gửi về server để validate 
+lại trước khi apply.
+
+#### Idempotency key cho mọi side-effect
+
+* Trước khi gửi email/charge/webhook: `SETNX idem:{op}:{id} 1 EX <TTL>`; nếu đã tồn tại → skip.
+* Lưu `processed:{consumer}:{event_id}` khi tiêu thụ event để chống duplicate.
+* Mặc định `TTL ≥` chu kỳ retry tối đa.
+
+#### Streams fan-in: sequence & materialized view
+
+* Sự kiện phải có `entity_id + seq` tăng dần.
+* Consumer chỉ apply khi `seq == last_seq + 1`; nếu lớn hơn → đợi/bỏ qua; nếu nhỏ hơn → skip (đã xử lý).
+* Aggregate chỉ đọc từ materialized view cập nhật bởi consumer; không combine on-the-fly từ nhiều nguồn live.
+
+<Mermaid title="Streams fan-in: sequence & materialized view">
+{`flowchart TB
+  E1((seq=100))-->C[Consumer]
+  E2((seq=101))-->C
+  C-->Check{seq==last+1?}
+  Check--Yes-->Apply[Update view & last_seq]
+  Check--No-->HoldOrSkip[Wait/Skip]
+`}
+</Mermaid>
+
+#### Fencing token thay vì lock cứng
+
+* Cấp quyền ghi bằng `INCR lock:{res}` → token.
+* Writer đính kèm token trong mọi lệnh xuống stream/DB phụ.
+* Downstream chỉ nhận token >= current; writer cũ tự động bị vô hiệu.
+
+#### Cache strategy: stale-while-revalidate
+
+* Đọc hiển thị: cho phép trả snapshot **đủ đúng** + kick job nền để refresh.
+* Ghi: write-through hoặc read-through with ETag; cấm write-back mù từ cache cũ.
+
+#### Telemetry & guardrail: đo để biết mình “đang tin quá lâu”
+* Metrics bắt buộc
+    * `redis.cas.version_mismatch_rate` (by entity/domain)
+    * `streams.consumer.duplicates` & `idempotency.hit_rate`
+    * `lua.p99_latency_ms`, `cross_slot.ops_rate`
+    * `aggregate.stale_ratio` (tỉ lệ combine dùng partial cũ)
+* Alert gợi ý
+    * `version_mismatch_rate > X%` trong Y phút → kiểm tra Lua batching, giảm round-trip.
+    * `cross_slot.ops_rate > 0` → audit keyspace/hash tag.
+    * `idempotency.hit_rate ~ 0` dù có retry → thiếu bật idempotency.
+
+#### Quy ước PR “chống TOCTTOU”
+- [ ] Nếu chạm dữ liệu cạnh tranh: chứng minh không có GET→compute→SET trần.
+- [ ] Nếu multi-key: chứng minh cùng slot hoặc trình bày giải pháp bù (event-sourced).
+- [ ] Nếu thêm aggregate: chỉ đọc từ view; gắn seq/version.
+- [ ] Có tests: mismatch → retry; duplicate event → idempotent; out-of-order → không phá view.
+- [ ] Không chấp nhận SET mù ghi đè state “sống”.
+- [ ] Không dùng Pub/Sub cho đường dữ liệu quan trọng (thiếu ack/retry).
+
+#### Test matrix tối thiểu
+
+- **Race tests**: chạy 2–5 writer song song vào cùng entity (50–500 ops/s) → assert không “rollback im lặng”.
+- **Chaos timing**: thêm jitter 5–200ms giữa check/use để bắt TOCTTOU.
+- **Out-of-order suite**: phát seq=[1,3,2,4] → view vẫn hội tụ đúng.
+- **Crash-recovery**: kill consumer giữa chừng → khởi động lại vẫn không double-apply.
+
+#### Lộ trình chuyển đổi an toàn (áp dụng dần)
+
+1. Tag các đường write có pattern RMW → chuyển sang Lua CAS.
+2. Thêm version vào entity schema; phát hành ở chế độ compat (chưa cưỡng bức).
+3. Bật idempotency key cho các side-effect nhiều retry.
+4. Di trú aggregate sang Streams + materialized view (song song một thời gian, so sánh lệch).
+5. Chuẩn hóa hash tag; chặn CROSSSLOT bằng lint CI.
+6. Đặt SLO: `cas_mismatch_rate < 3%`, `lua_p99 < 15ms`, `cross_slot = 0`.
+
+### Kết — Khiêm tốn trước thời điểm
+
+Đến cuối cùng, TOCTTOU không chỉ là lỗi của lập trình viên, mà giống như một nghịch lý tự nhiên 
+của hệ thống sống: mọi hành động đều đến trễ hơn một nhịp so với thực tại.
+
+Ta có thể làm hệ thống nhanh hơn, thu hẹp race window, nhưng không thể làm cho thời 
+gian ngừng lại giữa “kiểm tra” và “hành động”. Mỗi lệnh Redis, mỗi event trên queue, 
+mỗi quyết định trong một team đều mang trong nó một khoảng chênh.
+
+Tôi từng cố “đóng kín” mọi thứ — lock chặt, transaction hóa, đồng bộ toàn mạng — 
+cho đến khi nhận ra: hệ thống ấy trở nên mong manh hơn, không phải vì thiếu kiểm soát, 
+mà vì không chịu nổi thay đổi.
+Thế giới thật không đồng bộ; nó luôn thay đổi trước khi ta kịp phản ứng. Và vì thế, 
+kiến trúc trưởng thành không phải là kiến trúc không còn TOCTTOU, mà là kiến trúc biết 
+chấp nhận nó, biết giới hạn nó, và biết tự hồi phục sau khi chạm phải.
+
+Redis, dù nhỏ bé và đơn luồng, vẫn dạy ta một bài học lớn: atomicity có giới hạn phạm vi; 
+còn an toàn là thứ phải được tái khẳng định liên tục.
+Giống như con người, không ai giữ được một niềm tin mãi đúng — ta chỉ có thể kiểm chứng, 
+điều chỉnh, và tiếp tục.
+
+Khi tôi nhìn lại log của những ngày đầu, những dòng “overwrite by stale snapshot” đã 
+không còn xuất hiện nữa. Nhưng quan trọng hơn, tôi thấy đội ngũ của mình thay đổi: 
+không ai còn viết `GET → SET` vô thức, không ai còn nghĩ rằng “vừa check xong nên an toàn”.
+Chúng tôi học cách nghi ngờ nhẹ nhàng, không phải vì sợ, mà vì tôn trọng thời gian — 
+kẻ duy nhất luôn thắng trong mọi race.
+
+> Giữa lúc ta tin rằng mọi thứ đã ổn, thế giới vẫn tiếp tục chuyển động.
+> Và đó là lý do những kỹ sư giỏi nhất học cách nghi ngờ chính sự “ổn” mà họ vừa tạo ra.

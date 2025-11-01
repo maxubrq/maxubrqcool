@@ -61,7 +61,7 @@ export function PostsContainer({ allPosts }: PostsContainerProps) {
         {/* Hero Section */}
         <HeroSection
           title="Maxubrqcool"
-          subtitle="An interactive personal blog about technology, life, and everything in between. Experience engaging content with hands-on components and interactive elements."
+          subtitle="Blog cá nhân về công nghệ, cuộc sống, và những thứ khác — có thể đọc, thử, và suy nghĩ cùng nhau."
           meta={{
             label: "Blog",
             value: `${allPosts.length} Articles`,

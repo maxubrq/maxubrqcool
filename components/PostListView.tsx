@@ -36,11 +36,6 @@ export function PostListView({ posts }: PostListViewProps) {
                   {format(new Date(post.date), 'MMM dd, yyyy')}
                 </time>
                 <div className="flex flex-col gap-2">
-                  {post.isMDX && (
-                    <Badge variant="secondary" className="text-xs w-fit">
-                      Interactive
-                    </Badge>
-                  )}
                   {post.series && (
                     <Badge variant="outline" className="text-xs w-fit">
                       Part {post.series.part}

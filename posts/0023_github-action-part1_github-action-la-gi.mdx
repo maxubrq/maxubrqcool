@@ -1,0 +1,178 @@
+## GitHub Actions là gì và vì sao đáng dùng
+
+### Concept — Khi workflow không còn là lý thuyết
+
+Thật ra, tôi không chú ý nhiều đến GitHub Actions khi nó mới ra. 
+Lúc đó nhóm tôi vẫn dùng Jenkins, tự quản lý runner trên EC2, 
+mỗi lần build hỏng là phải ssh vào máy, xoá cache, rồi restart service bằng tay. 
+Một ngày, vì cần pipeline tạm cho repo nhỏ, tôi bật Actions trong GitHub thử. 
+Không kỳ vọng gì nhiều — chỉ định “chạy vài test cho vui”. Nhưng workflow YAML đầu 
+tiên chạy mượt một cách đáng ngạc nhiên.
+
+Điều làm tôi chú ý không phải vì nó “dễ dùng”, mà vì nó **gắn liền với repository**. 
+Mọi thứ từ event (push, pull_request) cho đến secrets, permissions đều nằm trong GitHub, 
+không cần kết nối thêm hệ thống khác. Hệ thống này vận hành theo mô hình 
+**event-driven**: có một sự kiện xảy ra → workflow được kích hoạt → runner tải code về, 
+thực thi các bước (steps), rồi đẩy log trở lại GitHub. Nghe đơn giản, nhưng chính 
+cái “native” đó khiến nó khác hẳn những nền CI/CD khác.
+
+Nếu bạn từng phải cấu hình webhooks để Jenkins biết khi nào repo đổi, bạn sẽ hiểu 
+giá trị của chuyện này. Không còn webhook lệch payload, không cần token thủ công. 
+GitHub Actions chỉ cần bạn commit file YAML vào `.github/workflows/`, mọi thứ tự diễn ra.
+
+Về bản chất, nó là một **workflow orchestrator** bên trong GitHub Platform. Mỗi job 
+được gửi đến một **runner** — có thể là hosted (Ubuntu, Windows, macOS của GitHub) 
+hoặc self-hosted (bạn tự cài). Runner giống như một container ephemeral: sau mỗi job, 
+môi trường bị xoá sạch để tránh rò rỉ state. Khi bạn nhìn thấy log “Job succeeded”, 
+thật ra đằng sau đó là cả 
+chuỗi orchestration: queue → runner provision → execution → upload artifact.
+
+Điểm yếu duy nhất thời đó là nó chưa có reusable workflow và caching hiệu quả. 
+Nhưng với dự án nhỏ, sự tiện lợi thắng tuyệt đối. Trong cùng một chiều tối, 
+tôi đã gỡ toàn bộ Jenkinsfile cũ, thay bằng một YAML 20 dòng. Và điều buồn cười 
+là build chạy nhanh hơn, đơn giản vì không còn phải chờ node agent tự khởi động.
+
+### Build — Việc đầu tiên tôi làm với GitHub Actions
+
+Tôi bắt đầu bằng workflow nhỏ nhất có thể.
+
+```yaml
+name: Hello Actions
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run greeting
+        run: echo "Hello from GitHub Actions 👋"
+```
+
+Tôi commit file này vào nhánh `main`. Ngay lập tức, tab **Actions** xuất hiện 
+với dòng “Hello Actions – build running”. Chưa đầy một phút sau, log hiện ra: 
+hai bước, cả hai đều xanh. Tôi bấm vào từng step, xem runner log: có phần 
+download repo, thiết lập GITHUB_WORKSPACE, rồi thực thi lệnh bash. 
+Mọi thứ minh bạch, gọn gàng.
+
+Tôi đổi `on: push` thành `on: pull_request`, tạo một PR giả. Workflow chạy lại, 
+lần này log ghi rõ *event: pull_request*. Cảm giác đó — nhìn pipeline tự chạy khi 
+có PR mới — chính là “click moment”. Không cần thêm server, không cần token, không 
+cần Jenkinsfile nặng nề.
+
+Khi bạn hiểu mô hình **event → workflow → job → steps**, mọi thứ bắt đầu sáng rõ. 
+Một event chỉ là JSON payload từ GitHub, chứa thông tin về repo, user, commit, 
+branch. Workflow nhận payload đó, chọn các job phù hợp để chạy. Mỗi job là một 
+môi trường độc lập, thực thi tuần tự các steps (run command hoặc gọi action). 
+Actions bản thân chỉ là module tái sử dụng, có thể viết bằng JavaScript hoặc Docker.
+
+Tôi thử thêm job thứ hai để kiểm chứng cơ chế song song:
+
+```yaml
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Running tests..."
+```
+
+Hai job chạy cùng lúc. Tổng thời gian thực giảm gần nửa. Không cần thêm cấu hình gì 
+— vì GitHub lo phần queue và runner pool cho bạn.
+
+Điều đáng giá là log hiển thị theo thời gian thực. Tôi có thể xem từng step, 
+dừng ở step thất bại, tải artifact log. Những thứ vốn phải cài plugin trong 
+Jenkins giờ là mặc định.
+
+Vài tuần sau, chúng tôi quyết định dùng GitHub Actions cho dự án thật. Lúc đó 
+repo có hơn 15 package Node.js, build matrix gần 40 biến thể. 
+Jenkins mỗi lần chạy phải mất 25–30 phút, và caching thường bị 
+lỗi vì node_modules không đồng bộ giữa các agent. Tôi thử port sang Actions để xem sao.
+
+Đầu tiên là **matrix build**:
+
+```yaml
+strategy:
+  matrix:
+    node: [18, 20]
+    os: [ubuntu-latest, macos-latest]
+runs-on: ${{ matrix.os }}
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: ${{ matrix.node }}
+  - run: npm ci
+  - run: npm test
+```
+
+Chỉ với vài dòng, pipeline tự sinh ra bốn job song song — Node 18 và 20 trên 
+cả Ubuntu lẫn macOS.
+Điều thú vị là GitHub tự tạo cache layer theo key (`hashFiles('package-lock.json')`). 
+Tốc độ build giảm từ 30 phút xuống còn khoảng 9 phút.
+
+Chúng tôi thêm phần cache như sau:
+
+```yaml
+- name: Cache node_modules
+  uses: actions/cache@v4
+  with:
+    path: ~/.npm
+    key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+```
+
+Khi log hiển thị dòng “Cache restored successfully”, cảm giác đó khá “phê” — 
+như vừa lấy lại mấy phút đời mình.
+
+Tôi cũng bắt đầu quan tâm tới **security**. Khi xem phần `permissions`, 
+tôi nhận ra mặc định GitHub cấp `GITHUB_TOKEN` quyền write cho cả repo. 
+Đó là rủi ro. Tôi chỉnh lại:
+
+```yaml
+permissions:
+  contents: read
+  packages: write
+```
+
+Từ đó, workflow chỉ có quyền đúng phần nó cần. Một lần khác, đồng nghiệp mở PR 
+từ fork và pipeline báo lỗi vì token bị giới hạn quyền. Lúc đầu hơi phiền, nhưng 
+về lâu dài, điều đó ngăn chặn hẳn rủi ro “build leak secret”.
+
+Điểm tôi thích nhất ở Actions là **visibility**. Mỗi lần build xong, GitHub tự 
+đính trạng thái vào PR. Không ai phải hỏi “build qua chưa?”. Mọi thứ hiển thị 
+ngay bên cạnh commit. Và vì toàn bộ log nằm trong GitHub, việc debug trở nên 
+dễ hơn nhiều — không cần hỏi DevOps team mở console.
+
+Chúng tôi cũng thử **self-hosted runner** trên EC2 để tăng tốc. Một lệnh đơn giản:
+
+```bash
+./config.sh --url https://github.com/our-org/repo --token $TOKEN
+```
+
+Trong dashboard, runner mới xuất hiện sau vài giây. Với cấu hình cứng hơn 
+(8 cores, SSD local), build giảm còn 4 phút. Nhưng chúng tôi phải tự lo cleanup, 
+update agent, và security patch — đó là trade-off.
+
+Sau khoảng một tháng, nhóm tôi chuyển toàn bộ CI sang Actions. Jenkins chính thức 
+“nghỉ hưu”. Có vài cú vấp nhẹ — như khi GitHub thay đổi runner image khiến version 
+của Node khác đi — nhưng overall, độ tin cậy cao hơn.
+
+### Reflect — Sau vài trăm workflow run đầu tiên
+
+Nhìn lại, điều khiến GitHub Actions đáng dùng không phải vì nó “mới” hay “ngầu”, 
+mà vì nó **giảm ma sát** giữa dev và CI/CD. Dev chỉ cần push code, pipeline tự 
+kích hoạt, log nằm cùng repo, quyền kiểm soát trong tay bạn.
+
+Điều chúng tôi học được:
+
+* **Workflow không phải file YAML, mà là contract niềm tin.** Khi bạn merge code, bạn đang đặt niềm tin vào pipeline kiểm chứng thay mình.
+* **Tránh black-box**: hiểu runner đang làm gì giúp debug nhanh hơn bất kỳ plugin nào.
+* **Đừng copy-paste workflow của người khác.** Mỗi hệ thống có dependency, runtime, permission khác nhau. Bắt đầu nhỏ, hiểu từng dòng, rồi mở rộng.
+
+Còn nhược điểm? Có. Build queue thỉnh thoảng chậm khi GitHub quá tải, 
+và nếu bạn cần logic quá phức tạp (như dynamic fan-out build), YAML 
+bắt đầu trở nên cồng kềnh. Nhưng đó là cái giá hợp lý cho sự ổn định 
+và native integration.
+
+Cuối cùng, GitHub Actions dạy tôi một điều khá đơn giản: **CI/CD không chỉ 
+là automation, mà là rhythm của team.** Một pipeline chạy đều, minh bạch, 
+và đáng tin cậy tạo ra nhịp phát hành mà mọi người có thể dựa vào. 
+Và khi bạn đạt được điều đó, công cụ chỉ còn là chi tiết.

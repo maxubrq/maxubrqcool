@@ -152,6 +152,30 @@
     "date": "2025-11-04",
     "excerpt": "Ý nghĩa không phải là thứ để tìm thấy, mà là thứ để định nghĩa lại. Một suy nghĩ về việc học tập, giá trị của giáo dục, và cách chúng ta gán ý nghĩa cho những việc tưởng chừng nhàm chán hay vô nghĩa.",
     "tags": ["vietnamese", "personal", "reflection", "education", "meaning", "purpose", "philosophy"]
+  },
+  "0023_github-action-part1_github-action-la-gi": {
+    "title": "#23 - GitHub Actions là gì và vì sao đáng dùng",
+    "date": "2025-11-05",
+    "excerpt": "GitHub Actions không chỉ là công cụ CI/CD, mà là một hệ thống event-driven gắn liền với repository. Từ concept đến build, từ workflow YAML đến runner orchestration — một hành trình khám phá tại sao Actions đáng dùng và cách nó giảm ma sát giữa dev và CI/CD.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "automation", "devops", "tutorial", "workflow"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 1,
+      "totalParts": 2,
+      "slug": "github-action-101-909"
+    }
+  },
+  "0024_github-action-part2_cau-truc-vong-doi-workflow": {
+    "title": "#24 - Cấu trúc và vòng đời của một workflow",
+    "date": "2025-11-06",
+    "excerpt": "Workflow không chỉ là file YAML, mà là một hệ thống orchestration tinh vi. Từ event trigger đến runner execution, từ job isolation đến step logging — hiểu vòng đời workflow giúp bạn debug nhanh hơn và vận hành CI/CD như một người thực thụ.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 2,
+      "totalParts": 2,
+      "slug": "github-action-101-909"
+    }
   }
 }
 

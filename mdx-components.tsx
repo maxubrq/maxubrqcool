@@ -85,7 +85,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h2 id={id} className="text-2xl font-black tracking-tighter text-gray-900 mb-4 mt-6" {...props}>
+        <h2 id={id} className="text-2xl font-black tracking-tighter text-gray-900 mb-4 mt-6" style={{lineHeight: '2.5'}} {...props}>
           {children}
         </h2>
       )
@@ -94,7 +94,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h3 id={id} className="text-xl font-black tracking-tighter text-gray-900 mb-3 mt-5" {...props}>
+        <h3 id={id} className="text-xl font-black tracking-tighter text-gray-900 mb-3 mt-5" style={{lineHeight: '2.5'}} {...props}>
           {children}
         </h3>
       )
@@ -103,7 +103,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h4 id={id} className="text-lg font-semibold text-gray-900 mb-2 mt-4" {...props}>
+        <h4 id={id} className="text-lg font-semibold text-gray-900 mb-2 mt-4" style={{lineHeight: '2.5'}} {...props}>
           {children}
         </h4>
       )
@@ -112,7 +112,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h5 id={id} className="text-base font-semibold text-gray-900 mb-2 mt-3" {...props}>
+        <h5 id={id} className="text-base font-semibold text-gray-900 mb-2 mt-3" style={{lineHeight: '2.5'}} {...props}>
           {children}
         </h5>
       )
@@ -121,13 +121,13 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       const text = typeof children === 'string' ? children : children?.toString() || ''
       const id = generateHeadingId(text)
       return (
-        <h6 id={id} className="text-sm font-semibold text-gray-900 mb-2 mt-3" {...props}>
+        <h6 id={id} className="text-sm font-semibold text-gray-900 mb-2 mt-3" style={{lineHeight: '2.5'}} {...props}>
           {children}
         </h6>
       )
     },
     p: ({ children, ...props }) => (
-      <p className="text-gray-700 mb-4 leading-relaxed font-light tracking-wider" {...props}>
+      <p className="text-gray-700 mb-4 leading-relaxed font-light tracking-wider" style={{lineHeight: '2.5'}} {...props}>
         {children}
       </p>
     ),
@@ -142,7 +142,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       </ol>
     ),
     li: ({ children, ...props }) => (
-      <li className="text-gray-700 font-light tracking-wider" {...props}>
+      <li className="text-gray-700 font-light tracking-wider" style={{lineHeight: '2.5'}} {...props}>
         {children}
       </li>
     ),

@@ -1,0 +1,201 @@
+## Github Action 909: CI/CD Production với GitHub Actions
+
+### Concept — Khi pipeline trở thành hạ tầng thật
+
+Khi chúng tôi mới dựng workflow đầu tiên bằng GitHub Actions, mọi thứ còn khá ngẫu hứng: mỗi repo có một YAML file riêng, đặt tên theo cảm hứng, ai cần gì thì thêm job đó. Nó chạy được, build ra artifact, deploy lên staging. Nhưng vài tháng sau, khi số service tăng lên hơn 20 và mỗi service có vài workflow, hệ thống trở thành mê cung: không ai biết chính xác release flow của version nào đang chạy ở đâu, secret nào đang dùng, hay ai vừa approve production.
+
+Lúc đó chúng tôi nhận ra: pipeline CI/CD không chỉ là “chuỗi job” nữa. Nó **là một phần của hạ tầng vận hành**. Và nếu coi nó là hạ tầng, thì nó phải có những phẩm chất của hạ tầng thật — ổn định, tái sử dụng, có quan sát, và có kiểm soát.
+
+Chúng tôi bắt đầu thiết kế lại từ gốc:
+
+* **Mỗi branch phản ánh một environment** – `main` tương ứng staging, `production` là prod, còn feature branch thì chỉ chạy CI.
+* **Mỗi environment có chính sách riêng:** secret tách biệt, quyền deploy khác nhau, và cần manual approval trước prod.
+* **Mọi workflow đều có owner, log, và trace.** Không có “file vô danh” nào còn được phép nằm trong repo.
+
+Từ đó, chúng tôi đối xử với Actions như với Terraform hay Kubernetes manifest — một mô tả có thể kiểm soát được, thay đổi có thể review và rollback được.
+
+Điều thú vị là: khi mindset thay đổi, cách viết YAML cũng khác. Ta không còn “chạy cho xong”, mà bắt đầu nghĩ về **dòng chảy release – release flow**. Mỗi workflow giờ có input rõ ràng, output được quản lý, có version và có cách promotion qua environment.
+
+Tôi nghĩ đó là điểm chuyển giao quan trọng nhất: khi ta ngừng coi Actions là “công cụ” và bắt đầu coi nó là “hệ thống vận hành mã nguồn mở” cho CI/CD.
+
+### Build — Blueprint thực chiến cho CI/CD production
+
+Khi bắt đầu thiết kế lại pipeline, chúng tôi không cố “viết lại toàn bộ”, mà chọn nguyên tắc: *refactor bằng cách chuẩn hóa từng khối*.
+Chúng tôi tách toàn bộ quy trình thành ba tầng rõ ràng — **branching & environment**, **reusable modules**, và **observability & rollback**. Mỗi tầng có YAML riêng, mỗi YAML chỉ làm một việc, và có thể kiểm thử độc lập.
+
+### 1. Branching & Environment Promotion
+
+Ở quy mô nhỏ, nhiều nhóm chọn cách deploy trực tiếp từ `main`. Nhưng khi có staging, pre-prod, và production, việc **phân tách môi trường bằng branch + environment** trở thành điều bắt buộc.
+
+Chúng tôi định nghĩa rõ:
+
+* `main` = staging
+* `production` = môi trường thật
+* mọi feature branch khác chỉ chạy CI (build + test)
+
+Workflow tương ứng trông như sau:
+
+```yaml
+on:
+  push:
+    branches: [main, production]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy
+        run: ./scripts/deploy.sh ${{ github.ref_name }}
+```
+
+Lúc đầu, chúng tôi không để ý `environment:` là một primitive rất mạnh. Nó cho phép GitHub tự động:
+
+* tạo *secret scope riêng* cho từng môi trường,
+* cấu hình *reviewer bắt buộc* trước khi deploy,
+* theo dõi *history* của từng environment.
+
+Khi production có sự cố, chúng tôi chỉ cần mở **Deployments** tab để biết version nào, commit nào, ai trigger và khi nào. Trước đây phải tra log thủ công; giờ chỉ vài cú click.
+
+Một bài học nhỏ: *hãy coi environment như firewall tự nhiên của hệ thống CI/CD.* Nó không ngăn bug, nhưng ngăn được bug lan ra production quá nhanh.
+
+### 2. Reusable Workflow & Compliance Checks
+
+Khi số workflow tăng, YAML copy-paste trở thành ác mộng. Chúng tôi chuyển sang mô hình **reusable workflow**: mỗi chức năng CI/CD chung (test, build, deploy, scan) được gom vào `.github/workflows-core/`.
+
+Ví dụ, đây là workflow `reusable-ci.yml` dùng cho tất cả service Node.js:
+
+```yaml
+name: CI
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: true
+        type: string
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+      - run: pnpm install
+      - run: pnpm test
+```
+
+Khi dùng lại trong service cụ thể, chỉ cần:
+
+```yaml
+jobs:
+  ci:
+    uses: org/workflows-core/.github/workflows/reusable-ci.yml@v2
+    with:
+      node-version: 20
+```
+
+Bằng cách này, chỉ cần một pull request vào repo `workflows-core`, toàn bộ hệ thống CI/CD được cập nhật ngay. Không còn cảnh hàng chục repo phải sửa thủ công khi muốn thêm step quét bảo mật hoặc đổi version Node.
+
+Cùng lúc đó, chúng tôi thêm một tầng **compliance workflow**, ví dụ:
+
+```yaml
+jobs:
+  security-scan:
+    uses: org/workflows-core/.github/workflows/security-scan.yml@v1
+  license-check:
+    uses: org/workflows-core/.github/workflows/license-check.yml@v1
+```
+
+Mục tiêu không phải “bắt lỗi”, mà đảm bảo mọi repo đều tuân theo **chuẩn CI/CD tối thiểu**: có test, có scan, có artifact traceable.
+
+Chúng tôi học được rằng: khi workflow đã trở thành hệ thống, chuẩn hóa không còn là lựa chọn — nó là cơ chế tự vệ.
+
+### 3. Audit, Observability & Rollback
+
+Production pipeline mà không có rollback thì chẳng khác gì deploy bằng cảm tính.
+Chúng tôi tạo riêng một workflow `rollback.yml`, chạy thủ công qua `workflow_dispatch`:
+
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version cần rollback"
+        required: true
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/rollback.sh ${{ github.event.inputs.version }}
+```
+
+Tưởng đơn giản, nhưng chính workflow này đã cứu chúng tôi nhiều lần. Khi deploy gặp lỗi, chỉ cần vào tab “Actions”, chọn workflow `Rollback`, nhập version cũ, click “Run”. Mọi thứ tự động quay lại trạng thái an toàn.
+
+Về **observability**, chúng tôi tích hợp Slack webhook vào tất cả pipeline. Bất kỳ khi nào có deploy, build fail, hay manual approval, Slack đều hiển thị thông tin dạng:
+
+```text
+🔔 Deployment started
+repo: api-gateway
+env: production
+commit: a1b2c3d
+triggered by: @linh
+```
+
+Nhờ vậy, CI/CD không còn là hộp đen — nó trở thành dòng sự kiện liên tục giữa developer và hệ thống.
+
+Đến đây, GitHub Actions không chỉ là YAML nữa. Nó đã trở thành **control plane của cả release system**.
+
+### Reflect — Điều còn lại sau khi hệ thống chạy ổn
+
+Sau gần nửa năm tái cấu trúc toàn bộ pipeline, điều thay đổi lớn nhất không phải ở YAML, mà ở cách đội ngũ nghĩ về “release”. Trước đây, mỗi lần merge lên `main` là một lần nín thở. Giờ, mọi người yên tâm hơn vì mỗi bản phát hành đều **có lịch sử, có chứng cứ, có đường lui**.
+
+Tôi nhận ra: để CI/CD thực sự “production-grade”, bạn không cần workflow phức tạp, mà cần **tư duy vận hành có kỷ luật**.
+
+* Workflow chỉ là phương tiện, nhưng discipline mới là hệ điều hành.
+* YAML có thể viết lại, nhưng traceability và consistency thì phải được gìn giữ qua văn hóa kỹ thuật.
+* Còn automation, suy cho cùng, chỉ giúp ta không lặp lại lỗi cũ — nó không tự sinh ra sự trưởng thành.
+
+Chúng tôi từng mất vài tuần chỉ để thống nhất cách đặt tên job. Nhưng sau khi chuẩn hóa, mọi người đọc log của nhau dễ hơn, debug nhanh hơn, và việc audit trở nên đơn giản như đọc lịch sử commit.
+Một buổi post-mortem production outage từng kéo dài ba giờ, giờ chỉ mất mười phút để truy ngược: workflow nào, commit nào, ai approve, artifact nào được deploy.
+
+Khi hệ thống đạt đến điểm đó, bạn bắt đầu hiểu giá trị thật của CI/CD: **không phải chạy nhanh hơn, mà là chạy đúng và có thể tin được.**
+
+Ở cuối hành trình, chúng tôi viết ra một checklist nhỏ — thứ mà giờ tôi coi như “bộ luật CI/CD” riêng của đội:
+
+1. **Mọi thay đổi đều traceable.** (ai, khi nào, commit nào, environment nào)
+2. **Mọi môi trường có ranh giới rõ ràng.** (secrets, permission, approval riêng)
+3. **Mọi workflow đều có owner và log.**
+4. **Rollback là workflow, không phải hướng dẫn trong wiki.**
+5. **Không deploy khi không ai biết ai chịu trách nhiệm.**
+
+Nghe tưởng hiển nhiên, nhưng chính những điều hiển nhiên đó quyết định độ tin cậy của hệ thống. 
+
+Giờ nhìn lại, GitHub Actions không chỉ giúp chúng tôi “chạy được pipeline”, mà giúp chúng tôi **nhìn thấy hệ thống của mình rõ hơn**. Từng job, từng artifact, từng approval đều trở thành dấu vết của sự minh bạch.
+
+Và khi có minh bạch, bạn mới có thể cải tiến.
+
+Phần này khép lại series *GitHub Actions 101 → 909*.
+Nhưng thực ra, đây mới là điểm bắt đầu — nơi CI/CD trở thành **nền hạ tầng kỹ thuật sống**, còn workflow chỉ là cách bạn kể lại hành trình ấy bằng YAML.
+
+## Kiểm tra kiến thức
+
+Hãy thử làm bài quiz sau đây để kiểm tra xem bạn đã nắm vững các khái niệm về CI/CD Production với GitHub Actions chưa:
+
+<GitHubActionsPart9Quiz />

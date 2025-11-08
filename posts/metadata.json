@@ -161,7 +161,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 1,
-      "totalParts": 9,
+      "totalParts": 10,
       "slug": "github-action-101-909"
     }
   },
@@ -173,7 +173,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 2,
-      "totalParts": 9,
+      "totalParts": 10,
       "slug": "github-action-101-909"
     }
   },
@@ -197,7 +197,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 3,
-      "totalParts": 9,
+      "totalParts": 10,
       "slug": "github-action-101-909"
     }
   },
@@ -209,7 +209,79 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 4,
-      "totalParts": 9,
+      "totalParts": 10,
+      "slug": "github-action-101-909"
+    }
+  },
+  "0029_github-action-part5_bao-mat-trong-github-action": {
+    "title": "#29 - Bảo mật trong GitHub Actions",
+    "date": "2025-11-12",
+    "excerpt": "Bảo mật trong GitHub Actions. Giúp bảo mật trong GitHub Actions.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 5,
+      "totalParts": 10,
+      "slug": "github-action-101-909"
+    }
+  },
+  "0030_github-action-part6_matrix": {
+    "title": "#30 - Matrix build và tối ưu hiệu năng pipeline",
+    "date": "2025-11-13",
+    "excerpt": "Matrix build và tối ưu hiệu năng pipeline. Giúp tối ưu hiệu năng pipeline.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 6,
+      "totalParts": 10,
+      "slug": "github-action-101-909"
+    }
+  },
+  "0031_github-action-part7_tich-hop-kiem-thu-va-CD": {
+    "title": "#31 - Tích hợp kiểm thử và tự động phát hành",
+    "date": "2025-11-14",
+    "excerpt": "Tích hợp kiểm thử và tự động phát hành. Giúp tích hợp kiểm thử và tự động phát hành.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 7,
+      "totalParts": 10,
+      "slug": "github-action-101-909"
+    }
+  },
+  "0032_github-action-part8_quan-sat-xu-ly-loi-va-tu-phuc-hoi": {
+    "title": "#32 - Quan sát, xử lý lỗi và tự phục hồi",
+    "date": "2025-11-15",
+    "excerpt": "Quan sát, xử lý lỗi và tự phục hồi. Giúp quan sát, xử lý lỗi và tự phục hồi.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 8,
+      "totalParts": 10,
+      "slug": "github-action-101-909"
+    }
+  },
+  "0033_github-action-part9_production-blueprint": {
+    "title": "#33 - Blueprint: CI/CD Production với GitHub Actions",
+    "date": "2025-11-16",
+    "excerpt": "Blueprint: CI/CD Production với GitHub Actions. Giúp blueprint: CI/CD Production với GitHub Actions.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 9,
+      "totalParts": 10,
+      "slug": "github-action-101-909"
+    }
+  },
+  "0034_github-action-appendix_Appendix": {
+    "title": "#34 - Appendix: Tài nguyên, ví dụ và template thực tế để audit, benchmark và hoàn thiện hệ thống CI/CD của bạn trước khi đưa vào vận hành thật",
+    "date": "2025-11-17",
+    "excerpt": "Appendix: Tài nguyên, ví dụ và template thực tế để audit, benchmark và hoàn thiện hệ thống CI/CD của bạn trước khi đưa vào vận hành thật. Giúp appendix: Tài nguyên, ví dụ và template thực tế để audit, benchmark và hoàn thiện hệ thống CI/CD của bạn trước khi đưa vào vận hành thật.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 10,
+      "totalParts": 10,
       "slug": "github-action-101-909"
     }
   }

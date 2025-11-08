@@ -1,0 +1,389 @@
+## Github Action 505: Bảo mật trong GitHub Action
+
+### Concept — Khi CI/CD trở thành bề mặt tấn công
+
+Lúc GitHub Actions mới ra, hầu hết đội dev coi nó là “một Jenkins chạy trên mây”.
+Tạo workflow, chạy test, deploy — thế là xong. Nhưng khi hệ thống lớn dần, CI/CD không còn là pipeline, mà là **đường dẫn thẳng vào production**.
+Nếu pipeline đó có quyền ghi repo, publish package, hoặc assume role cloud, thì nó tương đương với quyền admin ở cấp hạ tầng.
+
+Trong nhiều tổ chức, sự cố không đến từ mã ứng dụng mà từ CI/CD:
+
+* Một PR từ fork chứa payload độc, chạy với `pull_request_target`, khiến workflow leak secret.
+* Một step debug quên xóa, in `AWS_ACCESS_KEY_ID` ra log.
+* Một runner self-hosted lưu cache Docker bị nhiễm script trước đó.
+
+Vấn đề là: GitHub Actions **được thiết kế để tự động tin tưởng chính nó**. Mỗi workflow run đều được cấp token, secret, context đầy đủ — trừ khi bạn tước bớt quyền.
+
+Để hiểu cách nó vận hành, cần nhìn ba tầng bảo mật cơ bản:
+
+### GitHub Token
+
+Khi bất kỳ workflow nào khởi chạy, GitHub sinh ra một token tạm gọi là `GITHUB_TOKEN`.
+Token này:
+
+* Có scope mặc định `repo:*`, tương đương quyền ghi đầy đủ.
+* Sống trong suốt thời gian job chạy.
+* Có thể dùng để push code, trigger workflow khác, hoặc gọi GitHub API.
+
+Nếu không cấu hình `permissions`, workflow test đơn thuần vẫn có thể ghi code ngược lên `main`.
+Tệ hơn, nếu một job build bị compromise, kẻ tấn công có thể dùng token đó để inject commit mới hoặc tạo release giả mạo.
+
+### Secrets và Variables
+
+`secrets` được lưu mã hóa phía GitHub và inject khi job khởi chạy.
+Điều ít người biết: khi một step bị `set -x` (bash debug) hoặc `run: |` có lỗi format, secret có thể bị in ra log chưa được mask.
+Mask của GitHub dựa trên pattern matching, không tuyệt đối — nếu secret có ký tự đặc biệt hoặc bị cắt nhỏ, nó vẫn có thể lộ từng phần.
+
+Ngoài ra, secrets tồn tại dưới dạng environment variable trong toàn bộ job. Nếu step shell nào gọi `env` hoặc `printenv`, nó sẽ in toàn bộ.
+
+### Permission Model
+
+GitHub từ 2022 thêm cơ chế `permissions` YAML-level. Đây là chỗ duy nhất bạn có thể kiểm soát scope của `GITHUB_TOKEN`.
+Ví dụ:
+
+```yaml
+permissions:
+  contents: read
+  packages: write
+  issues: none
+```
+
+Chỉ định rõ quyền đọc source, ghi package, và không có quyền can thiệp issue.
+Nếu không khai báo, mặc định là `write all`.
+
+Nhưng ít ai để ý rằng **permission kế thừa giữa workflow gọi nhau** — nếu bạn dùng reusable workflow, quyền ở caller có thể override quyền của callee, dẫn đến việc callee nhận quyền cao hơn dự kiến.
+Đây là chỗ nhiều tổ chức bị bypass mà không biết.
+
+### Runner và Isolation
+
+Runner là máy thực (hosted hoặc tự quản lý).
+Hosted runner của GitHub là ephemeral: mỗi job spin up instance mới, xong là xóa.
+Self-hosted runner thì khác: nó sống lâu, giữ lại state, cache, và đôi khi cả credential tạm trong `/tmp`.
+
+Một câu chuyện thật: một công ty SaaS lớn bị rò thông tin client vì script cleanup của runner chỉ xóa workspace, không xóa Docker layer cache.
+Layer đó chứa `.npmrc` với token publish.
+
+Tức là sandbox không hoàn toàn an toàn nếu bạn tái sử dụng runner.
+
+### PR từ fork và “Trust Boundary”
+
+PR từ fork là cửa hậu phổ biến nhất:
+
+* Workflow dùng event `pull_request_target` chạy trong context repo chính, có quyền đọc secret.
+* Nếu job đó checkout code từ fork (`actions/checkout@v4`), kẻ tấn công có thể thay thế step kế tiếp bằng command độc.
+
+GitHub có cảnh báo, nhưng nhiều team vẫn dùng vì “chạy được thôi mà”.
+Trong thực tế, chỉ nên dùng `pull_request` (không phải target) để test code bên ngoài — và disable secret access hoàn toàn trong context đó.
+
+> Nhìn tổng thể, bảo mật của GitHub Actions không yếu — nhưng **nó mặc định tin bạn biết mình đang làm gì**.
+Nếu bạn không giới hạn scope, CI/CD sẽ chạy với quyền tối đa.
+Phần còn lại là cách ta cấu hình lại để nó chạy đúng giới hạn.
+
+### Thiết kế và cấu hình bảo mật đúng cách
+
+### Giảm đặc quyền của `GITHUB_TOKEN`
+
+Bước đầu tiên trong bất kỳ quy trình harden CI/CD nào là **tước bớt quyền mặc định**.
+GitHub Actions cấp sẵn `GITHUB_TOKEN` cho mỗi workflow, nhưng nếu không giới hạn, token này có thể push, tạo release, hoặc trigger workflow khác.
+Trong môi trường production, đó là lỗ hổng loại “root access by default”.
+
+Luôn khai báo tường minh phần `permissions` ở đầu file YAML:
+
+```yaml
+permissions:
+  contents: read      # chỉ đọc source code
+  packages: write     # cần quyền publish package
+  id-token: write     # cần cho OIDC deploy
+```
+
+Nếu job chỉ build và test, giữ `read` là đủ.
+Nếu có step cần publish hay deploy, chỉ bật quyền ở mức đó.
+Đừng bao giờ dùng `write-all` hoặc để trống (mặc định là `write-all`).
+
+Để enforce trên toàn tổ chức, bạn có thể đặt **default permissions = read-all** trong `Settings > Actions > General`.
+Như vậy, dev nào quên khai báo cũng sẽ chỉ có quyền đọc.
+
+### Secret: giới hạn, không phình ra
+
+Secrets trong GitHub không xấu, nhưng dễ bị lạm dụng.
+Một repo nhỏ thường bắt đầu với 3–5 secrets (API_KEY, DB_URL, AWS_ACCESS_KEY…).
+Sau 6 tháng, nó thành 30, không ai nhớ cái nào dùng ở đâu.
+
+Giải pháp thực tế:
+
+* **Tách secret theo environment** (dev/staging/prod).
+* **Không dùng lại** secret giữa workflow hoặc repo khác.
+* **Không echo trực tiếp** secret, kể cả trong step debug.
+* Khi cần in ra giá trị tạm để kiểm tra, dùng lệnh mask:
+
+```bash
+echo "::add-mask::$MY_SECRET"
+```
+
+Đối với workflow public, tránh hoàn toàn mọi secret injection.
+Nếu bạn dùng `pull_request_target` để chạy test từ fork, hãy thêm điều kiện:
+
+```yaml
+if: github.event.pull_request.head.repo.full_name == github.repository
+```
+
+Điều này đảm bảo chỉ PR từ repo nội bộ mới nhận được secret.
+
+### Thay thế static key bằng OIDC (OpenID Connect)
+
+GitHub Actions hỗ trợ xác thực với cloud provider qua **OIDC federation**, cho phép workflow nhận được credential tạm thời mà không cần lưu access key.
+
+Cách này an toàn hơn vì:
+
+* Token tạm thời (vài phút).
+* Ràng buộc theo `workflow`, `repo`, `run_id`.
+* Không cần rotate key thủ công.
+
+Ví dụ triển khai AWS:
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+
+steps:
+  - uses: actions/checkout@v4
+
+  - name: Configure AWS credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      role-to-assume: arn:aws:iam::123456789012:role/deploy-role
+      aws-region: ap-southeast-1
+```
+
+Trên AWS, bạn cần tạo trust policy cho role đó:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com" },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:org-name/repo-name:ref:refs/heads/main"
+        }
+      }
+    }
+  ]
+}
+```
+
+Điểm lưu ý:
+
+* `Condition.sub` nên chỉ định branch hoặc tag cụ thể, tránh “any ref”.
+* Runner phải có clock chính xác (NTP). Lệch vài phút, token sẽ bị coi là hết hạn.
+* Dừng việc lưu key trong secret. Không có lý do gì để tồn tại `AWS_ACCESS_KEY_ID` nếu bạn đã dùng OIDC.
+
+### Kiểm soát runner và sandbox
+
+Hosted runner của GitHub an toàn mặc định.
+Nhưng khi build lớn, nhiều team chuyển sang self-hosted runner để tiết kiệm thời gian và chi phí. Lúc đó, bạn cần tự bảo vệ mình.
+
+Những rủi ro chính:
+
+* Runner sống lâu, giữ lại cache, log, hoặc token.
+* Job độc có thể ghi file vào `/cache` và ảnh hưởng job sau.
+* Không reset network state, dẫn đến leak dữ liệu hoặc key reuse.
+
+Giải pháp:
+
+* Dùng **ephemeral runner**: GitHub tạo instance mới mỗi job và xóa sau khi xong.
+* Nếu phải dùng runner cố định, mount workspace riêng theo job ID, dọn sạch sau mỗi run.
+* Chặn outbound network (firewall hoặc security group).
+* Audit runner logs định kỳ, rotate token sau mỗi deploy.
+
+Mẫu config ephemeral runner:
+
+```yaml
+runs-on: [self-hosted, linux, ephemeral]
+```
+
+Ở mức hạ tầng, có thể dùng VM snapshot hoặc container image base cố định.
+Không bao giờ cài tool “tạm” trong runner production.
+Cài trong step, không trong host.
+
+### Kiểm soát artifact và log
+
+Một phần bị bỏ quên là **log và artifact retention**.
+Log chứa cả `env` và output của job.
+Nếu workflow ghi nội dung nhạy cảm (chẳng hạn build metadata có secret), artifact sẽ trở thành điểm rò rỉ.
+
+Checklist:
+
+* Không đính kèm file `.env`, `.npmrc`, hoặc `config.json` trong artifact.
+* Bật `log_retention_days` nhỏ (7 hoặc 14).
+* Dùng `::add-mask::` với output chứa credential.
+* Dọn artifact tự động bằng cron job hoặc `actions/delete-artifact`.
+
+Ví dụ cleanup workflow:
+
+```yaml
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old artifacts
+        uses: geekyeggo/delete-artifact@v4
+        with:
+          age: 14d
+```
+
+### Policy, review và audit
+
+Cuối cùng là lớp tổ chức:
+
+* Bật **required review for workflow changes** (branch protection).
+* Kiểm tra file `.github/workflows` trong code review như code thật.
+* Dùng GitHub Advanced Security hoặc action như `step-security/harden-runner` để block outbound không cần thiết.
+* Audit secrets định kỳ:
+
+```bash
+gh api repos/<org>/<repo>/actions/secrets | jq '.secrets[].name'
+```
+
+Hoặc script nhỏ kiểm tra workflow có phần `permissions` rõ ràng:
+
+```bash
+grep -L "permissions:" .github/workflows/*.yml
+```
+
+Cái gì không có, coi như “write-all”.
+
+### Reflect — Bài học và góc nhìn thực tế
+
+
+### “An toàn mặc định” là một ảo giác
+
+Nhiều đội vận hành CI/CD tin rằng GitHub sẽ “bảo vệ” họ. Nhưng GitHub chỉ đảm bảo hạ tầng sandbox của họ không bị lộ — còn pipeline của bạn, họ không thể biết bạn đang làm gì.
+Chúng tôi từng audit lại hơn 40 workflow ở công ty và phát hiện:
+
+* 90 % **không khai báo `permissions`**, nghĩa là mặc định `write-all`.
+* Hơn một nửa có **secret không còn dùng**, nhiều cái đã quá hạn 1 năm.
+* Một workflow test vô tình có quyền `packages: write`, đủ để publish lên registry production.
+
+Điều tôi rút ra: hệ thống an toàn không đến từ việc “chạy trong môi trường đáng tin”, mà đến từ **thiết kế workflow có quyền tối thiểu để vẫn làm được việc**.
+
+### Bảo mật không phải một module, mà là thói quen kỹ sư
+
+Một workflow chỉ thực sự an toàn khi mọi kỹ sư xem YAML là *infrastructure code*, không phải file phụ.
+Khi review code, chúng tôi thêm checklist cố định:
+
+* [ ] Có khai báo `permissions` cụ thể?
+* [ ] Secret được lấy từ đúng environment?
+* [ ] Có bước cleanup / delete artifact không?
+* [ ] Có chạy trên runner ephemeral hoặc container sandbox không?
+
+Không có mục nào “optional”.
+Lúc đầu nhiều dev than phiền “rườm rà”, nhưng sau một lần PR bị block vì secret leak trong log, mọi người hiểu lý do.
+
+### Rủi ro thường đến từ workflow “nhỏ”
+
+Workflow lớn (deploy, build, release) thường được kiểm tra kỹ.
+Nhưng các file nhỏ kiểu `auto-label.yml`, `update-readme.yml`, `sync-docs.yml`… lại dễ bị bỏ qua.
+Một lần chúng tôi phát hiện một action bên thứ ba trong workflow update label có dòng:
+
+```yaml
+run: curl https://external-script.run | bash
+```
+
+Script đó tải shell script về và chạy trong context có `GITHUB_TOKEN` mặc định.
+Không có gì độc, nhưng về nguyên tắc, đó là **code không xác thực chạy trong môi trường có credential của bạn**.
+Từ đó, mọi dependency ngoài (`uses:`) đều phải được pin version và chỉ dùng action verified.
+
+```yaml
+uses: actions/checkout@v4   # ✅ đã xác thực
+uses: someuser/action@main  # ❌ tránh dùng branch floating
+```
+
+Mỗi lần build, workflow nên log version chính xác của action đã dùng — giúp audit khi có sự cố.
+
+### Tự động hóa audit
+
+Khi số lượng workflow vượt quá 10, kiểm tra thủ công không còn thực tế.
+Chúng tôi viết script nhỏ kiểm tra toàn bộ repo trong tổ chức:
+
+```bash
+for repo in $(gh repo list org-name --json name -q '.[].name'); do
+  echo "Checking $repo"
+  gh api repos/org-name/$repo/contents/.github/workflows \
+    | jq -r '.[].name' \
+    | while read wf; do
+        gh api repos/org-name/$repo/contents/.github/workflows/$wf \
+          | base64 --decode | grep -q "permissions:" || \
+          echo "⚠️ Missing permissions in $repo/$wf"
+      done
+done
+```
+
+Kết quả được gom về dashboard nội bộ.
+Từ chỗ chỉ 20 % có `permissions`, sau 2 tuần chúng tôi đạt 100 %.
+
+Đây là điểm quan trọng: **bảo mật CI/CD cần tự động hóa kiểm tra giống như test code.**
+Nếu review dựa vào con người, sớm muộn cũng bỏ sót.
+
+### Khi workflow trở thành entry point vào production
+
+Một pipeline production-grade không chỉ chạy test và deploy — nó thực thi hành động thật:
+
+* Publish image lên Docker Hub.
+* Push artifact sang S3.
+* Gọi API để update environment.
+
+Tức là, **nếu kẻ tấn công điều khiển được YAML hoặc job**, họ có quyền tương đương DevOps.
+Vì vậy, những nguyên tắc bảo vệ pipeline thực ra giống hệt bảo vệ ứng dụng backend:
+
+| Nguyên tắc hệ thống          | Tương đương trong GitHub Actions |
+| ---------------------------- | -------------------------------- |
+| Principle of Least Privilege | `permissions` cụ thể từng job    |
+| Secrets isolation            | `environment` + OIDC             |
+| Zero Trust                   | PR từ fork không access secret   |
+| Immutable infrastructure     | Ephemeral runner                 |
+| Observability                | Audit logs, artifact retention   |
+
+Một khi CI/CD được đối xử như production service, nó mới thực sự an toàn.
+
+### “Security debt” nguy hiểm hơn technical debt
+
+Technical debt bạn có thể đo bằng performance hoặc maintainability.
+Security debt thì không hiện ra, cho đến khi có sự cố.
+Mỗi workflow chưa có `permissions`, mỗi secret quên xóa, mỗi runner không cleanup — đều là nợ.
+Và lãi suất của nó là quyền admin production bị rò rỉ.
+
+Chúng tôi chọn cách tính “security debt” như sau:
+mỗi mục trong checklist chưa đạt = 1 điểm nợ.
+Đội nào trên 10 điểm bị chặn merge đến khi fix xong.
+Nghe khắt khe, nhưng nó khiến bảo mật trở thành phần của velocity, không phải vật cản.
+
+### Nhìn lại: từ YAML đến thói quen
+
+Khi mọi thứ đã vào nếp, chúng tôi nhận ra không còn “làm bảo mật” nữa — chỉ là “viết YAML đúng cách”.
+Một workflow an toàn không phải vì có tường lửa, mà vì:
+
+* Biết rõ job đang chạy với quyền gì.
+* Không lưu bất kỳ credential lâu hơn vài phút.
+* Mọi dependency đều kiểm soát được version và provenance.
+
+Đó là tiêu chuẩn tối thiểu nếu bạn muốn CI/CD đáng tin cậy.
+Từ đây, khi chuyển sang tối ưu hiệu năng (matrix build, caching), ta có thể yên tâm rằng nền bảo mật đã đủ vững để scale.
+
+## Kiểm tra kiến thức
+
+Hãy thử làm bài quiz sau đây để kiểm tra xem bạn đã nắm vững các khái niệm về bảo mật trong GitHub Actions, quản lý quyền, secrets, OIDC, và cách bảo vệ pipeline khỏi các lỗ hổng phổ biến chưa:
+
+<GitHubActionsPart5Quiz />
+
+> **Sang phần 6:** *Matrix build và tối ưu hiệu năng pipeline* — nơi pipeline không chỉ an toàn mà còn nhanh, rẻ, và ổn định.
+Ta sẽ bàn về cách song song hóa, cache dependency, và đo đạc trade-off giữa tốc độ, chi phí và độ tin cậy trong thực tế.

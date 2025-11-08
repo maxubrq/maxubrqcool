@@ -1,0 +1,327 @@
+## Github Action 707: Tích hợp kiểm thử và tự động phát hành
+
+### Concept — Khi CI chưa hẳn là CD
+
+Khi chúng tôi mới triển khai GitHub Actions, workflow duy nhất chỉ làm một việc: chạy test. PR nào cũng pass xanh lè, nhìn qua tưởng mọi thứ ổn định. Nhưng thực tế: việc phát hành vẫn phải làm thủ công, bằng cách chạy script trên máy local và đẩy tag lên.
+Khi có nhiều repo hơn, sự lệch pha bắt đầu xuất hiện. Mỗi nhóm lại có cách release khác nhau, có nơi dùng `npm publish`, có nơi push image lên Docker Hub. Và khi một repo build hỏng, chẳng ai biết cho đến khi người dùng báo “phiên bản mới không chạy được”.
+
+Chúng tôi nhận ra mình đang ở lưng chừng giữa CI và CD — test thì tự động, nhưng build và release vẫn đầy ma sát. CI/CD chỉ có ý nghĩa khi mỗi commit hợp lệ *tự nhiên đi hết vòng đời của nó*, từ test đến release, với sự kiểm soát rõ ràng ở từng bước.
+
+Điều đầu tiên cần hiểu:
+
+* **CI (Continuous Integration)** là đảm bảo chất lượng code ở từng commit.
+* **CD (Continuous Delivery / Deployment)** là đảm bảo khả năng phát hành bất kỳ lúc nào mà không lo vỡ.
+
+Vấn đề nằm ở “đường nối” giữa hai giai đoạn.
+Nhiều đội ngũ dừng lại ở CI vì họ sợ mất kiểm soát — “nếu tự động release mà lỗi thì sao?” — và đúng là có lý. Tự động hóa không chỉ là bật cờ `on.push`, mà là thiết kế chuỗi điều kiện, checkpoint, và tín hiệu rõ ràng để biết khi nào nên dừng, khi nào nên đi tiếp.
+
+Trong dự án backend của chúng tôi, một lần PR merge vào `main` đã vô tình kích hoạt script phát hành ngay lập tức. Tag `v1.4.2` được push lên GitHub chỉ 3 phút sau merge, nhưng build chứa dependency cũ. Sự cố đó khiến production crash chỉ sau 10 phút. Từ đó, chúng tôi rút ra: “Tự động không có nghĩa là thiếu kiểm soát; tự động chỉ có giá trị khi kiểm soát vẫn còn nguyên vẹn.”
+
+Tốt — để đạt chiều sâu đúng kiểu *Engineering Practitioner (Field Edition)*, phần **Build** này sẽ được mở rộng thành phiên bản chi tiết (~1200–1300 từ riêng phần này), đào sâu từng khía cạnh thực hành:
+
+* cách phân tách workflow hợp lý (CI vs CD),
+* cách nối dữ liệu giữa các job,
+* quản lý artifact và metadata,
+* tagging, changelog, approval, và protection rule,
+* kinh nghiệm thực tế khi pipeline “bị quá khôn” hoặc “bị treo”.
+
+Tôi sẽ viết lại phần **Build** hoàn chỉnh hơn, vẫn giữ giọng kể thực tế như kỹ sư trong đội hạ tầng đang kể lại trải nghiệm của mình.
+
+### Build — Xây dựng pipeline CI/CD có kiểm soát và truy vết
+
+Ở thời điểm chúng tôi quyết định chuyển hẳn sang GitHub Actions, mọi thứ khá rối. Mỗi repo một kiểu test, mỗi dự án một cách build. Có repo Node.js, có repo Python, thậm chí có repo chỉ chứa Dockerfile. Chúng tôi nhận ra mình đang quản lý một “vườn workflow” hỗn tạp, mà mỗi cây mọc theo một hướng.
+
+Lúc đó mục tiêu rất đơn giản: *gom mọi thứ lại thành một quy trình có thể đọc được, bảo trì được, và khi hỏng — biết hỏng ở đâu*.
+Chúng tôi gọi kế hoạch này là **unified pipeline**.
+
+### 1. Phân tách ranh giới giữa CI và CD
+
+Sai lầm phổ biến mà chúng tôi từng mắc phải là ghép tất cả vào một workflow duy nhất. File `ci.yml` khi đó dài hơn 400 dòng: test, build, publish Docker image, release npm package — tất cả nằm trong cùng một chuỗi. Khi một phần lỗi, toàn bộ pipeline dừng lại.
+
+Và tệ hơn, log của Actions chỉ cho thấy “job failed”, không rõ job nào fail vì build, vì test, hay vì quyền push.
+Chúng tôi mất gần một ngày debug một lỗi thực ra chỉ do `NPM_TOKEN` hết hạn.
+
+Bài học đầu tiên: **đừng để pipeline làm quá nhiều việc cùng lúc**.
+Chúng tôi tách nó thành ba workflow riêng biệt:
+
+* `ci.yml`: chạy trên `pull_request` → test, lint, type-check.
+* `build.yml`: chạy trên `push main` → tạo artifact, attach metadata.
+* `release.yml`: chạy khi có tag hoặc trigger thủ công.
+
+Sự phân tách này giúp workflow ngắn hơn, dễ đọc hơn, và log cũng rõ ràng hơn. Khi CI fail, build không chạy. Khi build fail, release không khởi động. Cấu trúc pipeline lúc này giống như ba tầng chồng lên nhau, nhưng vẫn giao tiếp bằng artifact và metadata.
+
+### 2. Chuẩn hóa CI — chỉ test, không hơn
+
+Workflow `ci.yml` rất đơn giản, chỉ cần đảm bảo code hợp lệ:
+
+```yaml
+name: ci
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint && pnpm test
+        # ✅ CI chỉ xác nhận chất lượng code, không build hay release
+```
+
+Chúng tôi cố tình không thêm build hoặc publish vào đây, để CI chỉ tập trung vào việc “code này có đáng tin không”.
+Khi test pass, GitHub sẽ tạo *status check* — đó là tín hiệu duy nhất cho phép build tiếp tục.
+
+Đây là điểm nhỏ nhưng quan trọng:
+thay vì để job sau kiểm tra lại kết quả test, chúng tôi dùng chính **check result** của GitHub (`status: success`) làm “chìa khóa mở cửa” cho workflow kế tiếp. Điều này giảm được 10–15 phút build không cần thiết trên mỗi PR.
+
+### 3. Build — tạo artifact có thể truy vết
+
+Giai đoạn kế tiếp là build.
+Trước đây, nhiều repo tạo artifact nhưng không có metadata. Khi cần tra xem build nào gây crash, chỉ thấy file `.zip` hoặc image tag `latest`. Không ai biết bản đó từ commit nào ra.
+
+Chúng tôi viết lại workflow `build.yml`:
+
+```yaml
+name: build
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Add commit metadata
+        run: |
+          echo "COMMIT_SHA=${{ github.sha }}" > dist/build-meta.txt
+          echo "BUILD_DATE=$(date -u)" >> dist/build-meta.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+```
+
+Kết quả: mỗi artifact đi kèm một file `build-meta.txt` chứa `COMMIT_SHA` và `BUILD_DATE`.
+Nhờ đó, bất kỳ ai có artifact đều có thể biết chính xác nó đến từ commit nào, build lúc nào.
+Đây là nền tảng của **traceability** — điều kiện bắt buộc nếu sau này muốn audit, rollback, hoặc chứng minh tuân thủ.
+
+### 4. Tránh “automation quá mức” trong phát hành
+
+Một sai lầm khác: chúng tôi từng để workflow tự động phát hành khi `main` thay đổi.
+Điều này nghe có vẻ tiện, nhưng thực tế đã khiến hệ thống publish liên tục — trung bình 30 bản mỗi tuần. Một số bản chỉ thay mỗi dòng comment, nhưng vẫn bị release như major patch.
+
+Chúng tôi phải kéo phanh tay.
+Giải pháp là chuyển sang **tag-based release**:
+chỉ khi có tag hợp lệ (`vX.Y.Z`) mới được phép chạy pipeline phát hành.
+
+```yaml
+name: release
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+```
+
+Workflow này đảm bảo chỉ người có quyền tạo tag mới có thể phát hành.
+Đồng thời, nó cho phép release thủ công khi cần — hữu ích khi rollback.
+
+### 5. Release workflow — tự động nhưng vẫn có điểm dừng
+
+Đây là workflow thực tế chúng tôi đang dùng:
+
+```yaml
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Cơ chế `generate_release_notes: true` của GitHub giúp tự động tổng hợp changelog từ PR và commit message — một tiện ích nhỏ nhưng giảm được khối lượng công việc thủ công.
+
+Để kiểm soát tốt hơn, chúng tôi thêm `environment` với **protection rule**:
+
+```yaml
+environment:
+  name: production
+  url: https://ourapp.example.com
+```
+
+Khi bật **environment protection**, GitHub yêu cầu ít nhất một người approve trước khi job “release” chạy.
+Nhờ đó, pipeline vừa tự động, vừa có checkpoint an toàn.
+
+### 6. Artifact sharing và dependency giữa workflow
+
+Một vấn đề ít người để ý: khi tách workflow, bạn mất khả năng chia sẻ dữ liệu trực tiếp giữa chúng.
+Chúng tôi giải quyết bằng cách **upload/download artifact** kết hợp với **workflow_run** trigger.
+
+```yaml
+on:
+  workflow_run:
+    workflows: ["build"]
+    types:
+      - completed
+```
+
+Khi `build.yml` chạy xong, `release.yml` tự động nhận được tín hiệu và có thể tải artifact xuống bằng:
+
+```yaml
+- uses: actions/download-artifact@v4
+  with:
+    name: dist
+```
+
+Cách này biến pipeline thành một chuỗi “workflow nối workflow” — logic hơn nhiều so với việc tất cả nằm trong một file.
+Nó cũng giúp mỗi phần có thể chạy lại độc lập (rerun only build, rerun only release).
+
+### 7. Notification và observability
+
+Chúng tôi thêm Slack notification cho các giai đoạn quan trọng:
+
+```yaml
+- name: Notify Slack
+  uses: slackapi/slack-github-action@v1.27.0
+  with:
+    payload: |
+      {
+        "text": ":rocket: Release ${{ github.ref_name }} deployed by ${{ github.actor }}"
+      }
+  env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+Việc này tưởng nhỏ, nhưng cực kỳ quan trọng để duy trì “visibility” cho đội.
+Một thông báo rõ ràng sau mỗi release giúp team QA, product, và ops nắm được nhịp phát hành mà không phải soi log GitHub.
+
+### 8. Kinh nghiệm thực tế: khi pipeline “không thông minh như ta nghĩ”
+
+Một lần, chúng tôi thêm `matrix` cho workflow test để chạy đồng thời trên Node 18 và 20.
+Nhưng một bug trong job test khiến kết quả `failure` không được propagate lên `workflow_run`.
+Kết quả: `release.yml` vẫn chạy dù test Node 18 fail.
+
+Từ đó, chúng tôi thêm điều kiện kiểm tra thủ công:
+
+```yaml
+if: ${{ github.event.workflow_run.conclusion == 'success' }}
+```
+
+và ghi thêm log validation để đảm bảo chỉ release khi toàn bộ matrix pass.
+
+Đây là kiểu lỗi “logic ngầm” mà nhiều người bỏ qua — automation tưởng thông minh, nhưng nếu không kiểm tra kỹ, nó sẽ bỏ qua cả lỗi thật.
+
+Khi hoàn thiện pipeline, mỗi lần release diễn ra trơn tru, nhưng quan trọng hơn: **chúng tôi biết rõ điều gì đang diễn ra ở từng bước**.
+GitHub Actions không còn là “script chạy ngầm”, mà trở thành công cụ điều phối minh bạch: ai chạy, từ commit nào, artifact gì, có metadata gì, phát hành khi nào, và đã được ai duyệt.
+
+### Reflect — Khi pipeline không chỉ chạy đúng, mà còn phải đứng vững khi sai
+
+Khi pipeline đã ổn định, chúng tôi mới thấy phần khó nhất không nằm ở automation, mà ở **niềm tin**.
+Tin rằng mỗi commit sẽ được kiểm thử đúng, tin rằng mỗi bản build có thể tái hiện, và quan trọng nhất — tin rằng nếu một bước hỏng, hệ thống sẽ không đẩy lỗi đi xa hơn.
+
+### 1. Bài học về giới hạn của tự động hóa
+
+Chúng tôi từng nghĩ rằng càng tự động càng tốt. Nhưng một đêm, build server dừng 10 phút do GitHub runner outage, workflow “thông minh” đã retry ba lần — và mỗi lần retry, nó push thêm một bản release giống hệt nhau.
+Hậu quả: ba bản `v2.3.1`, `v2.3.1-hotfix`, `v2.3.1-retry` cùng lúc xuất hiện.
+Từ đó, chúng tôi học cách thiết lập giới hạn cho automation:
+
+```yaml
+concurrency:
+  group: release
+  cancel-in-progress: true
+```
+
+Chỉ cho phép một workflow release chạy tại một thời điểm, các job còn lại sẽ bị huỷ.
+Tưởng đơn giản, nhưng cứu pipeline khỏi tình huống lặp phát hành mà không ai để ý.
+
+Tự động hóa phải đi kèm với điều kiện dừng — một nguyên tắc mà chúng tôi viết hẳn vào README:
+
+> “Automation không thay thế con người. Nó chỉ giúp con người ít phạm sai lầm hơn.”
+
+### 2. Xử lý lỗi và rollback
+
+Trong môi trường thật, chuyện release lỗi là bình thường. Quan trọng là rollback nhanh.
+Chúng tôi thêm job `rollback` trong cùng workflow:
+
+```yaml
+jobs:
+  rollback:
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release delete ${{ github.ref_name }} --yes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Khi job `release` fail giữa chừng, hệ thống tự xoá tag hoặc release bị lỗi để không gây hiểu lầm cho người dùng.
+Từ đó, mỗi lần thất bại đều được “thu dọn” sạch sẽ, không để lại tag mồ côi hay artifact rác.
+
+Nhưng quan trọng hơn là *phản ứng của đội ngũ*: khi thấy workflow báo lỗi, không ai còn hoảng. Mọi người biết pipeline sẽ rollback, gửi thông báo, và dừng đúng chỗ.
+
+### 3. Audit và minh bạch
+
+Một yêu cầu mới từ team compliance buộc chúng tôi phải chứng minh “ai phát hành, khi nào, từ commit nào, có kiểm thử hay chưa”.
+Trước đây, để trả lời mấy câu này phải mở từng log, tìm commit, và đối chiếu tay.
+Giờ thì chỉ cần đọc file `build-meta.txt` hoặc xem release note, mọi thứ đều trace được.
+
+Chúng tôi còn thêm job ghi lịch sử phát hành vào Google Sheet (qua API):
+
+```yaml
+- name: Log release to Google Sheet
+  run: node scripts/log-release.js
+  env:
+    SHEET_ID: ${{ secrets.RELEASE_LOG_SHEET_ID }}
+    GITHUB_REF: ${{ github.ref_name }}
+    GITHUB_ACTOR: ${{ github.actor }}
+    GITHUB_SHA: ${{ github.sha }}
+```
+
+Một dòng ghi rõ: *v2.3.4 – build từ commit abc123 – phát hành bởi huy.nguyen – 2025-09-08 10:22 UTC*.
+Đó là kiểu “observability” dành cho pipeline — không chỉ log khi lỗi, mà ghi lại hành vi đúng.
+
+### 4. Khi con người vẫn cần có mặt
+
+Dù tự động hoá nhiều, chúng tôi vẫn giữ “release approval” cho môi trường production.
+Chỉ một người duyệt — không phải để cản trở, mà để tạo khoảng dừng cần thiết trước khi đẩy build ra thế giới.
+Một cú click “Approve” nhỏ, nhưng khiến tất cả đều yên tâm hơn.
+
+Trong môi trường staging, workflow có thể chạy đến hết. Nhưng với production, GitHub environment yêu cầu manual approval — vừa đảm bảo tính bảo mật, vừa tạo cơ hội xem lại changelog lần cuối.
+Điều này phù hợp với tinh thần “Trust, but verify.”
+
+### 5. Điều học được sau cùng
+
+Sau vài tháng vận hành, chúng tôi nhận ra: pipeline tốt không phải pipeline chạy nhanh nhất, mà là pipeline mà ai trong team cũng **hiểu được**.
+Mỗi job có ý nghĩa rõ ràng, mỗi file YAML ngắn gọn và có chú thích.
+Người mới chỉ cần đọc workflow là biết “chuyện gì xảy ra khi merge”.
+
+Sự ổn định của CI/CD không đến từ YAML, mà đến từ tư duy: “mọi bước phải có lý do tồn tại”.
+Một dòng `if` sai chỗ, một `secrets` cấu hình sai phạm vi, hoặc một tag bị tạo nhầm — đều có thể khiến toàn bộ chuỗi automation sụp.
+
+Khi đã trải qua vài lần như vậy, chúng tôi không còn nghĩ GitHub Actions là “công cụ tự động hóa”, mà là **một hệ thống vận hành** — sống, có nhịp, có phản xạ, có lỗi và có khả năng tự chữa.
+
+## Kiểm tra kiến thức
+
+Hãy thử làm bài quiz sau đây để kiểm tra xem bạn đã nắm vững các khái niệm về tích hợp kiểm thử và tự động phát hành chưa:
+
+<GitHubActionsPart7Quiz />

@@ -1,0 +1,102 @@
+## Github Action 606: Matrix build và tối ưu hiệu năng pipeline
+
+### Concept — Khi CI/CD trở thành nút thắt
+
+Ở giai đoạn đầu, pipeline của chúng tôi đơn giản: một job duy nhất chạy lint, test, rồi build trong cùng một container. Khi repo còn nhỏ, nó chỉ mất sáu–bảy phút. Nhưng vài tháng sau, thời gian build tăng dần, có lúc hơn 25 phút cho mỗi PR. GitHub Actions bắt đầu queue job, và dev phải ngồi chờ nửa giờ chỉ để xem test có qua hay không.
+
+Vấn đề không phải ở GitHub hay ở máy chạy chậm, mà ở chỗ mọi thứ đều chạy tuần tự. Mỗi lần workflow chạy, runner phải checkout, cài dependency, rồi test tất cả như thể bắt đầu lại từ 0. Chúng tôi có cảm giác pipeline “làm việc chăm chỉ” nhưng không thông minh.
+
+Lúc đó tôi mới nhìn lại doc và thấy `strategy.matrix` — một cơ chế chạy song song các biến thể job (ví dụ Node 18/20, Ubuntu/Windows). Nó tương tự như `parallel` trong GitLab CI nhưng tích hợp sâu vào hệ sinh thái GitHub. Về lý thuyết, chỉ cần thêm vài dòng YAML là mỗi phiên bản chạy độc lập. Điều khiến tôi quan tâm là cách GitHub Actions cấp phát runner: mỗi job matrix là một runner riêng, nghĩa là hiệu năng phụ thuộc trực tiếp vào số lượng slot song song và cache.
+
+Chúng tôi quyết định thử — không phải để “làm màu”, mà để đo xem hiệu quả thực sự đến đâu.
+
+### Build — Tối ưu pipeline bằng matrix, cache và artifact
+
+Bước đầu, chúng tôi tách job `test` ra khỏi build và thêm cấu hình matrix cơ bản:
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm test
+```
+
+Cảm giác ban đầu khá “sướng”: log chạy song song, từng job hiện kết quả riêng. Nhưng kỳ vọng “nhanh gấp bốn” không xảy ra. Thời gian tổng thể chỉ giảm từ 22 xuống khoảng 17 phút. Sau khi xem log, chúng tôi phát hiện bottleneck nằm ở việc **cài dependency**. Mỗi runner đều tải lại toàn bộ node_modules, dù chúng giống nhau.
+
+Giải pháp là **cache**. Chúng tôi thêm `actions/cache@v4`, với key dựa trên hash của `package-lock.json` để tránh đụng cache cũ.
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: ~/.npm
+    key: ${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+```
+
+Sau lần đầu seed cache, thời gian mỗi job giảm 2–3 phút. Tổng thời gian workflow còn khoảng 12 phút.
+
+Nhưng hiệu năng không chỉ nằm ở tốc độ — còn ở **cách chia tầng công việc**.
+Chúng tôi tạo thêm job `build` riêng, chỉ chạy sau khi tất cả test job xong, và truyền artifact thay vì build lại từ đầu:
+
+```yaml
+- name: Upload build artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: dist
+    path: dist/
+```
+
+Ở job kế tiếp:
+
+```yaml
+- name: Download build artifact
+  uses: actions/download-artifact@v4
+  with:
+    name: dist
+```
+
+Nhờ đó, job build không phải clone lại code và chạy build từ đầu.
+
+Tuy nhiên, khi team commit liên tục, GitHub runner bị quá tải. Mỗi commit mới tạo ra toàn bộ matrix job, chiếm hết quota song song. Chúng tôi thêm cấu hình `concurrency` để hủy workflow cũ khi có commit mới:
+
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+Việc này cắt được 30–40% thời gian chờ runner.
+Đến khi project vượt 50 workflow/ngày, chi phí hosted runner bắt đầu tăng. Lúc đó, chúng tôi dựng một self-hosted runner dùng instance t3.large của AWS, chỉ phục vụ các job build nặng. Kết quả: tiết kiệm khoảng 40% chi phí mà vẫn giữ thời gian chạy trung bình quanh 11 phút.
+
+### Reflect — Hiệu năng là vấn đề hệ thống, không phải YAML
+
+Sau vài tuần tối ưu, pipeline của chúng tôi nhìn “đẹp” hẳn — thời gian trung bình từ 25 phút xuống 11 phút, chi phí runner giảm đáng kể. Nhưng điều đáng giá nhất không nằm ở con số, mà ở cách chúng tôi nhìn CI/CD.
+
+Trước đó, mỗi khi pipeline chậm, chúng tôi thường đi “tối ưu YAML”: thêm step, bớt step, đổi action version. Sau này mới hiểu: YAML chỉ là mặt ngoài. **Hiệu năng thật đến từ cách tổ chức dữ liệu và phụ thuộc.**
+
+Có vài bài học tôi ghi lại sau lần đó:
+
+* **Cache không phải phép màu.** Nếu cache key sai hoặc scope trùng giữa các môi trường, bạn sẽ gặp “false hit”: lấy nhầm cache cũ khiến job lỗi ngẫu nhiên. Chúng tôi đã mất hai ngày debug một lỗi build trên Windows chỉ vì cache của Ubuntu bị reuse.
+* **Matrix có giới hạn thực tế.** Khi số biến thể tăng (ví dụ 3 OS × 3 Node version × 2 region = 18 job), tổng overhead của việc setup và teardown runner khiến tổng thời gian đôi khi còn *tệ hơn*. Tối ưu hiệu năng là chọn đúng mức song song, không phải càng nhiều càng tốt.
+* **Đừng chạy lại những gì không thay đổi.** Thêm cơ chế skip job bằng điều kiện `if: ${{ github.event_name == 'push' && contains(github.ref, 'main') }}` giúp chúng tôi bỏ qua build không cần thiết ở nhánh feature.
+
+Một cải tiến nhỏ nhưng có tác động lớn là **build summary report**: cuối mỗi workflow, chúng tôi dùng `actions/github-script` để thống kê thời gian từng job và ghi lại trung bình 7 ngày gần nhất. Chỉ cần nhìn dashboard đó, team có thể phát hiện job nào đang “phình ra” mà không cần đoán.
+
+Khi nhìn lại, tôi nhận ra: mục tiêu không phải để pipeline chạy nhanh nhất, mà là **ổn định nhất** với chi phí hợp lý. Một pipeline tốt không khiến kỹ sư phải “chờ đợi” hay “lo lắng” — nó chỉ chạy, ổn định, và báo đúng.
+
+Điều cuối cùng tôi học được là: **CI/CD cũng là một hệ thống phân tán.** Muốn nó nhanh, phải hiểu dữ liệu đi đâu, runner chia tải thế nào, và khi nào nên dừng. YAML chỉ là giao diện, còn hiệu quả nằm ở cách ta tư duy về dòng chảy công việc.
+
+## Kiểm tra kiến thức
+
+Hãy thử làm bài quiz sau đây để kiểm tra xem bạn đã nắm vững các khái niệm về matrix builds, cache optimization, artifact management, concurrency configuration, và các chiến lược tối ưu hiệu năng pipeline chưa:
+
+<GitHubActionsPart6Quiz />

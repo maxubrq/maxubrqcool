@@ -13,6 +13,11 @@ import { SimpleQuiz } from './components/SimpleQuiz'
 import { GitHubActionsPart2Quiz } from './components/GitHubActionsPart2Quiz'
 import { GitHubActionsPart3Quiz } from './components/GitHubActionsPart3Quiz'
 import { GitHubActionsPart4Quiz } from './components/GitHubActionsPart4Quiz'
+import { GitHubActionsPart5Quiz } from './components/GitHubActionsPart5Quiz'
+import { GitHubActionsPart6Quiz } from './components/GitHubActionsPart6Quiz'
+import { GitHubActionsPart7Quiz } from './components/GitHubActionsPart7Quiz'
+import { GitHubActionsPart8Quiz } from './components/GitHubActionsPart8Quiz'
+import { GitHubActionsPart9Quiz } from './components/GitHubActionsPart9Quiz'
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
 import { Figure, SimpleFigure } from './components/Figure'
@@ -58,6 +63,11 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     GitHubActionsPart2Quiz,
     GitHubActionsPart3Quiz,
     GitHubActionsPart4Quiz,
+    GitHubActionsPart5Quiz,
+    GitHubActionsPart6Quiz,
+    GitHubActionsPart7Quiz,
+    GitHubActionsPart8Quiz,
+    GitHubActionsPart9Quiz,
     Mermaid,
     Kroki,
     // MathJax components

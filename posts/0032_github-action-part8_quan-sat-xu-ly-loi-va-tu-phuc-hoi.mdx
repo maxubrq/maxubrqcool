@@ -1,0 +1,153 @@
+## Github Action 808: Quan sát, xử lý lỗi và tự phục hồi
+
+### Concept — Khi pipeline bắt đầu biết “cảm nhận”
+
+Ở giai đoạn đầu, chúng tôi không nghĩ nhiều về quan sát. Pipeline chỉ cần chạy xong là được — test pass, artifact sinh ra, deploy thành công. Mọi thứ tưởng chừng ổn cho đến khi workflow thỉnh thoảng “chết đứng” giữa chừng mà không ai để ý. Có lần sáng thứ Hai, build production bị treo 45 phút, rồi timeout. Không ai được báo. Cả team chỉ biết khi QA nhắn “bản mới đâu rồi?”.
+
+Khi log lại, chúng tôi mới nhận ra GitHub Actions không “tự biết” điều gì là lỗi nghiêm trọng, điều gì là bình thường. Nó chỉ ghi lại tất cả, và nhiệm vụ *hiểu chuyện gì đang xảy ra* thuộc về chúng tôi.
+
+Từ đó, tôi bắt đầu nhìn pipeline như một **hệ thống phân tán mini**: có môi trường tạm, task song song, kết nối mạng, dependency bên ngoài, và đủ thứ có thể hỏng. Nghĩa là, phải thiết kế để pipeline **biết mình đang đau ở đâu** — quan sát được, báo động được, và quan trọng nhất là **tự chữa** khi có thể.
+
+Ba nguyên tắc xuất hiện sau vài lần “cháy đêm”:
+
+1. **Không có log → không có sự thật.**
+   Nếu không thấy vì sao lỗi, thì mọi fix đều mù mờ.
+2. **Không có cảnh báo → không có phản ứng.**
+   Một pipeline lỗi mà không ai biết là pipeline chết.
+3. **Không có phục hồi → không có độ tin cậy.**
+   Con người không nên phải “click rerun” thủ công mãi.
+
+Thế là, thay vì thêm job mới, chúng tôi thêm khả năng “quan sát” cho pipeline cũ: enrich log, gắn alert, và tạo logic phục hồi tự động. Cái thú vị là — không có feature nào riêng biệt của GitHub Actions giúp bạn làm điều này trọn vẹn; nó là kết quả của việc **kết hợp nhiều cơ chế nhỏ**: `if: failure()`, `continue-on-error`, `ACTIONS_STEP_DEBUG`, và artifact lưu trữ log ngoài.
+
+Dần dần, workflow bắt đầu “có cảm xúc”: nó biết khi nào mình thất bại, gửi tin nhắn xin lỗi trên Slack, rồi tự thử lại. Cảm giác thật kỳ lạ — như thể pipeline từ một đoạn YAML tĩnh, trở thành một *sinh vật biết phản xạ*.
+
+### Build — Thiết kế pipeline có khả năng quan sát và phục hồi
+
+**1. Bắt đầu từ log — không có log, mọi thứ chỉ là phỏng đoán.**
+
+Trong một dự án Node.js build hơn 10 phút, đôi khi job “Build & Test” chết ở bước thứ ba mà không rõ lý do. GitHub log mặc định chỉ hiển thị một đoạn cuối cùng bị cắt. Chúng tôi thêm grouping để đọc dễ hơn:
+
+```yaml
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
+
+  - name: Install dependencies
+    run: |
+      echo "::group::Install dependencies"
+      pnpm install --frozen-lockfile
+      echo "::endgroup::"
+
+  - name: Build project
+    run: |
+      echo "::group::Build project"
+      pnpm run build
+      echo "::endgroup::"
+```
+
+Nhờ grouping, log phân tách rõ ràng, mỗi phần dễ tra cứu. Sau đó, tôi bật debug để theo dõi biến môi trường:
+
+```yaml
+env:
+  ACTIONS_STEP_DEBUG: true
+```
+
+Lần đầu bật, log dài gấp đôi — hơi choáng. Nhưng trong một đêm lỗi lặp lại, dòng `Cannot find module '/tmp/build/.../index.js'` hiện rõ. Một step trung gian xóa thư mục tạm khi artifact upload xong. Không có debug, chắc phải mất thêm vài ngày mới thấy.
+
+### 2. Thêm cơ chế cảnh báo — để lỗi không rơi vào im lặng.
+
+Pipeline fail mà không ai biết là một loại rủi ro âm thầm. Chúng tôi thêm job gửi thông báo tới Slack, chỉ chạy khi có job thất bại:
+
+```yaml
+jobs:
+  notify:
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack alert
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "❌ Pipeline failed on ${{ github.ref }} by ${{ github.actor }}"
+            }
+```
+
+Slack channel `#ci-alert` ban đầu hơi ồn. Chúng tôi thêm filter để chỉ gửi lỗi *production* hoặc *deploy* job. Giờ mỗi lần lỗi thật, team đều nhận được trong 10 giây.
+
+Một đêm khác, deploy staging lỗi do quota ECR đầy. Tin nhắn Slack hiện lên cùng tag `[infra:low-space]`. Người phụ trách dọn ECR trong vòng năm phút. Không còn tình huống “ai chịu trách nhiệm vụ này?”.
+
+### 3. Dạy pipeline tự phục hồi — “tự đứng dậy” thay vì chờ người.
+
+Chúng tôi bắt đầu thêm retry logic, đặc biệt với các bước phụ thuộc mạng:
+
+```yaml
+- name: Push Docker image
+  run: |
+    for i in {1..3}; do
+      docker push myapp:${{ github.sha }} && break || {
+        echo "Retry $i/3 failed, sleeping..."
+        sleep 10
+      }
+    done
+```
+
+Câu lệnh đơn giản, nhưng hiệu quả. Trước đây, 5% deploy lỗi do network timeout; sau khi thêm retry, tỉ lệ này giảm gần bằng 0.
+
+Rồi chúng tôi thêm rollback:
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to production
+        id: deploy
+        run: ./scripts/deploy.sh
+        continue-on-error: true
+
+      - name: Rollback on failure
+        if: failure() && steps.deploy.outcome == 'failure'
+        run: ./scripts/rollback.sh
+```
+
+Ngày đầu thử rollback, pipeline deploy nhầm tag. Rollback chạy sau 30 giây, service phục hồi gần như ngay lập tức. Cảm giác như có người gác đêm thay mình.
+
+### 4. Giữ lại dấu vết — đừng để lỗi trôi qua mà không lưu lại gì.
+
+Chúng tôi thêm `upload-artifact` để giữ log, test report, và coverage:
+
+```yaml
+- name: Upload logs
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: build-logs
+    path: ./logs/
+```
+
+Mỗi run đều lưu lại bản sao, giúp phân tích lỗi sau này nhanh hơn rất nhiều. Khi số lượng job tăng, chúng tôi bắt đầu push log đến S3, rồi sau đó tích hợp Grafana Cloud để xem biểu đồ thất bại theo thời gian. Không cần full observability stack, chỉ vài webhook và dashboard là đủ.
+
+Sau khoảng hai tuần, pipeline không chỉ chạy — mà còn “biết kể lại câu chuyện của nó”.
+
+### Reflect — Khi workflow tự chữa được lỗi
+
+Lúc đầu, chúng tôi chỉ muốn pipeline chạy nhanh và ít lỗi hơn. Nhưng khi nó biết tự cảnh báo, tự retry, và tự rollback, mọi thứ thay đổi. Build thất bại không còn là “khủng hoảng” mà là tín hiệu cần xử lý. Thay vì thức dậy lúc 2 giờ sáng để rerun, giờ tôi chỉ nhận thông báo Slack báo: *“Pipeline failed → rollback completed”*.
+
+Điều hay là: phần lớn “độ tin cậy” không đến từ tính năng phức tạp, mà từ **vài quyết định nhỏ nhưng nhất quán**:
+
+* Log rõ, không giấu lỗi.
+* Alert chọn lọc, không spam.
+* Retry có giới hạn, rollback an toàn.
+
+Cái khó nằm ở chỗ — thiết kế sao cho **con người vẫn là người kiểm soát cuối cùng**, nhưng không cần can thiệp thường xuyên. Một workflow tự phục hồi quá đà có thể che mất lỗi thật; ngược lại, một workflow không phục hồi đủ thì tạo fatigue cho dev. Chúng tôi mất vài tuần để cân bằng: để pipeline “tự làm những gì nó chắc chắn”, và dừng lại khi cần sự quyết định của con người.
+
+Tôi nhận ra một điều: observability không chỉ là nhìn thấy, mà là **đọc được câu chuyện của lỗi**. Mỗi lần pipeline thất bại và tự phục hồi, nó kể cho mình nghe điều gì đó về hệ thống: dependency mong manh, service thiếu retry, hay configuration quá chặt. Và khi nghe đủ những câu chuyện đó, bạn sẽ thấy rõ ràng rằng **độ tin cậy không đến từ may mắn, mà từ những vòng lặp học hỏi liên tục.**
+
+Sau khi hệ thống bắt đầu “cảm nhận” và “phản xạ”, phần cuối cùng là ghép tất cả thành một blueprint — một **CI/CD Production-grade System** nơi observability, bảo mật, hiệu năng, và tái sử dụng cùng hòa thành một khối.
+
+### Kiểm tra kiến thức
+
+Hãy thử làm bài quiz sau đây để kiểm tra xem bạn đã nắm vững các khái niệm về quan sát, xử lý lỗi và tự phục hồi chưa:
+
+<GitHubActionsPart8Quiz />

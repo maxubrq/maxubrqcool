@@ -47,6 +47,7 @@ export function SimpleQuiz({
   const [isPaused, setIsPaused] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(timeLimit ? timeLimit * 60 : undefined)
   const [showResults, setShowResults] = useState(false)
+  const [isReviewMode, setIsReviewMode] = useState(false)
   const [result, setResult] = useState<any>(null)
 
   // Safely handle questions array - wrapped in useMemo to prevent re-creation on every render
@@ -130,6 +131,7 @@ export function SimpleQuiz({
     setIsSubmitted(false)
     setTimeRemaining(timeLimit ? timeLimit * 60 : undefined)
     setShowResults(false)
+    setIsReviewMode(false)
     setResult(null)
     setIsPaused(false)
   }, [timeLimit])
@@ -224,8 +226,11 @@ export function SimpleQuiz({
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Retake Quiz
               </Button>
-              {allowRetake && (
-                <Button onClick={() => setShowResults(false)} size="lg">
+              {allowRetake && showCorrectAnswers && (
+                <Button onClick={() => {
+                  setShowResults(false)
+                  setIsReviewMode(true)
+                }} size="lg">
                   Review Answers
                 </Button>
               )}
@@ -303,6 +308,8 @@ export function SimpleQuiz({
                 question={currentQuestion}
                 value={answers[currentQuestion.id]}
                 onChange={(answer) => handleAnswerChange(currentQuestion.id, answer)}
+                isReviewMode={isReviewMode}
+                resultData={result?.answers?.find((a: any) => a.questionId === currentQuestion.id)}
               />
             </motion.div>
           </AnimatePresence>
@@ -342,24 +349,58 @@ interface QuestionRendererProps {
   question: QuizQuestion
   value: string | string[] | undefined
   onChange: (answer: string | string[]) => void
+  isReviewMode?: boolean
+  resultData?: {
+    userAnswer: string | string[]
+    correctAnswer: string | string[]
+    isCorrect: boolean
+    explanation?: string
+  }
 }
 
-function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) {
+function QuestionRenderer({ question, value, onChange, isReviewMode = false, resultData }: QuestionRendererProps) {
   const handleSingleChoice = (option: string) => {
-    onChange(option)
+    if (!isReviewMode) {
+      onChange(option)
+    }
   }
 
   const handleMultipleChoice = (option: string, checked: boolean) => {
-    const currentAnswers = Array.isArray(value) ? value : []
-    if (checked) {
-      onChange([...currentAnswers, option])
-    } else {
-      onChange(currentAnswers.filter(answer => answer !== option))
+    if (!isReviewMode) {
+      const currentAnswers = Array.isArray(value) ? value : []
+      if (checked) {
+        onChange([...currentAnswers, option])
+      } else {
+        onChange(currentAnswers.filter(answer => answer !== option))
+      }
     }
   }
 
   const handleTextAnswer = (text: string) => {
-    onChange(text)
+    if (!isReviewMode) {
+      onChange(text)
+    }
+  }
+
+  // Helper to check if an option is correct
+  const isCorrectOption = (option: string): boolean => {
+    if (!isReviewMode || !resultData) return false
+    const correctAnswer = resultData.correctAnswer
+    if (question.type === 'multiple-choice') {
+      const correctArray = Array.isArray(correctAnswer) ? correctAnswer : (typeof correctAnswer === 'string' ? correctAnswer.split('|') : [])
+      return correctArray.includes(option)
+    } else {
+      return correctAnswer === option
+    }
+  }
+
+  // Helper to check if an option was selected by user
+  const isUserSelected = (option: string): boolean => {
+    if (question.type === 'multiple-choice') {
+      return Array.isArray(value) && value.includes(option)
+    } else {
+      return value === option
+    }
   }
 
   return (
@@ -384,59 +425,138 @@ function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) 
         <h3 className="text-xl font-semibold">{question.question}</h3>
       </div>
 
+      {/* Explanation in review mode */}
+      {isReviewMode && resultData?.explanation && (
+        <div className={`p-4 rounded-lg border-2 ${
+          resultData.isCorrect 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <div className="flex items-start gap-2">
+            {resultData.isCorrect ? (
+              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            )}
+            <div className="flex-1">
+              <p className={`font-semibold mb-1 ${
+                resultData.isCorrect ? 'text-green-800' : 'text-red-800'
+              }`}>
+                {resultData.isCorrect ? 'Correct!' : 'Incorrect'}
+              </p>
+              <p className="text-sm text-gray-700">{resultData.explanation}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Answer Options */}
       <div className="space-y-3">
         {question.type === 'single-choice' && question.options && (
           <div className="space-y-2">
-            {question.options.map((option, index) => (
-              <motion.label
-                key={index}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`flex items-center space-x-3 cursor-pointer p-4 rounded-lg border-2 transition-all ${
-                  value === option
-                    ? 'border-primary bg-primary/5'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`question-${question.id}`}
-                  value={option}
-                  checked={value === option}
-                  onChange={() => handleSingleChoice(option)}
-                  className="h-4 w-4 text-primary"
-                />
-                <span className="flex-1 text-base">{option}</span>
-              </motion.label>
-            ))}
+            {question.options.map((option, index) => {
+              const isCorrect = isCorrectOption(option)
+              const isSelected = isUserSelected(option)
+              const showAsCorrect = isReviewMode && isCorrect
+              const showAsIncorrect = isReviewMode && isSelected && !isCorrect
+              
+              return (
+                <motion.label
+                  key={index}
+                  whileHover={!isReviewMode ? { scale: 1.02 } : {}}
+                  whileTap={!isReviewMode ? { scale: 0.98 } : {}}
+                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all ${
+                    isReviewMode 
+                      ? 'cursor-default' 
+                      : 'cursor-pointer'
+                  } ${
+                    showAsCorrect
+                      ? 'border-green-500 bg-green-50'
+                      : showAsIncorrect
+                      ? 'border-red-500 bg-red-50'
+                      : isSelected
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      name={`question-${question.id}`}
+                      value={option}
+                      checked={isSelected}
+                      onChange={() => handleSingleChoice(option)}
+                      disabled={isReviewMode}
+                      className="h-4 w-4 text-primary"
+                    />
+                    {isReviewMode && isCorrect && (
+                      <CheckCircle className="absolute -top-1 -right-1 w-5 h-5 text-green-600 bg-white rounded-full" />
+                    )}
+                    {isReviewMode && isSelected && !isCorrect && (
+                      <XCircle className="absolute -top-1 -right-1 w-5 h-5 text-red-600 bg-white rounded-full" />
+                    )}
+                  </div>
+                  <span className="flex-1 text-base">{option}</span>
+                  {isReviewMode && isCorrect && (
+                    <Badge className="bg-green-600 text-white">Correct Answer</Badge>
+                  )}
+                </motion.label>
+              )
+            })}
           </div>
         )}
 
         {question.type === 'multiple-choice' && question.options && (
           <div className="space-y-2">
-            {question.options.map((option, index) => (
-              <motion.label
-                key={index}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`flex items-center space-x-3 cursor-pointer p-4 rounded-lg border-2 transition-all ${
-                  Array.isArray(value) && value.includes(option)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  name={`question-${question.id}`}
-                  value={option}
-                  checked={Array.isArray(value) && value.includes(option)}
-                  onChange={(e) => handleMultipleChoice(option, e.target.checked)}
-                  className="h-4 w-4 text-primary"
-                />
-                <span className="flex-1 text-base">{option}</span>
-              </motion.label>
-            ))}
+            {question.options.map((option, index) => {
+              const isCorrect = isCorrectOption(option)
+              const isSelected = isUserSelected(option)
+              const showAsCorrect = isReviewMode && isCorrect
+              const showAsIncorrect = isReviewMode && isSelected && !isCorrect
+              
+              return (
+                <motion.label
+                  key={index}
+                  whileHover={!isReviewMode ? { scale: 1.02 } : {}}
+                  whileTap={!isReviewMode ? { scale: 0.98 } : {}}
+                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all ${
+                    isReviewMode 
+                      ? 'cursor-default' 
+                      : 'cursor-pointer'
+                  } ${
+                    showAsCorrect
+                      ? 'border-green-500 bg-green-50'
+                      : showAsIncorrect
+                      ? 'border-red-500 bg-red-50'
+                      : isSelected
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      name={`question-${question.id}`}
+                      value={option}
+                      checked={isSelected}
+                      onChange={(e) => handleMultipleChoice(option, e.target.checked)}
+                      disabled={isReviewMode}
+                      className="h-4 w-4 text-primary"
+                    />
+                    {isReviewMode && isCorrect && (
+                      <CheckCircle className="absolute -top-1 -right-1 w-5 h-5 text-green-600 bg-white rounded-full" />
+                    )}
+                    {isReviewMode && isSelected && !isCorrect && (
+                      <XCircle className="absolute -top-1 -right-1 w-5 h-5 text-red-600 bg-white rounded-full" />
+                    )}
+                  </div>
+                  <span className="flex-1 text-base">{option}</span>
+                  {isReviewMode && isCorrect && (
+                    <Badge className="bg-green-600 text-white">Correct</Badge>
+                  )}
+                </motion.label>
+              )
+            })}
           </div>
         )}
 
@@ -446,9 +566,22 @@ function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) 
               value={value as string || ''}
               onChange={(e) => handleTextAnswer(e.target.value)}
               placeholder="Enter your answer here..."
-              className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              disabled={isReviewMode}
+              className={`w-full p-4 border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-transparent ${
+                isReviewMode 
+                  ? resultData?.isCorrect 
+                    ? 'border-green-500 bg-green-50' 
+                    : 'border-red-500 bg-red-50'
+                  : 'border-gray-300'
+              }`}
               rows={4}
             />
+            {isReviewMode && resultData && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-semibold text-blue-800 mb-1">Correct Answer:</p>
+                <p className="text-sm text-blue-700">{resultData.correctAnswer}</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -458,9 +591,22 @@ function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) 
               value={value as string || ''}
               onChange={(e) => handleTextAnswer(e.target.value)}
               placeholder="Enter your code here..."
-              className="w-full p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              disabled={isReviewMode}
+              className={`w-full p-4 border rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-primary focus:border-transparent ${
+                isReviewMode 
+                  ? resultData?.isCorrect 
+                    ? 'border-green-500 bg-green-50' 
+                    : 'border-red-500 bg-red-50'
+                  : 'border-gray-300'
+              }`}
               rows={8}
             />
+            {isReviewMode && resultData && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-semibold text-blue-800 mb-1">Correct Answer:</p>
+                <pre className="text-sm text-blue-700 whitespace-pre-wrap font-mono">{resultData.correctAnswer}</pre>
+              </div>
+            )}
           </div>
         )}
       </div>

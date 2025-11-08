@@ -10,6 +10,8 @@ import { QuizDemo } from './components/QuizDemo'
 import { ReactQuiz } from './components/ReactQuiz'
 import { ReusableQuiz } from './components/ReusableQuiz'
 import { SimpleQuiz } from './components/SimpleQuiz'
+import { GitHubActionsPart2Quiz } from './components/GitHubActionsPart2Quiz'
+import { GitHubActionsPart3Quiz } from './components/GitHubActionsPart3Quiz'
 import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
 import { Figure, SimpleFigure } from './components/Figure'
@@ -52,6 +54,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ReactQuiz,
     ReusableQuiz,
     SimpleQuiz,
+    GitHubActionsPart2Quiz,
+    GitHubActionsPart3Quiz,
     Mermaid,
     Kroki,
     // MathJax components

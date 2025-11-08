@@ -182,6 +182,12 @@
     "date": "2025-11-08",
     "excerpt": "Explore the power of live code editing in blog posts with Sandpack. Interactive examples, real-time previews, and hands-on learning experiences that let readers experiment with code directly in the browser.",
     "tags": ["sandpack", "interactive", "code-editor", "react", "javascript", "tutorial", "demo", "live-coding"]
+  },
+  "0026_reactflow-complex-flow-demo": {
+    "title": "#26 - ReactFlow Complex Flow Demo - Interactive Flow Diagrams",
+    "date": "2025-11-09",
+    "excerpt": "Explore the power of interactive flow diagrams with ReactFlow. This demo showcases a complex CI/CD pipeline visualization with multiple stages, parallel processes, decision points, and branching logic. Fully interactive with pan, zoom, and selection capabilities.",
+    "tags": ["reactflow", "interactive", "flow-diagrams", "ci-cd", "visualization", "react", "tutorial", "demo", "workflow"]
   }
 }
 

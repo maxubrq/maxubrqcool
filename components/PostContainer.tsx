@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { PostLikeButtonSSR } from '@/components/PostLikeButton'
 import { TagList } from '@/components/TagList'
 import { HeroSection } from '@/components/HeroSection'
 import { motion } from 'motion/react'
@@ -80,13 +79,6 @@ export function PostContainer({ post, seriesNav, children }: PostContainerProps)
           {/* Inline meta — subtle, book-like */}
           <div className="mt-10 pt-6 border-t border-border/30 flex items-center justify-between text-xs font-mono tracking-widest uppercase text-muted-foreground">
             <span>{format(new Date(post.date), 'MMM dd, yyyy')}</span>
-            <PostLikeButtonSSR 
-              postId={post.id}
-              variant="text"
-              size="lg"
-              showCount={true}
-              className="text-[11px]"
-            />
           </div>
 
           {/* Tags at the end */}

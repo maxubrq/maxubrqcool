@@ -15,6 +15,7 @@ import { Kroki } from './components/Kroki'
 import { Figure, SimpleFigure } from './components/Figure'
 import { MathJax, MathJaxProvider, InlineMath, BlockMath } from './components/MathJax'
 import { Sandpack, SandpackSimple, SandpackReact, SandpackVanilla } from './components/Sandpack'
+import { ReactFlowDemo, SimpleFlowDemo } from './components/ReactFlowDemo'
 import { 
   Alert, 
   InfoAlert, 
@@ -64,6 +65,10 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     SandpackSimple,
     SandpackReact,
     SandpackVanilla,
+    
+    // ReactFlow components
+    ReactFlowDemo,
+    SimpleFlowDemo,
     
     // Figure components
     Figure,

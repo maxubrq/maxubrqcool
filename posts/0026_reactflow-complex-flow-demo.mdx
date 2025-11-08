@@ -1,0 +1,149 @@
+# ReactFlow Complex Flow Demo
+
+Explore the power of interactive flow diagrams with ReactFlow. This demo showcases a complex CI/CD pipeline visualization with multiple stages, parallel processes, decision points, and branching logic.
+
+## What is ReactFlow?
+
+ReactFlow is a powerful library for building node-based graphs and interactive diagrams in React. It's perfect for visualizing:
+
+- **Workflows** and business processes
+- **Data pipelines** and ETL processes
+- **Decision trees** and branching logic
+- **System architectures** and component relationships
+- **State machines** and finite automata
+- **CI/CD pipelines** and deployment workflows
+
+## Complex CI/CD Pipeline Flow
+
+Below is an interactive visualization of a comprehensive CI/CD pipeline. This flow demonstrates:
+
+- **Parallel execution** of quality checks (lint, type-check, unit tests, integration tests)
+- **Decision gates** for branch protection and deployment approval
+- **Multiple environments** (staging and production)
+- **Error handling** with rollback paths
+- **Monitoring** and observability integration
+
+<ReactFlowDemo height="700px" showControls={true} showMinimap={true} />
+
+### Flow Components Explained
+
+#### Source & Triggers
+The pipeline starts with a **source trigger** — typically a Git push or pull request. This initiates the entire workflow.
+
+#### Quality Gates
+Before any deployment, the code must pass multiple quality checks that run in parallel:
+- **Linting**: Code style and formatting validation
+- **Type Checking**: TypeScript type safety verification
+- **Unit Tests**: Fast, isolated component tests
+- **Integration Tests**: API and database interaction tests
+
+#### Build & Security
+Once all quality checks pass, the code is:
+- **Built** into a production-ready artifact
+- **Scanned** for security vulnerabilities
+
+#### Deployment Decision
+The system decides where to deploy based on:
+- Branch name (main vs feature branches)
+- Environment configuration
+- Manual approval requirements
+
+#### Staging Flow
+For staging deployments:
+1. Deploy to staging environment
+2. Run end-to-end tests
+3. Require manual approval before production
+
+#### Production Flow
+Production deployments include:
+- Direct deployment to production
+- Success confirmation
+- Automatic monitoring setup
+
+#### Error Handling
+If any step fails, the system can:
+- Rollback to the previous stable version
+- Notify the team
+- Log errors for debugging
+
+## Simple Flow Example
+
+For simpler use cases, here's a basic decision flow:
+
+<SimpleFlowDemo height="400px" />
+
+This simple flow demonstrates:
+- **Start** node: Process initiation
+- **Process** node: Task execution
+- **Decision** node: Conditional branching
+- **Success/Error** nodes: Outcome handling
+
+## Interactive Features
+
+The ReactFlow diagrams above are fully interactive:
+
+- **Pan**: Click and drag to move around
+- **Zoom**: Use mouse wheel or controls
+- **Select**: Click nodes to highlight them
+- **Minimap**: Navigate large flows easily
+- **Controls**: Reset view, zoom in/out
+
+## Use Cases
+
+ReactFlow is perfect for:
+
+### 1. Documentation
+Visualize complex processes and workflows in your documentation. Make it easier for team members to understand system behavior.
+
+### 2. Planning
+Map out new features or refactoring efforts. See dependencies and relationships between components.
+
+### 3. Debugging
+Trace execution paths through complex systems. Identify bottlenecks and failure points.
+
+### 4. Onboarding
+Help new team members understand system architecture and workflows through interactive diagrams.
+
+### 5. Communication
+Share complex ideas visually. A picture is worth a thousand words, especially for technical concepts.
+
+## Design Principles
+
+This implementation follows the **Elegant-Brutalism** design system:
+
+- **Swiss Grid Discipline**: 8px modular grid, strong alignment
+- **Typography as Structure**: Large, confident labels with generous tracking
+- **Color as Signal**: High contrast, purposeful color usage
+- **Whitespace as Rhythm**: Negative space defines relationships
+- **Motion for Clarity**: Subtle animations reveal hierarchy
+
+## Technical Implementation
+
+The ReactFlow component is built with:
+
+- **ReactFlow**: Core library for node-based graphs
+- **Framer Motion**: Entrance animations and transitions
+- **Shadcn/UI**: Card components for structure
+- **Tailwind CSS**: Utility-first styling
+- **TypeScript**: Type safety and developer experience
+
+## Customization
+
+You can customize the flow by:
+
+- **Node Types**: Define custom node styles and behaviors
+- **Edge Styles**: Customize connection appearance and animations
+- **Layouts**: Use automatic layouts or manual positioning
+- **Interactions**: Add drag-and-drop, selection, and editing capabilities
+- **Themes**: Adapt colors and styles to match your design system
+
+## Conclusion
+
+ReactFlow brings powerful visualization capabilities to your blog and applications. Whether you're documenting workflows, explaining architectures, or building interactive tools, ReactFlow provides the flexibility and performance you need.
+
+The complex CI/CD pipeline above demonstrates how multiple processes, decision points, and parallel execution can be visualized in an intuitive, interactive way. Try panning, zooming, and exploring the flow to see how it all connects!
+
+---
+
+*Interact with the flows above to experience the full power of ReactFlow. Drag nodes, zoom in on details, and explore the relationships between different stages of the pipeline.*
+

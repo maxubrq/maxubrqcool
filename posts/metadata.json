@@ -176,6 +176,12 @@
       "totalParts": 2,
       "slug": "github-action-101-909"
     }
+  },
+  "0025_sandpack-live-code-demo": {
+    "title": "#25 - Sandpack Live Code Editor Demo",
+    "date": "2025-11-08",
+    "excerpt": "Explore the power of live code editing in blog posts with Sandpack. Interactive examples, real-time previews, and hands-on learning experiences that let readers experiment with code directly in the browser.",
+    "tags": ["sandpack", "interactive", "code-editor", "react", "javascript", "tutorial", "demo", "live-coding"]
   }
 }
 

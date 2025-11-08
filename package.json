@@ -17,6 +17,7 @@
     "db:rollback": "tsx scripts/rollback-post-like.ts"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@mdx-js/loader": "^3.0.0",
     "@mdx-js/react": "^3.0.0",
     "@next/mdx": "^14.0.4",

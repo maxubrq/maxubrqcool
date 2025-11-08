@@ -1,0 +1,511 @@
+# Sandpack Live Code Editor Demo
+
+Welcome to the Sandpack live code editor showcase! Sandpack brings the power of CodeSandbox's bundler directly into your blog posts, allowing readers to edit and run code in real-time.
+
+## What is Sandpack?
+
+Sandpack is an open-source toolkit for creating live-running code editing experiences powered by CodeSandbox. It provides:
+
+- **Live code editing** - Edit code and see results instantly
+- **Multiple templates** - React, Vue, Angular, Vanilla JS, and more
+- **File management** - Work with multiple files in a single editor
+- **Console output** - See logs and errors in real-time
+- **Theme support** - Automatic light/dark mode integration
+
+## Simple React Example
+
+Let's start with a basic React component:
+
+<SandpackReact
+  code={`import { useState } from 'react';
+
+export default function App() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+      <h1>Counter Example</h1>
+      <p>Count: {count}</p>
+      <button 
+        onClick={() => setCount(count + 1)}
+        style={{
+          padding: '0.5rem 1rem',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          backgroundColor: '#0070f3',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px'
+        }}
+      >
+        Increment
+      </button>
+    </div>
+  );
+}`}
+  title="React Counter Component"
+  description="A simple counter component using React hooks"
+/>
+
+## Vanilla JavaScript Example
+
+You can also use vanilla JavaScript for simpler examples:
+
+<SandpackVanilla
+  code={`// Fibonacci sequence generator
+function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+// Calculate first 10 Fibonacci numbers
+const results = [];
+for (let i = 0; i < 10; i++) {
+  results.push(fibonacci(i));
+}
+
+console.log('First 10 Fibonacci numbers:', results);
+
+// Display in the page
+document.body.innerHTML = \`
+  <div style="padding: 2rem; font-family: system-ui;">
+    <h1>Fibonacci Sequence</h1>
+    <p>First 10 numbers: \${results.join(', ')}</p>
+  </div>
+\`;`}
+  title="Fibonacci Sequence"
+  description="Calculate Fibonacci numbers using vanilla JavaScript"
+  showConsole
+/>
+
+## Multi-File React Project
+
+For more complex examples, you can work with multiple files:
+
+<Sandpack
+  template="react-ts"
+  files={{
+    '/App.tsx': `import { useState } from 'react';
+import { Button } from './Button';
+import { Card } from './Card';
+import './styles.css';
+
+export default function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  return (
+    <div className={\`app theme-\${theme}\`}>
+      <Card>
+        <h1>Theme Switcher</h1>
+        <p>Current theme: {theme}</p>
+        <Button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+          Toggle Theme
+        </Button>
+      </Card>
+    </div>
+  );
+}`,
+    '/Button.tsx': `interface ButtonProps {
+  children: React.ReactNode;
+  onClick: () => void;
+}
+
+export function Button({ children, onClick }: ButtonProps) {
+  return (
+    <button className="btn" onClick={onClick}>
+      {children}
+    </button>
+  );
+}`,
+    '/Card.tsx': `interface CardProps {
+  children: React.ReactNode;
+}
+
+export function Card({ children }: CardProps) {
+  return <div className="card">{children}</div>;
+}`,
+    '/styles.css': `.app {
+  min-height: 100vh;
+  padding: 2rem;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.app.theme-light {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.app.theme-dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.card {
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.theme-dark .card {
+  border-color: #404040;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: #0051cc;
+}`
+  }}
+  title="Multi-File React Project"
+  description="A theme switcher built with TypeScript, multiple components, and CSS"
+  showNavigator
+  height="500px"
+/>
+
+## Interactive Form Example
+
+Here's a more practical example with form handling:
+
+<SandpackReact
+  code={`import { useState } from 'react';
+
+export default function App() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+    console.log('Form submitted:', formData);
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+        <h1>Thank you!</h1>
+        <p>Your message has been submitted.</p>
+        <pre style={{ background: '#f5f5f5', padding: '1rem', borderRadius: '4px' }}>
+          {JSON.stringify(formData, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'system-ui', maxWidth: '500px' }}>
+      <h1>Contact Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Name:
+          </label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #ccc',
+              borderRadius: '4px'
+            }}
+            required
+          />
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Email:
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #ccc',
+              borderRadius: '4px'
+            }}
+            required
+          />
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Message:
+          </label>
+          <textarea
+            name="message"
+            value={formData.message}
+            onChange={handleChange}
+            rows={4}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              fontSize: '1rem',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              fontFamily: 'inherit'
+            }}
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          style={{
+            padding: '0.75rem 1.5rem',
+            fontSize: '1rem',
+            backgroundColor: '#0070f3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Submit
+        </button>
+      </form>
+    </div>
+  );
+}`}
+  title="Interactive Form"
+  description="A contact form with state management and validation"
+  height="500px"
+/>
+
+## Data Visualization Example
+
+Let's create a simple data visualization:
+
+<SandpackReact
+  code={`import { useState, useEffect } from 'react';
+
+interface DataPoint {
+  label: string;
+  value: number;
+}
+
+export default function App() {
+  const [data, setData] = useState<DataPoint[]>([
+    { label: 'Jan', value: 65 },
+    { label: 'Feb', value: 78 },
+    { label: 'Mar', value: 90 },
+    { label: 'Apr', value: 81 },
+    { label: 'May', value: 56 },
+    { label: 'Jun', value: 55 }
+  ]);
+
+  const maxValue = Math.max(...data.map(d => d.value));
+
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+      <h1>Sales Data Visualization</h1>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', height: '300px', marginTop: '2rem' }}>
+        {data.map((item, index) => (
+          <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div
+              style={{
+                width: '100%',
+                height: \`\${(item.value / maxValue) * 100}%\`,
+                backgroundColor: '#0070f3',
+                borderRadius: '4px 4px 0 0',
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+                paddingBottom: '0.5rem',
+                color: 'white',
+                fontWeight: 'bold',
+                minHeight: '30px'
+              }}
+            >
+              {item.value}
+            </div>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+              {item.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}`}
+  title="Bar Chart Visualization"
+  description="A simple bar chart component showing sales data"
+  height="450px"
+/>
+
+## Console Output Example
+
+Sometimes you want to see console logs. Here's an example with console output enabled:
+
+<SandpackVanilla
+  code={`// Array manipulation examples
+const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+console.log('Original array:', numbers);
+
+// Filter even numbers
+const evens = numbers.filter(n => n % 2 === 0);
+console.log('Even numbers:', evens);
+
+// Map to squares
+const squares = numbers.map(n => n * n);
+console.log('Squares:', squares);
+
+// Reduce to sum
+const sum = numbers.reduce((acc, n) => acc + n, 0);
+console.log('Sum:', sum);
+
+// Find maximum
+const max = Math.max(...numbers);
+console.log('Maximum:', max);
+
+// Chaining operations
+const result = numbers
+  .filter(n => n > 5)
+  .map(n => n * 2)
+  .reduce((acc, n) => acc + n, 0);
+console.log('Filter (>5), map (*2), reduce (sum):', result);
+
+// Display results
+document.body.innerHTML = \`
+  <div style="padding: 2rem; font-family: system-ui;">
+    <h1>Array Operations</h1>
+    <p>Check the console for detailed output!</p>
+    <ul>
+      <li>Even numbers: \${evens.join(', ')}</li>
+      <li>Sum: \${sum}</li>
+      <li>Maximum: \${max}</li>
+      <li>Chained result: \${result}</li>
+    </ul>
+  </div>
+\`;`}
+  title="Array Operations with Console"
+  description="Demonstrating array methods with console output"
+  showConsole
+  height="400px"
+/>
+
+## Custom Styling Example
+
+You can create beautifully styled components:
+
+<SandpackReact
+  code={`export default function App() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '3rem',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        maxWidth: '400px',
+        textAlign: 'center'
+      }}>
+        <h1 style={{
+          margin: '0 0 1rem 0',
+          fontSize: '2rem',
+          fontWeight: 'bold',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          Beautiful Card
+        </h1>
+        <p style={{
+          color: '#666',
+          lineHeight: '1.6',
+          marginBottom: '2rem'
+        }}>
+          This is a beautifully styled card component with gradient backgrounds,
+          shadows, and modern design principles.
+        </p>
+        <button style={{
+          padding: '0.75rem 2rem',
+          fontSize: '1rem',
+          fontWeight: '600',
+          color: 'white',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          transition: 'transform 0.2s',
+          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+        >
+          Get Started
+        </button>
+      </div>
+    </div>
+  );
+}`}
+  title="Styled Card Component"
+  description="A beautifully styled card with gradients and animations"
+  height="500px"
+/>
+
+## Usage Tips
+
+### When to Use Sandpack
+
+- **Interactive tutorials** - Let readers experiment with code
+- **API demonstrations** - Show how to use libraries and frameworks
+- **Learning exercises** - Provide hands-on coding practice
+- **Component showcases** - Display reusable components with editable code
+- **Debugging examples** - Show common errors and how to fix them
+
+### Best Practices
+
+1. **Keep examples focused** - Each Sandpack instance should demonstrate one concept
+2. **Add descriptions** - Help readers understand what they're looking at
+3. **Use appropriate templates** - Choose the right template for your use case
+4. **Enable console when needed** - Use `showConsole` for debugging examples
+5. **Set appropriate heights** - Adjust `height` prop based on content complexity
+
+### Available Components
+
+- `<Sandpack>` - Full-featured component with all options
+- `<SandpackSimple>` - Quick single-file examples
+- `<SandpackReact>` - Pre-configured for React/TypeScript
+- `<SandpackVanilla>` - Pre-configured for vanilla JavaScript
+
+## Conclusion
+
+Sandpack transforms static code examples into interactive learning experiences. Readers can experiment, modify, and learn by doing, making your blog posts more engaging and educational.
+
+Try editing any of the examples above to see the live updates in action!
+

@@ -14,6 +14,7 @@ import { Mermaid } from './components/Mermaid'
 import { Kroki } from './components/Kroki'
 import { Figure, SimpleFigure } from './components/Figure'
 import { MathJax, MathJaxProvider, InlineMath, BlockMath } from './components/MathJax'
+import { Sandpack, SandpackSimple, SandpackReact, SandpackVanilla } from './components/Sandpack'
 import { 
   Alert, 
   InfoAlert, 
@@ -57,6 +58,12 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     MathJaxProvider,
     InlineMath,
     BlockMath,
+    
+    // Sandpack components
+    Sandpack,
+    SandpackSimple,
+    SandpackReact,
+    SandpackVanilla,
     
     // Figure components
     Figure,

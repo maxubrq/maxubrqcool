@@ -10,6 +10,9 @@ import { HeaderNav } from '@/components/HeaderNav'
 const inter = Inter({ subsets: ['latin'] })
 
 export function generateMetadata(): Metadata {
+  const siteUrl =
+    process.env.NEXT_PUBLIC_APP_URL || 'https://maxubrqcool.com'
+
   return {
     title: 'Maxubrqcool - Blog cá nhân về công nghệ, cuộc sống, và những thứ khác — có thể đọc, thử, và suy nghĩ cùng nhau.',
     description: 'Blog cá nhân về công nghệ, cuộc sống, và những thứ khác — có thể đọc, thử, và suy nghĩ cùng nhau.',
@@ -27,7 +30,12 @@ export function generateMetadata(): Metadata {
         { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
       ]
     },
-    manifest: '/site.webmanifest'
+    manifest: '/site.webmanifest',
+    alternates: {
+      types: {
+        'application/rss+xml': [{ url: `${siteUrl}/feed.xml`, title: 'RSS Feed' }],
+      },
+    },
   }
 }
 
@@ -43,6 +51,7 @@ export default function RootLayout({
       <head>
         {/* Get the latest one from: https://katex.org/docs/browser */}
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossOrigin="anonymous" />
+        <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/feed.xml" />
       </head>
       <body className={inter.className}>
         <ThemeProvider

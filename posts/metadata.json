@@ -161,7 +161,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 1,
-      "totalParts": 3,
+      "totalParts": 9,
       "slug": "github-action-101-909"
     }
   },
@@ -173,7 +173,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 2,
-      "totalParts": 3,
+      "totalParts": 9,
       "slug": "github-action-101-909"
     }
   },
@@ -197,7 +197,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 3,
-      "totalParts": 3,
+      "totalParts": 9,
       "slug": "github-action-101-909"
     }
   }

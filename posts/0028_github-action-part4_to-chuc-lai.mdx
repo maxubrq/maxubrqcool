@@ -1,0 +1,229 @@
+## Github Action 404: Tổ chức lại pipeline với Reusable Workflow và Composite Action
+
+### Concept — Khi pipeline bắt đầu phình ra
+
+Ở giai đoạn đầu, mọi thứ trong CI/CD của chúng tôi đều nằm trong một file `.github/workflows/ci.yml`.
+Một workflow duy nhất làm tất cả: chạy test, build image, deploy staging, rồi nếu tag đúng định dạng thì deploy production. Lúc đó, đội chỉ có vài dịch vụ, mỗi lần thay đổi workflow là commit lên nhánh chính, chờ chạy vài phút, xem log, và fix lỗi YAML bằng mắt. Không mấy ai thấy vấn đề gì cả — cho đến khi hệ thống lớn hơn.
+
+Sau một năm, chúng tôi có hơn 20 repository: service, library, data worker, CLI, dashboard, và docs.
+Mỗi repo có workflow riêng, và ai cũng copy-paste đoạn YAML từ một repo “chuẩn”. Cái “chuẩn” đó thay đổi ít nhất 10 lần trong năm, từ `uses: actions/setup-node@v2` sang `@v4`, từ `npm ci` sang `pnpm install --frozen-lockfile`. Mỗi lần như vậy, vài repo sẽ quên cập nhật, rồi một ngày nào đó build của chúng fail vì Node version mismatch hoặc action deprecated.
+
+Cảm giác lúc đó giống như giữ hàng chục pipeline giống nhau 90 %, nhưng mỗi cái hỏng theo một cách khác nhau.
+Chúng tôi gọi vui nó là *YAML zoo* — một vườn thú nơi mọi workflow đều là bản sao đột biến của workflow gốc.
+
+Lúc đầu, chúng tôi thử viết script để đồng bộ file YAML. Một cron chạy mỗi tuần, clone toàn bộ repo, copy file `ci.yml` mới vào rồi mở PR tự động.
+Nhìn có vẻ gọn, nhưng thực tế PR đó hay fail vì mỗi repo có chút khác biệt nhỏ: project này build bằng Go, project kia có bước `generate-prisma-client`.
+Script đó chỉ kéo dài nỗi khổ, không giải quyết nguyên nhân.
+
+Chúng tôi cần một cách để “tái cấu trúc pipeline” sao cho:
+
+1. **Giảm duplication.**
+2. **Dễ cập nhật khi có thay đổi ở cấp tổ chức.**
+3. **Vẫn cho phép từng repo tùy chỉnh logic riêng.**
+
+Câu trả lời đến từ chính GitHub Actions — nhưng lúc đó không ai trong team thật sự hiểu rõ cơ chế `workflow_call` hay `composite run-steps`.
+
+### Build — Bắt đầu với Composite Action
+
+Composite Action nghe có vẻ “cao siêu”, nhưng thực ra chỉ là cách gói nhiều `steps` lại thành một Action nội bộ.
+Chúng tôi bắt đầu với thứ đơn giản nhất: test.
+
+Mọi repo NodeJS đều có đoạn giống hệt nhau:
+
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: 18
+    cache: 'pnpm'
+- run: pnpm install --frozen-lockfile
+- run: pnpm test
+```
+
+Thay vì copy lại 3 dòng đó 20 lần, chúng tôi chuyển thành một Composite Action:
+
+```yaml
+# .github/actions/run-tests/action.yml
+name: "Run Tests"
+description: "Standardized test flow"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'pnpm'
+    - run: pnpm install --frozen-lockfile
+    - run: pnpm test
+```
+
+Giờ trong mỗi workflow, chỉ cần gọi:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: ./.github/actions/run-tests
+```
+
+Kết quả?
+File `.yml` gọn hơn 50 %, dễ đọc hơn nhiều, và khi muốn đổi Node version hay thêm `pnpm audit`, chỉ cần sửa đúng một nơi.
+
+Nhưng Composite Action cũng có giới hạn: nó không thể định nghĩa `jobs`, không có `permissions`, và không truyền `secrets` dạng `workflow_call`.
+Chúng tôi phát hiện điều này khi thử gói bước deploy. Action chạy được, nhưng mất quyền truy cập secret `PROD_TOKEN`.
+
+Lúc đó, tôi mới đọc kỹ doc và nhận ra: *Composite chỉ nên dùng cho logic cục bộ, không dùng cho pipeline cấp tổ chức.*
+Đó là khi chúng tôi chuyển sang hướng thứ hai — **Reusable Workflow**.
+
+Khi chuyển sang *Reusable Workflow*, chúng tôi thay đổi cách nghĩ: thay vì “mỗi repo có CI riêng”, giờ là “toàn bộ tổ chức có CI chung, mỗi repo chỉ gọi lại”.
+GitHub hỗ trợ điều này khá tốt qua `workflow_call`.
+Chúng tôi tạo một repo riêng tên `org-ci` — chỉ chứa các workflow dùng lại.
+
+File đầu tiên là `deploy.yml`:
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy Service
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      PROD_TOKEN:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - run: pnpm deploy --env ${{ inputs.environment }}
+        env:
+          TOKEN: ${{ secrets.PROD_TOKEN }}
+```
+
+Ở từng repo ứng dụng, thay vì viết lại toàn bộ job, ta chỉ cần:
+
+```yaml
+jobs:
+  call-deploy:
+    uses: org-ci/.github/workflows/deploy.yml@v1
+    with:
+      environment: production
+    secrets:
+      PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+```
+
+Từ đó, khi cần thay đổi cách deploy, chúng tôi chỉ chỉnh ở một chỗ.
+Lợi ích nhìn thấy ngay: mỗi lần GitHub thay đổi permission mặc định (ví dụ chuyển `GITHUB_TOKEN` sang quyền read-only), chỉ cần update workflow gốc.
+Tất cả repo khác hưởng lợi mà không cần PR hàng loạt.
+
+Chúng tôi tiếp tục chia tầng rõ ràng hơn:
+
+* `actions/` cho các bước nhỏ (setup, lint, test, build).
+* `workflows/` cho pipeline cấp cao (deploy, release, notify).
+* Mỗi workflow có version tag (`v1`, `v2`) để tránh thay đổi phá vỡ (breaking change).
+
+Để đảm bảo không ai “vô tình” đẩy commit sai lên `v1`, chúng tôi ép buộc release qua tag script:
+
+```bash
+git tag -a v2 -m "Add staging deploy"
+git push origin v2
+```
+
+Tất cả các dự án chỉ dùng tag cố định thay vì `@main`.
+Một loại “version pinning” cho CI/CD.
+
+Điều thú vị là sau khoảng 3 tháng, chúng tôi gần như không còn phải sửa file `.github/workflows` ở từng repo nữa.
+Các workflow tổ chức như “build”, “test”, “deploy”, “scan”, “release” đều dùng lại được.
+Tổng cộng ~25 repo, chỉ 1 file bị đụng đến trong tháng — và đó là repo CI gốc.
+
+Từ góc nhìn DevOps, đây là một bước nhảy.
+Trước đó, mỗi tuần chúng tôi mất hàng chục phút để sync YAML; giờ chỉ còn vài phút để release CI version mới.
+Năng lượng được chuyển từ “chạy theo lỗi YAML” sang “nghĩ xem CI nên làm thêm gì cho thông minh hơn”.
+
+### Reflect — Những bài học và điều đáng giữ lại
+
+Khi nhìn lại giai đoạn “refactor pipeline”, có vài điều tôi vẫn ghi trong checklist nội bộ, như một dạng “CI maturity memo”.
+Không phải thứ gì cũng hoàn hảo ngay từ đầu — nhưng đủ để giúp team tránh lặp lại chu kỳ mệt mỏi “copy – sửa – hỏng – vá”.
+
+#### 1. Reusable Workflow không phải silver bullet
+
+Lúc đầu, chúng tôi quá hưng phấn: “Giờ chỉ cần một workflow chung cho tất cả repo!”
+Nhưng rồi sớm nhận ra, các project có nhu cầu rất khác nhau.
+Service API thì cần build image, worker chỉ cần lint & test, CLI lại cần publish npm package.
+Nếu cố nhồi hết vào một reusable workflow, nó sẽ phình to, đầy điều kiện `if:`, và khó maintain không khác gì YAML zoo ban đầu.
+
+Chúng tôi phải tách nhỏ — `ci-node.yml`, `deploy-service.yml`, `release-package.yml`.
+Mỗi workflow chỉ giải quyết một *intent* cụ thể.
+Đó là bài học đầu tiên: **reusability không phải là “gom hết vào một chỗ”, mà là “đặt đúng ranh giới cho abstraction”.**
+
+#### 2. Phiên bản hóa và backward compatibility
+
+Một thay đổi nhỏ trong workflow cũng có thể khiến 20 repo lỗi build.
+Chúng tôi từng gặp chuyện đó khi thêm `permissions: read-all` vào `v1` mà quên mất vài repo cần quyền ghi để push tag.
+Sau cú đó, rule nội bộ được đặt ra:
+
+* Không bao giờ force-push `@v1`.
+* Mỗi thay đổi phải ra `v2`, `v3`, … và có changelog.
+* Duy trì 2 version song song ít nhất 1 tháng trước khi deprecate bản cũ.
+
+Đây là thứ nhiều đội xem nhẹ — nhưng nếu CI/CD là backbone của tổ chức, bạn cần treat nó như một production system có version, có migration, có backward compatibility.
+
+#### 3. Quan sát và debug
+
+Một vấn đề ít ai nói: debug reusable workflow rất khó.
+Khi job fail, log chỉ hiển thị phần được gọi, không hiển thị context đầy đủ.
+Để khắc phục, chúng tôi thêm các `echo` step nhỏ:
+
+```yaml
+- run: echo "Deploying ${{ github.repository }} to ${{ inputs.environment }}"
+```
+
+Và dùng `ACTIONS_STEP_DEBUG=true` khi cần trace.
+Ngoài ra, mỗi lần release workflow mới, chúng tôi chạy test sandbox riêng bằng `act` — công cụ chạy workflow local.
+Không phải mọi feature của GitHub Actions đều hoạt động trong `act`, nhưng đủ để phát hiện lỗi YAML hoặc secret missing.
+
+#### 4. Balance giữa centralized và autonomy
+
+Có lúc, chúng tôi đi quá xa: ép mọi repo phải dùng đúng workflow chung, không được override step nào.
+Lợi ích: đồng bộ tuyệt đối.
+Hệ quả: developer mất quyền kiểm soát pipeline của chính mình.
+Một số team cần thêm step security scan, hoặc deploy staging khác logic, và họ không thể làm gì.
+
+Cuối cùng, chúng tôi nới lỏng quy định:
+
+* Workflow tổ chức chỉ định nghĩa *khung* (build, test, deploy).
+* Repo con có thể “extend” bằng cách gọi workflow tổ chức xong thêm `post-step` riêng.
+
+Điều đó khiến CI/CD trở lại đúng bản chất: *một hệ thống hỗ trợ phát triển*, không phải *rào chắn kiểm soát*.
+
+#### 5. Tác động thực tế
+
+Trước khi refactor, thời gian trung bình để fix lỗi CI sau khi GitHub thay đổi permission model: **~3 ngày** (tính từ khi issue xuất hiện đến khi tất cả repo được sync).
+Sau khi áp dụng reusable workflow có version tag: **< 1 giờ**.
+Số lượng commit “fix YAML” trong 6 tháng giảm hơn **80%**.
+Và quan trọng nhất — mỗi lần cần thử nghiệm cải tiến (thêm cache, bật matrix build), chúng tôi chỉ cần fork và test ở một repo sandbox, rồi merge lại version mới.
+
+#### 6. Bài học giữ lại
+
+Cuối cùng, tôi rút ra ba điều đơn giản:
+
+* **Đừng viết lại workflow giống nhau hai lần.** Nếu thấy mình copy, hãy nghĩ đến Composite hoặc Reusable.
+* **Version hóa CI/CD như code.** Vì chính nó là code — chỉ khác ở chỗ chạy trong hạ tầng của GitHub.
+* **Luôn giữ CI/CD có người sở hữu.** Một team nhỏ nhưng hiểu rõ workflow chung sẽ quan trọng hơn mười repo dùng mà không ai biết cách sửa.
+
+Ngày chúng tôi merge PR xóa 20 file `.github/workflows/ci.yml` cũ, log CI im ắng hơn hẳn.
+Không còn cảnh “ai vừa sửa YAML của tôi”, không còn tranh cãi “repo này chưa update action version”.
+Thay vào đó là một hệ thống gọn, rõ ràng, và có nhịp — giống như code base đã qua vài mùa refactor nhưng vẫn chạy mượt.
+
+Điều tôi học được từ toàn bộ hành trình này là: **CI/CD cũng cần thiết kế, cũng cần kiến trúc, cũng cần người bảo trì.**
+Một pipeline sạch không chỉ giúp code chạy tốt, mà còn giữ đội ngũ không bị vỡ nhịp khi hệ thống lớn dần.
+
+## Kiểm tra kiến thức
+
+Hãy thử làm bài quiz sau đây để kiểm tra xem bạn đã nắm vững các khái niệm về Reusable Workflows, Composite Actions, và cách tổ chức pipeline ở quy mô lớn chưa:
+
+<GitHubActionsPart4Quiz />

@@ -200,6 +200,18 @@
       "totalParts": 9,
       "slug": "github-action-101-909"
     }
+  },
+  "0028_github-action-part4_to-chuc-lai": {
+    "title": "#28 - Tổ chức lại pipeline với Reusable Workflow và Composite Action",
+    "date": "2025-11-11",
+    "excerpt": "Tổ chức lại pipeline với Reusable Workflow và Composite Action. Giúp tổ chức lại pipeline với Reusable Workflow và Composite Action.",
+    "tags": ["vietnamese", "github-actions", "ci-cd", "workflow", "automation", "devops", "tutorial"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 4,
+      "totalParts": 9,
+      "slug": "github-action-101-909"
+    }
   }
 }
 

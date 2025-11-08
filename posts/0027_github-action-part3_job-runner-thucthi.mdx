@@ -1,0 +1,173 @@
+## Github Action 303: Jobs, Runners và Context — cách Actions thực thi
+
+Khi chúng tôi mới bắt đầu dùng GitHub Actions để thay Jenkins trong một dự án microservice, tôi nghĩ chỉ cần chuyển YAML sang cho khớp cú pháp là xong. Nhưng buổi sáng đầu tiên, pipeline build bị “kẹt” giữa hai job mà không lỗi, không log, không cảnh báo. Lúc đó tôi mới nhận ra mình hiểu rất ít về việc “nó thực thi ở đâu”.
+
+#### Tình huống: khi job sống trong thế giới riêng
+
+Trong GitHub Actions, mỗi job là một đơn vị thực thi độc lập. Một job sẽ chạy trong một runner riêng, một VM hoặc container được khởi tạo tạm thời.
+Điều này nghe an toàn và “clean”, nhưng khi bạn quen với CI cũ (nơi các bước chia sẻ filesystem), nó gây hiểu lầm lớn.
+Tôi đã từng build Docker image ở job `build`, rồi deploy ở job `deploy`, nghĩ rằng image nằm sẵn trên máy. Thực tế, mỗi job lại là một máy mới tinh — filesystem cũ biến mất.
+
+Chúng tôi mất một buổi chiều debug trước khi nhận ra lỗi “missing image tag” không liên quan gì đến Docker, mà chỉ vì job `deploy` không thấy output của job `build`.
+
+#### Giải pháp: truyền dữ liệu qua outputs
+
+GitHub Actions cho phép một job xuất ra kết quả dưới dạng `outputs`, và các job sau có thể đọc nó qua `needs.<job>.outputs`.
+Khi chúng tôi áp dụng đúng cách, pipeline ngay lập tức ổn định.
+Ví dụ thực tế đầu tiên chúng tôi chạy được là:
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "tag=v${{ github.run_number }}" >> $GITHUB_OUTPUT
+      - run: echo "Built image with tag ${{ steps.meta.outputs.tag }}"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploying image with tag ${{ needs.build.outputs.image_tag }}"
+```
+
+Sau đó, toàn bộ pipeline build → deploy chạy trơn tru, vì mỗi job giờ đã có “hợp đồng output” rõ ràng.
+Chúng tôi học được cách tôn trọng tính độc lập của job, và bắt đầu nghĩ theo hướng “data contract”, không phải “file share”.
+
+#### Runner – người thực thi vô danh
+
+Sau một thời gian, chúng tôi muốn build image nặng có GPU support và private dependency. GitHub-hosted runner lúc này quá hạn chế. Tôi quyết định dựng self-hosted runner trên EC2 với Docker preinstalled. Thiết lập khá dễ, chỉ cần cài agent và đăng ký token, nhưng rủi ro cũng nhiều hơn — vì nó sẽ chạy code từ PR bên ngoài.
+
+Chúng tôi học cách phân nhóm runner qua label, ví dụ:
+
+```yaml
+runs-on: [self-hosted, gpu, staging]
+```
+
+và chỉ cho phép workflow trong repo private truy cập runner này.
+Nhờ đó, pipeline build ML image giảm từ 30 phút xuống 10 phút, vì không phải tải lại môi trường mỗi lần.
+
+#### Khi bạn bắt đầu thấy “Context” không chỉ là biến
+
+Sau khi làm chủ được job và runner, điều tiếp theo khiến tôi tò mò là những đoạn như `${{ github.ref }}` hay `${{ env.NODE_ENV }}` thực chất được đánh giá khi nào.
+Thoạt nhìn, chúng chỉ như biến môi trường. Nhưng khi pipeline trở nên phức tạp, sự khác biệt giữa *render-time* và *run-time* bắt đầu gây rắc rối.
+
+Một lần, tôi dùng matrix để build ứng dụng Node.js cho ba phiên bản khác nhau. Tôi in thử biến ra log, và thấy `matrix.version` hoạt động, nhưng `env.NODE_ENV` lại rỗng ở một vài bước. Lý do là vì context `env` được evaluate ở từng step, trong khi `matrix` đã được render ngay khi workflow khởi tạo.
+Điều này nghe có vẻ nhỏ, nhưng khi bạn có hàng trăm job chạy song song, hiểu sai thời điểm evaluate context là công thức cho hỗn loạn.
+
+#### Hiểu cơ chế evaluate
+
+GitHub Actions có nhiều context: `github`, `runner`, `env`, `job`, `steps`, `secrets`, `matrix`.
+Mỗi context được resolve ở một thời điểm khác nhau:
+
+* `github.*`: evaluated sớm, khi workflow parse event.
+* `env.*`: injected vào môi trường của step.
+* `runner.*`: runtime info của máy thực thi.
+* `secrets.*`: chỉ accessible khi permission cho phép.
+* `needs.*`: chỉ tồn tại sau khi job trước hoàn thành.
+
+Nói cách khác, không phải mọi biến bạn viết trong `${{ }}` đều sẵn sàng ở thời điểm bạn nghĩ.
+
+Tôi từng có một đoạn:
+
+```yaml
+- run: echo "Deploying to ${{ env.ENVIRONMENT }}"
+  if: github.ref == 'refs/heads/main'
+```
+
+Nhưng job vẫn chạy cả trên branch `develop`.
+Sau khi trace log và in raw event payload, tôi phát hiện `github.ref` không trỏ đến nhánh mà đến *merge ref* (`refs/pull/.../merge`) khi PR trigger.
+Từ đó, chúng tôi bắt đầu kiểm tra event type (`github.event_name`) thay vì ref thuần túy, và dùng `if: github.event.pull_request.merged == true` để kiểm soát chính xác hơn.
+
+#### Debug Context thực tế
+
+Tôi học được rằng mỗi khi workflow có biến “bí ẩn”, tốt nhất là in toàn bộ context ra log.
+Cách đơn giản nhất là:
+
+```yaml
+- name: Dump context
+  run: echo '${{ toJson(github) }}'
+```
+
+hoặc nếu muốn xem tất cả:
+
+```yaml
+- name: Dump all contexts
+  run: echo "${{ toJson(vars) }}" | jq .
+```
+
+Chúng tôi viết riêng một composite action `actions/debug-context` để làm việc này. Mỗi khi có pipeline mới, chỉ cần chèn nó vào đầu workflow, log sẽ cho ta biết GitHub đang “thấy” điều gì.
+Đó là cách duy nhất để không đoán mò — vì context luôn thay đổi theo event, và không có document nào cập nhật kịp.
+
+#### Runner không chỉ là môi trường – nó là lớp hạ tầng CI của bạn
+
+Ở giai đoạn này, chúng tôi bắt đầu nhìn runner như một tài nguyên hạ tầng, không phải “máy ảo tạm”.
+Chúng tôi đặt alert cho runner queue time — thời gian từ khi job được lên lịch đến khi runner bắt đầu chạy. Con số này đôi khi tăng lên 5–6 phút trong giờ cao điểm, khiến build chậm hẳn dù step chạy nhanh.
+
+Khi phân tích metric, hóa ra chúng tôi có nhiều job build container nặng (10GB image) chạy cùng lúc, trong khi GitHub chỉ cung cấp 20 concurrent hosted runner.
+Giải pháp là tách các job build đó sang self-hosted runner trên EC2 và EBS lớn, đồng thời dùng `runs-on: [self-hosted, docker]` cho nhóm job đó.
+
+Kết quả: tổng thời gian build giảm 40 %, queue time gần như biến mất.
+Nhưng đồng thời, chi phí tăng gấp đôi vì runner tự quản phải luôn bật.
+Đó là trade-off rất thực giữa tốc độ và chi phí — và chỉ khi bạn nắm rõ cơ chế runner thì mới tính được đường tối ưu.
+
+#### Bảo mật và giới hạn quyền của runner
+
+Khi chuyển sang self-hosted runner, chúng tôi nhanh chóng gặp tình huống mà tài liệu ít khi nhấn mạnh: runner có thể bị lợi dụng.
+Một lần, một thành viên mới mở PR từ fork repo public — workflow đó vẫn trigger job chạy trên runner nội bộ. Trong log, tôi thấy dòng `curl` lạ, và may mắn là runner bị sandbox network nên request không ra ngoài được.
+Từ đó chúng tôi học được bài học xương máu: **chưa có cơ chế sandbox tuyệt đối cho self-hosted runner**.
+
+Cách khắc phục của chúng tôi:
+
+* **Không bao giờ cho phép PR từ fork chạy trên runner nội bộ.**
+  Dùng điều kiện `if: github.event.pull_request.head.repo.full_name == github.repository` để lọc.
+* **Phân quyền workflow theo environment.**
+  Mỗi môi trường (staging, production) có secrets riêng, và chỉ workflow được approve mới có thể deploy.
+* **Giới hạn token.**
+  Thay vì dùng mặc định `GITHUB_TOKEN` với quyền ghi, chúng tôi chuyển sang `permissions: read-all` và cấp quyền ghi chỉ khi cần.
+
+Sau lần đó, chúng tôi coi runner như một phần trong *zero-trust perimeter*.
+Nó phải tuân theo cùng chuẩn như server production: audit, monitor, và có khả năng tự revoke.
+
+#### Khi context sai một chút, hậu quả không nhỏ
+
+Một lỗi khác khó quên là khi tôi dùng `${{ github.sha }}` để tag image, nhưng job deploy lại chạy sau vài giờ, khi code base đã có thêm commit mới.
+Image deploy ra production mang nhãn “latest”, nhưng không tương ứng với code đã review.
+Vấn đề nằm ở chỗ: `github.sha` được resolve tại thời điểm workflow trigger, không phải khi step chạy.
+
+Chúng tôi sửa lại bằng cách explicit truyền giá trị hash qua job outputs, để job sau không phụ thuộc vào context toàn cục.
+Nhỏ vậy thôi, nhưng giúp loại bỏ hoàn toàn tình trạng “build A deploy code B”.
+
+#### Kinh nghiệm debug pipeline lớn
+
+Khi pipeline đã có hàng chục job, bạn sẽ gặp những vấn đề mà document không nói tới: log bị cắt, artifact upload chậm, job treo mà không timeout.
+Lúc đó, thứ giúp tôi sống sót không phải “bí kíp YAML”, mà là khả năng **quan sát hệ thống như một dòng chảy dữ liệu**.
+
+Tôi bắt đầu coi mỗi job như một node trong DAG:
+
+* Input là outputs của job khác.
+* Output là artifact hoặc signal cho downstream job.
+* Context là metadata giúp job biết mình đang ở đâu.
+
+Khi có lỗi, tôi truy ngược qua `needs` để xem luồng dữ liệu dừng ở đâu.
+Chúng tôi viết script nhỏ để visualize pipeline bằng Graphviz từ file workflow — nhìn nó như graph thực sự giúp thấy ngay nút thắt cổ chai.
+Cảm giác giống như xem system topology: mỗi runner là “pod” ephemeral, và context là “env” inject từ controller.
+
+Nhờ đó, khi pipeline lỗi giữa chừng, tôi không hoảng; tôi chỉ hỏi “node nào mất dữ liệu, và vì sao context không khớp”.
+
+#### Bài học rút ra
+
+Sau nhiều tuần thử – sai, chúng tôi rút ra vài điểm tưởng nhỏ nhưng sống còn:
+
+1. **Hiểu runner như hiểu server:** biết nó chạy gì, ở đâu, và ai có thể chạm vào nó.
+2. **Không tin vào default context:** luôn kiểm tra giá trị thực tế bằng `toJson` khi nghi ngờ.
+3. **Job nào độc lập, cho nó độc lập thật:** truyền dữ liệu qua `outputs` hoặc artifact thay vì “cầu may”.
+4. **Bảo mật không chỉ nằm ở secret, mà ở event trigger.** Một pull request có thể là entry point của exploit.
+
+Sau khi hiểu rõ cơ chế thực thi — runner, context, data flow — ta mới thấy workflow file không chỉ là YAML, mà là *một hệ thống nhỏ tự vận hành trong hạ tầng lớn*.
+Bước tiếp theo trong hành trình là học cách **tổ chức lại pipeline để tái sử dụng và mở rộng**, thay vì nhân bản cùng một đoạn script khắp nơi.
+Đó sẽ là chủ đề của **Part 4: Reusable Workflow và Composite Action** — nơi pipeline bắt đầu có hình dáng của một sản phẩm thực sự.

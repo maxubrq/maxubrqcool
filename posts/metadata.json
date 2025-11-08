@@ -161,7 +161,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 1,
-      "totalParts": 2,
+      "totalParts": 3,
       "slug": "github-action-101-909"
     }
   },
@@ -173,7 +173,7 @@
     "series": {
       "name": "Github action: 101 -> 909",
       "part": 2,
-      "totalParts": 2,
+      "totalParts": 3,
       "slug": "github-action-101-909"
     }
   },
@@ -188,6 +188,18 @@
     "date": "2025-11-09",
     "excerpt": "Explore the power of interactive flow diagrams with ReactFlow. This demo showcases a complex CI/CD pipeline visualization with multiple stages, parallel processes, decision points, and branching logic. Fully interactive with pan, zoom, and selection capabilities.",
     "tags": ["reactflow", "interactive", "flow-diagrams", "ci-cd", "visualization", "react", "tutorial", "demo", "workflow"]
+  },
+  "0027_github-action-part3_job-runner-thucthi": {
+    "title": "#27 - Jobs, Runners và Context — cách Actions thực thi",
+    "date": "2025-11-10",
+    "excerpt": "Explore the power of interactive flow diagrams with ReactFlow. This demo showcases a complex CI/CD pipeline visualization with multiple stages, parallel processes, decision points, and branching logic. Fully interactive with pan, zoom, and selection capabilities.",
+    "tags": ["reactflow", "interactive", "flow-diagrams", "ci-cd", "visualization", "react", "tutorial", "demo", "workflow"],
+    "series": {
+      "name": "Github action: 101 -> 909",
+      "part": 3,
+      "totalParts": 3,
+      "slug": "github-action-101-909"
+    }
   }
 }
 

@@ -1,246 +1,163 @@
-## Cấu trúc và vòng đời của một workflow
+## GitHub Actions 102 – Cấu trúc và vòng đời của một workflow
 
-### Concept — Khi workflow không chỉ là file YAML
+### Concept — Khi một file YAML trở thành pipeline sống
 
-Khi tôi bắt đầu dùng GitHub Actions cho một dự án NodeJS nhỏ, 
-tôi nghĩ đơn giản chỉ cần viết vài dòng YAML là xong — kiểu “push code → 
-chạy test → pass → done”. Nhưng sau vài tuần, workflow bắt đầu phình ra: 
-thêm job build Docker image, chạy integration test, rồi deploy staging. 
-Mỗi lần có lỗi, tôi ngồi nhìn log cuộn như suối mà chẳng hiểu chuyện gì thực 
-sự xảy ra phía sau.
+Khi tôi bắt đầu dùng GitHub Actions cho dự án thật, ấn tượng đầu tiên là: “Tất cả chỉ nằm trong một file YAML sao?”
+Và rồi, tôi mất gần một tuần để hiểu chuyện gì thực sự xảy ra sau khi nhấn *push*.
 
-Lúc đó tôi mới nhận ra: GitHub Actions không phải chỉ là YAML. Nó là 
-**một hệ thống event-driven** thật sự, nơi mỗi dòng cấu hình tương ứng 
-với một hành động có thể thất bại, có queue, có runner thật.
+Về cơ bản, một workflow trong GitHub Actions là một “pipeline khai báo” (declarative pipeline).
+Nó không chạy ngay khi bạn viết, mà mô tả *cái gì cần làm*, còn *làm thế nào* — GitHub tự quyết.
+Cấu trúc YAML gồm ba khối chính: `on`, `jobs`, và `steps`.
 
-Một workflow bắt đầu sống khi có một event xảy ra: `push`, `pull_request`, `schedule`, 
-hoặc `workflow_dispatch`. GitHub nhận event đó, ghi lại snapshot của repository tại 
-commit tương ứng, rồi đưa snapshot này vào hàng đợi. Tùy cấu hình `runs-on`, 
-nó chọn một runner — một máy ảo Ubuntu, Windows, hoặc macOS — và nạp toàn bộ job vào đó.
+`on` là phần kích hoạt. Nó định nghĩa event nào khiến workflow chạy — ví dụ `push`, `pull_request`, hoặc `workflow_dispatch` (kích hoạt thủ công).
+Mỗi event được GitHub đưa vào hàng đợi nội bộ, rồi ánh xạ đến file YAML tương ứng trong repo.
 
-Từ đây, vòng đời workflow bắt đầu: setup → chạy từng step → kết thúc → lưu log → cập 
-nhật trạng thái. Mọi thứ đều có thể quan sát trong tab “Actions”, nhưng nếu bạn 
-chỉ nhìn log mà không hiểu luồng bên dưới, rất dễ bị rối.
+Tiếp theo là `jobs`. Mỗi job chạy trong một runner riêng biệt — tách biệt hoàn toàn.
+Runner này có thể là *GitHub-hosted* (do GitHub cấp) hoặc *self-hosted* (do bạn quản lý).
+Điều đó nghĩa là mỗi job giống như một container sạch, không có state từ job khác, trừ khi bạn truyền artifact hoặc output.
+Điều này nghe đơn giản, nhưng trong thực tế, hiểu rõ *scope* của job và *ràng buộc* giữa chúng là thứ quyết định pipeline có chạy ổn định hay không.
 
-Mỗi **job** trong YAML là một đơn vị độc lập, có thể chạy song song hoặc tuần tự nếu 
-bạn dùng `needs:`. Bên trong job, từng **step** là một command cụ thể — có thể là 
-action (`uses:`) hoặc shell command (`run:`). GitHub ghép tất cả lại thành một 
-execution plan.
-Cơ chế này tưởng đơn giản, nhưng thực ra là một hệ thống orchestration tinh vi:
+Trong mỗi job, có nhiều `steps`.
+Mỗi step chạy tuần tự, trong cùng một môi trường shell, có thể là `bash`, `pwsh`, hoặc `cmd` tùy runner.
+Step có thể là `uses:` (gọi action có sẵn) hoặc `run:` (chạy command trực tiếp).
+Và chỉ khi một step fail (exit code ≠ 0), toàn bộ job bị đánh dấu thất bại — trừ khi bạn gắn `continue-on-error: true`.
 
-* GitHub copy repo, inject secret, thiết lập env.
-* Tạo workspace và cache tạm.
-* Chạy từng step trong một shell, theo dõi exit code.
-* Nếu step fail, job dừng (trừ khi có `continue-on-error`).
+Toàn bộ hành trình thực thi diễn ra như sau:
 
-Điều khiến tôi bất ngờ lúc đầu là: mọi job **chạy trong môi trường riêng biệt**. 
-Dù bạn `export` biến trong một job, nó không tồn tại ở job khác. Nếu muốn truyền dữ 
-liệu, bạn phải dùng `outputs` hoặc `artifact`.
-Đây là khác biệt lớn với Jenkins hoặc CircleCI — nơi bạn có thể chia sẻ 
-workspace hoặc container giữa các stage.
-GitHub Actions chọn mô hình cách ly, giúp bảo mật nhưng đồng thời làm người mới dễ lẫn.
+1. **Trigger:** một event như `push` xảy ra → GitHub check repo có file YAML tương ứng.
+2. **Queue:** workflow được đưa vào hàng đợi build.
+3. **Runner:** GitHub chọn runner phù hợp (ubuntu-latest, windows-latest…).
+4. **Checkout:** mã nguồn được clone xuống runner.
+5. **Setup:** các action chuẩn bị môi trường (`setup-node`, `setup-python`, v.v.)
+6. **Execute:** từng step được thực thi, log được gửi ngược về UI theo thời gian thực.
+7. **Teardown:** upload artifact, cleanup môi trường, kết thúc job.
+8. **Report:** tổng hợp kết quả, hiển thị badge, gửi status về commit hoặc PR.
 
-Khi hiểu điều này, tôi bắt đầu nhìn YAML bằng con mắt khác:
-`on:` không chỉ là “trigger khi push”, mà là **điểm bắt đầu của một chuỗi trạng thái**.
-`jobs:` là bản đồ chạy song song hoặc tuần tự.
-`steps:` là log chi tiết từng hành động.
-Một workflow không “chạy”, nó “được orchestrated”. Và hiểu điều đó giúp tôi debug nhanh hơn rất nhiều.
+Điều đáng chú ý là toàn bộ quá trình này diễn ra trong sandbox tạm thời — runner bị hủy sau khi xong.
+Không có “cache” bền vững nếu bạn không thiết lập `actions/cache`.
+Điều đó làm workflow an toàn, nhưng đôi khi rất chậm, đặc biệt với build nặng hoặc nhiều dependency.
 
-### Build — Viết một workflow nhỏ và quan sát nó chạy
+Lúc đó tôi nhận ra: YAML chỉ là bề nổi. Phần quan trọng là hiểu cách GitHub _thực thi_ và _ghi nhớ_ từng bước.
 
-Đây là một trong những workflow đầu tiên mà tôi viết được xem là “đủ sạch để hiểu”:
+### Build — Khi YAML trở thành pipeline thực thụ
+
+Khi chúng tôi bắt đầu viết workflow đầu tiên cho hệ thống Node.js, mọi thứ trông đơn giản: build, test, done.
+Nhưng đến lần thứ ba bị fail mà không hiểu vì sao, tôi nhận ra mình không thực sự hiểu “cấu trúc” bên trong YAML đó.
+
+Đây là ví dụ workflow ban đầu mà nhóm dùng:
 
 ```yaml
-# .github/workflows/ci.yml
-name: CI
-on:
-  push:
-    branches: [ main ]
+name: CI Basic
+on: [push, pull_request]
+
 jobs:
   build:
-    runs-on: ubuntu-latest # chạy trên runner Ubuntu mới nhất
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4 # checkout code từ repository
-
-      - name: Install dependencies
-        run: npm ci # cài đặt dependencies
-
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: npm ci
       - name: Run tests
-        run: npm test # chạy test
+        run: npm test
 ```
 
-Thoạt nhìn, chẳng có gì phức tạp — chỉ ba bước cơ bản.
-Nhưng khi push commit đầu tiên, tôi mở tab **Actions** và thấy workflow thực 
-sự được kích hoạt.
-GitHub hiện log theo thứ tự:
+Nó hoạt động, nhưng có vài điều thú vị nếu đọc log kỹ hơn.
+Ngay khi `push` xảy ra, GitHub gửi event payload (gồm branch, commit SHA, actor, v.v.) vào hàng đợi.
+Runner được cấp phát, clone code, rồi thực thi từng `step`.
+Nếu bạn để ý log, bạn sẽ thấy rõ thời điểm GitHub “phát hiện” workflow, thời gian *queue*, và khi runner “start job container”.
+Những vài chục giây đầu đó — chính là *overhead* mà nhiều người không để ý.
 
-1. `Triggered via push on branch main`
-2. `Queued runner for ubuntu-latest`
-3. `Job build started`
-4. Từng step chạy, hiển thị thời gian từng bước.
-
-Tôi nhận ra từng dòng log đều phản ánh đúng “vòng đời” mà tài liệu mô tả.
-Mất khoảng 10–15 giây để queue runner (lúc traffic cao có thể lâu hơn).
-Rồi mỗi step lại bắt đầu bằng setup shell environment, clone code, run command, rồi cleanup.
-Nếu bạn để ý, log có phần “Set up job”, “Post job cleanup”, chính là phần GitHub thêm tự động.
-
-Tôi thử thêm một event khác:
+Sau này, khi build thời gian dài, chúng tôi thêm cache để giữ lại dependency:
 
 ```yaml
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-  workflow_dispatch:
+- name: Cache node_modules
+  uses: actions/cache@v4
+  with:
+    path: ~/.npm
+    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 ```
 
-Giờ workflow có thể kích hoạt khi tạo PR hoặc chạy thủ công.
-Tôi thêm một step:
+Chỉ riêng việc này giảm thời gian chạy trung bình từ 5 phút xuống 2 phút.
+Nhưng cache cũng khiến workflow khó debug hơn: đôi khi build fail do cache cũ, chứ không phải code.
+Chúng tôi học được phải thêm một step log hash key, để hiểu khi nào cache được hit, khi nào miss.
+
+Rồi đến bước **debug**.
+GitHub Actions cung cấp biến `ACTIONS_STEP_DEBUG=true`.
+Khi bật, log hiện chi tiết từng biến môi trường (`GITHUB_REF`, `GITHUB_SHA`, `GITHUB_WORKSPACE`).
+Tôi nhớ có lần một PR test mãi không chạy.
+Hóa ra workflow định nghĩa `on: push`, mà pull request không sinh event `push` — nó cần `on: pull_request`.
+Chỉ nhờ đọc log và event context, mới nhận ra mình đang lẫn hai khái niệm.
+
+Một điều tôi thấy quan trọng là **đặt tên step và job rõ ràng**.
+Khi bạn chạy nhiều job song song, log dễ loạn nếu đều là “Run tests”.
+Chúng tôi chuyển sang convention kiểu:
+`build_node20`, `build_node18`, `lint_code`, `unit_test`, `integration_test`.
+Sau này khi nhìn bảng log, chỉ cần vài giây là biết job nào fail, job nào skip do dependency.
+
+Đến khi pipeline lớn hơn, tôi bắt đầu dùng `needs:` để ràng buộc job.
+Ví dụ:
 
 ```yaml
-- name: Print event type
-  run: echo "Triggered by ${{ github.event_name }}"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "build done"
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "test after build"
 ```
 
-Và trong log, tôi thấy rõ:
+`needs` đơn giản, nhưng nó là chìa khóa để tránh *race condition*.
+Trong pipeline phức tạp, việc quên `needs` có thể khiến job chạy song song ngoài ý muốn,
+và fail ngẫu nhiên vì dependency chưa hoàn tất.
+Sau này tôi mới hiểu, phần “vòng đời” của workflow chính là: **ai chạy trước, ai phụ thuộc ai, và khi nào log được hợp nhất**.
 
-* Khi push: `Triggered by push`
-* Khi tạo PR: `Triggered by pull_request`
-* Khi bấm “Run workflow”: `Triggered by workflow_dispatch`
+### Reflect — Khi workflow bắt đầu sống và có “tính cách” riêng
 
-Từ đó tôi hiểu rõ hơn về cách event JSON ảnh hưởng đến context.
-Cả workflow sống nhờ vào “payload” mà event mang lại — 
-ví dụ `github.event.pull_request.title`, `github.actor`, `github.ref`, `github.sha`.
-Tôi bắt đầu dùng các biến này để điều kiện hóa step:
+Sau vài tháng vận hành, tôi nhận ra mỗi workflow có “tính khí” riêng — có cái nhanh, có cái chậm, có cái thi thoảng cáu bẳn.
+Lý do không nằm ở YAML, mà ở cách ta tổ chức nó.
 
-```yaml
-- name: Conditional run
-  if: github.event_name == 'pull_request'
-  run: echo "This runs only on PR"
-```
+Một workflow tốt không chỉ chạy đúng, mà còn phải **đọc được**.
+GitHub Actions UI về bản chất là trình đọc log, nên nếu bạn đặt tên kém, dùng quá nhiều step lặp,
+hoặc không ghi chú, debugging sẽ tốn thời gian gấp đôi.
+Tôi đã từng mất hai giờ chỉ để tìm lỗi do thiếu `shell: bash` trong step, vì log bị cuộn sâu trong hàng trăm dòng setup.
 
-Lúc này workflow không còn là script tĩnh, mà như một chương trình có logic.
+Điều tôi học được là nên **viết workflow như code sản xuất**: có convention, có format, có intent rõ ràng.
+Tên job viết theo mục đích (`build`, `test`, `deploy`), step ghi cụ thể hành động (`Install deps`, `Run lint`, `Run tests`).
+Khi người mới vào repo, họ có thể đọc YAML và hình dung ngay chuỗi build chạy thế nào.
+Workflow càng trong sáng, debug càng nhanh.
 
-### Reflect — Đọc log hiệu quả
+Một kinh nghiệm nhỏ khác là **đọc log theo trình tự thời gian thực thi**, không theo cảm tính.
+Nhiều người chỉ nhìn phần “Run tests” vì thấy nó fail, nhưng thực tế nguyên nhân nằm ở phần setup trước đó —
+ví dụ Node chưa cài đúng version, hoặc thiếu quyền checkout submodule.
+Khi tôi học cách xem log từ trên xuống, từ setup → steps → teardown,
+thì tỷ lệ tìm đúng nguyên nhân trong lần đầu tăng rõ rệt.
 
-Tôi cũng học cách **đọc log hiệu quả**.
-GitHub log không đẹp như các hệ thống logging chuyên dụng, nhưng có thể 
-cấu trúc lại bằng các marker:
+Có lần pipeline của chúng tôi mất 40 phút chỉ để chạy lint và test.
+Không phải do code nặng, mà do chạy tất cả job song song mà không chia dependency.
+Sau khi tách thành `lint` → `build` → `test`, tổng thời gian còn 17 phút,
+dù tổng step không đổi.
+GitHub không tối ưu *tự động*, mà dựa trên cách ta khai báo vòng đời hợp lý.
 
-```bash
-echo "::group::Installing packages"
-npm ci
-echo "::endgroup::"
-```
+Điều thú vị là càng về sau, tôi càng thấy YAML này không khác gì một chương trình nhỏ.
+Nó có cấu trúc, có state tạm, có biến (`env`, `outputs`), có điều kiện (`if:`).
+Chỉ khác ở chỗ: bạn không chạy nó trực tiếp, mà “yêu cầu GitHub” chạy thay.
+Đó là lý do workflow cần được tổ chức cẩn thận — để bạn và GitHub hiểu nhau chính xác.
 
-Khi đó log hiển thị dưới dạng collapsible group.
-Còn nếu cần debug sâu hơn, bạn bật secret `ACTIONS_STEP_DEBUG=true` 
-rồi re-run workflow, GitHub sẽ hiện chi tiết từng command.
+Cuối cùng, điều quan trọng nhất tôi rút ra là:
 
-Một mẹo nhỏ: dùng `id:` cho step để lấy output:
+> *Workflow là ảnh phản chiếu độ trưởng thành của đội ngũ kỹ sư.*
+> Một team viết YAML sạch, có log dễ đọc, có dependency rõ,
+> thường cũng là team hiểu pipeline của mình chạy thế nào — và vì sao.
 
-```yaml
-- name: Get node version
-  id: node
-  run: echo "version=$(node -v)" >> $GITHUB_OUTPUT
-
-- name: Print node version
-  run: echo "Node version: ${{ steps.node.outputs.version }}"
-```
-
-Thứ này cực kỳ hữu ích khi bạn cần truyền kết quả tạm thời giữa các step.
-Ban đầu tôi copy-paste như mọi người, nhưng khi gặp lỗi kiểu “output not found”, 
-tôi phải mở doc mới hiểu rằng `$GITHUB_OUTPUT` là file tạm trong runner, 
-chứ không phải biến môi trường toàn cục.
-
-Một lần, workflow của tôi fail mà không rõ vì sao. Log dừng ở dòng “Run tests”, 
-không có chi tiết lỗi.
-Hóa ra do `npm test` trả về mã lỗi 1, khiến toàn job dừng.
-Giải pháp là thêm `continue-on-error: true` để workflow không chết hẳn, 
-giúp tôi đọc log các step tiếp theo.
-Từ đó tôi luôn bao step test trong group riêng, để phân biệt lỗi thực tế và 
-lỗi môi trường:
-
-```yaml
-- name: Run tests
-  continue-on-error: true
-  run: |
-    echo "::group::Testing"
-    npm test
-    echo "::endgroup::"
-```
-
-### Reflect — Từ một file YAML đến cảm giác về workflow
-
-Sau vài tháng làm việc với GitHub Actions, tôi bắt đầu nhận ra: 
-việc hiểu YAML không giúp bạn vận hành CI/CD giỏi hơn, hiểu **vòng đời của workflow** 
-mới là điều thay đổi cách bạn làm việc.
-Hầu hết lỗi tôi từng gặp không nằm ở cú pháp YAML, mà nằm ở 
-việc **không hình dung đúng luồng chạy thật**.
-
-Có lần, chúng tôi mất nửa ngày để tìm nguyên nhân một workflow bị kẹt ở trạng 
-thái *“Waiting for jobs to start”*.
-Nhìn log thì không có gì — chỉ dòng “Queued” mãi không đổi.
-Cuối cùng mới phát hiện ra runner đã hết slot vì bị chiếm bởi workflow 
-khác chạy job dài (build Docker image).
-GitHub không báo lỗi rõ ràng, chỉ lặng lẽ xếp hàng.
-Từ đó, tôi học được rằng **runner là tài nguyên giới hạn**, 
-và hiểu nó đang ở đâu, làm gì quan trọng hơn là viết thêm step mới.
-
-Một bài học khác: **workflow không chia sẻ trạng thái**.
-Tôi từng thử export biến ở job A rồi echo lại ở job B — không được.
-Vì mỗi job chạy trong môi trường riêng biệt.
-Muốn truyền dữ liệu, bạn phải dùng `outputs`, `artifacts`, hoặc gọi API.
-Lúc đó tôi mới thấy “trừu tượng hóa an toàn” mà GitHub hướng tới: mọi thứ cách ly 
-để tránh rò rỉ secret, nhưng đồng thời khiến việc debug phức tạp hơn.
-
-Đôi khi, lỗi không nằm trong code mà nằm ở cách chúng ta đọc log.
-Tôi đã gặp nhiều người thêm `echo` khắp nơi để “trace”, nhưng không nhóm log lại, 
-khiến output dài cả nghìn dòng.
-Thực tế, chỉ cần thêm `::group::` là bạn đã tiết kiệm được hàng giờ khi cần tra lại.
-Cũng như trong production, log không chỉ để “ghi lại”, mà để “đọc được”.
-
-Một trong những khoảnh khắc khiến tôi thực sự hiểu GitHub Actions là khi tôi 
-quan sát **tốc độ thực thi từng step**.
-Ví dụ, job `npm ci` mất 1 phút, `npm test` mất 30 giây, nhưng “Set up job” mất 
-20 giây — con số mà nhiều người bỏ qua.
-Khi nhân với hàng chục workflow chạy song song, con số đó ảnh hưởng đáng kể đến 
-tổng thời gian CI.
-Tôi bắt đầu đặt câu hỏi: “Mình có thể cache không?”, “runner có đang bị nghẽn I/O không?”, 
-“có thể tách step để chạy song song không?”
-Từ chỗ chỉ “chạy test”, tôi bắt đầu nghĩ như một **người vận hành pipeline thực thụ**.
-
-Sau một thời gian, tôi quay lại nhìn file YAML đầu tiên của mình. Nó dài gần 200 dòng, 
-trông như bản ghi nhật ký.
-Giờ, tôi chỉ giữ lại khoảng 40 dòng cốt lõi — tách riêng các phần setup, 
-test, build thành reusable workflow.
-Vì khi hiểu rõ vòng đời của workflow, bạn sẽ thấy phần lớn dòng YAML thực 
-ra là *ritual noise*: thứ để GitHub hiểu bạn, nhưng bạn không cần lặp lại mãi.
-Điều quan trọng hơn là bạn hiểu **lúc nào workflow bắt đầu, lúc nào runner 
-thật sự chạy, và điều gì làm nó dừng lại.**
-
-Có người hỏi tôi: “Tôi chỉ cần CI chạy pass là đủ, sao phải hiểu kỹ thế?”
-Câu trả lời là: vì **bạn sẽ không dừng ở CI**.
-Workflow chính là nền của mọi tự động hóa sau này — từ test đến release, 
-từ audit đến monitoring.
-Nếu bạn hiểu cách nó vận hành, bạn sẽ biết cách gắn thêm vòng quan sát, 
-rollback, hay deployment pipeline mà không sợ vỡ.
-Còn nếu bạn chỉ copy từ ví dụ có sẵn, sớm muộn bạn sẽ mắc lại những 
-lỗi người khác từng mắc.
-
-Cảm giác “workflow đang thở” là như vậy — bạn push code và gần như nghe được 
-nhịp tim của hệ thống.
-Bạn biết tại sao nó queue, tại sao job đó chạy trước, và vì sao log kia không hiện ra.
-Đó là lúc GitHub Actions không còn là công cụ nữa, mà trở thành **một 
-phần của hệ thống vận hành mà bạn tin tưởng**.
-
-### Bridge — Hướng sang phần tiếp theo
-
-Sau khi hiểu cấu trúc và vòng đời workflow, điều tự nhiên tiếp theo là muốn biết:
-**“Runner thật sự là gì?”**,
-**“Mỗi job chạy trong môi trường nào, và dữ liệu truyền qua lại ra sao?”**
-
-Đó chính là chủ đề của **Part 3 — Jobs, Runners và Context**.
-Ta sẽ bóc từng lớp ra: từ `needs:` đến `outputs`, từ hosted runner đến 
-self-hosted, để thấy cách GitHub Actions thực thi từng job thật sự ở tầng hạ tầng.
+Từ đây, chúng ta đã có nền tảng vững: hiểu cách workflow được kích hoạt,
+cách job và step chạy trong runner, và cách vòng đời kết thúc.
+Bước tiếp theo, ta đi sâu hơn vào phần “xương sống” của nó —
+**Jobs, Runners, và Context: cách GitHub Actions thực thi thật sự bên dưới.**

@@ -126,11 +126,6 @@ export function Sandpack({
             files={files}
             customSetup={customSetup}
             theme={theme}
-            options={{
-              readOnly,
-              editorHeight: height,
-              editorWidthPercentage: layout === 'horizontal' ? 50 : 100,
-            }}
           >
             <div className="border-t border-foreground/10">
               {showNavigator && (

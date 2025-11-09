@@ -33,6 +33,7 @@ import {
   TipAlert, 
   NoteAlert 
 } from './components/Alert'
+import { LinkPreview } from './components/LinkPreview'
 
 // Utility function to generate IDs from heading text
 function generateHeadingId(text: string): string {
@@ -203,13 +204,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       )
     },
     a: ({ children, href, ...props }) => (
-      <a 
-        href={href} 
-        className="text-blue-600 hover:text-blue-800 underline transition-colors" 
-        {...props}
-      >
+      <LinkPreview href={href || ''} {...props}>
         {children}
-      </a>
+      </LinkPreview>
     ),
     img: ({ src, alt, ...props }) => (
         <img 

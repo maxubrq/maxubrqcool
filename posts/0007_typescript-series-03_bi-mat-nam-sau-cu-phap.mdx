@@ -1,0 +1,544 @@
+## Typescript For Strong SE 03: Bí mật của Hệ thống Type - Logic nằm sau Cú pháp
+
+### Cốt lõi khái niệm
+
+TypeScript triển khai mô hình structural typing: hai kiểu tương thích nếu “shape” 
+thỏa quan hệ gán (assignability). Quan hệ này không đòi hỏi đồng nhất tuyệt đối; yêu cầu 
+là các thuộc tính và ràng buộc tối thiểu mà bên nhận cần phải có. Do đó, kiểm tra tương 
+thích không dựa vào tên type mà dựa vào cấu trúc. Khác với phép bằng nhau, assignability 
+là quan hệ một chiều: có thể gán A vào B nhưng không gán B vào A. Cơ chế này cho phép kết 
+nối module linh hoạt trong các codebase lớn, đồng thời đòi hỏi hiểu đúng về variance, 
+_control-flow analysis_, _discriminated unions_ và _overload resolution_ để giữ an toàn kiểu 
+trong thực tế.
+
+#### Assignability - Quan hệ gán
+
+Trong hệ thống, “type surface” của API nên ổn định và dễ dự đoán. Quan hệ assignability 
+xác định mức tối thiểu của hợp đồng dữ liệu: bên gọi chỉ cần cung cấp các thuộc tính được 
+yêu cầu; các thuộc tính dư (excess) chỉ bị chặn ở chế độ kiểm tra literal object để ngăn 
+lỗi vô ý. Khi đối tượng đến từ biến trung gian, kiểm tra excess không áp dụng, vì đã mặc định 
+qua một tầng kiểm soát khác. Do đó, phát hiện lỗi thiết kế phụ thuộc nhiều vào kỷ luật cấu 
+hình `strict` và các cờ như `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` để nâng 
+độ trung thực của suy luận.
+
+```ts
+type Profile = { id: string; email?: string };
+const p1: Profile = { id: "u1", extra: "ignored?" }; // lỗi khi là literal: thuộc tính thừa
+const tmp = { id: "u1", extra: "x" };
+const p2: Profile = tmp; // hợp lệ: excess check không áp dụng với biến
+```
+
+Trong thực tế, việc tắt excess check ở biến trung gian giúp linh hoạt nhưng cũng tiềm ẩn 
+rủi ro rò rỉ thuộc tính không chủ đích. Cách giảm thiểu là chuẩn hóa đường đi của dữ liệu 
+bằng constructor hoặc hàm tạo contract, hoặc dùng `satisfies` để ràng buộc mà không “cắt” 
+thông tin kiểu.
+
+```ts
+const p3 = {
+  id: "u1",
+  extra: "x"
+} satisfies Profile; // đảm bảo tối thiểu đúng hợp đồng nhưng vẫn giữ toàn bộ shape của p3
+```
+
+#### Top/bottom types - Ranh giới suy luận
+
+**Top/bottom types** quy định ranh giới suy luận: `unknown` là top type an toàn **nhận mọi 
+giá trị nhưng buộc thu hẹp trước khi dùng**; `never` là bottom type đại diện cho nhánh không 
+thể xảy ra, hữu ích để kiểm tra tính đầy đủ của xử lý. `any` là “escape hatch” tắt kiểm tra 
+kiểu; **việc sử dụng `any` lan rộng sẽ làm suy yếu tính dự đoán**. Trong codebase production, 
+nên áp dụng “no-new-any” trong CI để ngăn nợ kỹ thuật phát sinh.
+
+```ts
+function exhaustive(x: never): never { throw new Error("unreachable"); }
+```
+
+#### Variance - Biến thiên
+
+Trong mô hình biến thiên (variance), mảng mutable là **không an toàn** nếu coi covariant theo 
+phần tử, vì có thể chèn phần tử sai kiểu qua tham chiếu chung. Do đó, TypeScript giữ quy ước 
+thận trọng: `readonly` tạo bề mặt chỉ đọc để đạt near-covariance an toàn; `ReadonlyArray<T>` 
+là lựa chọn mặc định khi không cần mutate. Với hàm, tham số là **contravariant** và kết quả 
+là **covariant** theo trực giác lý thuyết kiểu; tuy nhiên, vì di sản từ thời đầu, 
+TypeScript có “bivariance” đối với tham số callback ở một số ngữ cảnh, có thể dẫn tới khe hở 
+nếu thiếu kỷ luật `strictFunctionTypes`.
+
+```ts
+type Handler<In> = (x: In) => void;
+// Nếu Handler<Animal> được gán cho Handler<Dog>, callback có thể nhận Dog nhưng thực tế nhận Animal → rủi ro.
+// Bật "strictFunctionTypes": false khiến tham số callback bivariant → cẩn trọng khi public API.
+```
+
+Trong thiết kế API, có thể **mô phỏng variance** bằng cách dựng hình thức sử dụng tham số 
+kiểu đúng vị trí. TypeScript không hỗ trợ annotation `in`/`out` ở khai báo, nhưng có thể đạt 
+hiệu ứng mong muốn qua `readonly`, qua “input-only” hoặc “output-only” wrapper, và qua phân 
+tách interface công khai thành các bề mặt riêng cho đọc/ghi. Khi buộc phải công bố callback 
+công khai, hạn chế phạm vi generic, tránh lồng sâu điều kiện, và thêm type-tests để đảm bảo 
+chữ ký không rơi vào bivariance nguy hiểm.
+
+```ts
+type InOnly<In> = { consume: (x: In) => void };           // In ở vị trí contravariant
+type OutOnly<Out> = { produce: () => Out };               // Out ở vị trí covariant
+type Box<T> = { readonly value: T };                      // readonly giúp mô phỏng covariance an toàn
+```
+
+#### Control-flow analysis - Kiểm tra luồng kiểu
+
+**Control-flow analysis** cho phép thu hẹp kiểu dựa trên kiểm tra runtime: 
+`typeof`, `instanceof`, `in`, kiểm tra nullish, so sánh chặt chẽ, và đặc biệt là 
+**custom type guard**. Khi predicate trả về `x is S`, trình kiểm tra hiểu `S` 
+là dạng thu hẹp của `T`. Kết hợp với _discriminated unions_, control-flow analysis cho phép 
+đạt tính **exhaustiveness** ở compile-time, biến lỗi thiếu case thành lỗi biên dịch. Đây là 
+kỹ thuật chủ lực để chuyển lỗi logic về sớm nhất.
+
+```ts
+type Event =
+  | { kind: "click"; x: number; y: number }
+  | { kind: "submit"; formId: string }
+  | { kind: "timeout"; ms: number };
+
+function handle(e: Event) {
+  switch (e.kind) {
+    case "click":
+      return [e.x, e.y];
+    case "submit":
+      return e.formId;
+    case "timeout":
+      return e.ms;
+    default:
+      // e ở đây có type never nếu đã exhaustive
+      return exhaustive(e);
+  }
+}
+```
+
+#### Discriminated unions - Union có tag
+
+**Discriminated unions** hoạt động dựa trên **tag ổn định**: một thuộc tính chung 
+(thường là literal string) xuất hiện trong mọi biến thể. Trình kiểm tra sử dụng giá trị cụ 
+thể của tag để thu hẹp. Khi thêm một biến thể mới, `default` branch sẽ bị gán `never` và 
+phát sinh lỗi, buộc cập nhật xử lý. Điều này chắc chắn hơn so với kiểm tra cấu trúc ngầm định. 
+Trong thực tế, nên định nghĩa tag ở dạng chuỗi ngắn, nhất quán, và cách ly các union theo ngữ 
+cảnh để tránh phình to không cần thiết.
+
+```ts
+// Tối thiểu hóa union: chia theo ngữ cảnh sử dụng
+type UiEvent = Extract<Event, { kind: "click" | "submit" }>;
+type SysEvent = Extract<Event, { kind: "timeout" }>;
+```
+
+#### Overload resolution - Lựa chọn chữ ký phù hợp
+
+**Overload resolution** là cơ chế lựa chọn chữ ký phù hợp nhất cho lời gọi. 
+Trình kiểm tra duyệt từ trên xuống, tìm chữ ký “cụ thể” nhất khớp đối số. Khi không có chữ 
+ký cụ thể phù hợp, sẽ rơi về chữ ký cuối cùng (thường là dạng tổng quát). Lạm dụng overload 
+dẫn đến bảo trì khó và lỗi suy luận mơ hồ; nhiều trường hợp conditional types và generics 
+giải quyết gọn hơn. Tiêu chí thực hành là hạn chế số overload, tránh chồng chéo, và đảm bảo 
+test-type cho public signature.
+
+```ts
+// Overload cần thiết khi logic runtime thực sự phân nhánh theo hình dạng đối số
+function find(id: string): Promise<User | undefined>;
+function find(query: { email: string }): Promise<User | undefined>;
+function find(arg: string | { email: string }) {
+  // runtime branch
+  if (typeof arg === "string") { /* ... */ }
+  else { /* ... */ }
+}
+```
+
+Khi không bắt buộc phân nhánh runtime, conditional types cho API “khép kín” hơn và ít trùng 
+lặp hơn.
+
+```ts
+type Input = string | { email: string };
+type Output<I> = I extends string ? Promise<User | undefined> : Promise<User | undefined>;
+function find2<I extends Input>(arg: I): Output<I> {
+  // triển khai thống nhất, nhánh hóa bên trong
+  // @ts-expect-error minh họa: ép buộc kiểm tra khi thiếu case
+  return null as any;
+}
+```
+
+Một nguồn lỗi phổ biến là **distributive conditional types**. Khi điều kiện áp dụng lên một 
+union, TypeScript phân phối phép biến đổi lên từng thành phần trừ khi bọc trong `[]`. 
+Điều này hữu ích cho meta-type, nhưng có thể dẫn tới độ phức tạp cao và khó đọc. 
+Trong production system, nên ưu tiên helper type đã đặt tên, ghi chú ý định, và cố gắng giới hạn chiều 
+sâu điều kiện.
+
+```ts
+type ToArray<T> = T extends any ? T[] : never;         // phân phối
+type ToArrayNonDist<T> = [T] extends [any] ? T[] : never; // không phân phối
+```
+
+#### Exact optional vs inexact optional - Sự khác biệt trong assignability
+
+**Exact optional vs inexact optional** ảnh hưởng đến assignability. Với 
+`exactOptionalPropertyTypes`, thiếu thuộc tính và thuộc tính có giá trị `undefined` 
+được phân biệt. Điều này phản ánh sự chính xác mong muốn trong JSON/HTTP where “field missing” 
+khác “field present but null/undefined”. Cấu hình này tăng độ trung thực hợp đồng dữ liệu tại 
+biên, giúp giảm lỗi khi phát triển API.
+
+```ts
+// exactOptionalPropertyTypes: true
+type P = { email?: string };
+const a: P = {};               // hợp lệ: thiếu email
+const b: P = { email: undefined }; // khác nghĩa: email hiện diện nhưng undefined
+```
+
+#### Index signatures và mapped types - Bề mặt linh hoạt
+
+**Index signatures** và **mapped types** tạo bề mặt linh hoạt nhưng cần rào chắn. 
+`noUncheckedIndexedAccess` buộc giá trị đọc qua indexing có thể là `undefined`, phản ánh đúng 
+thực tế mảng/khoá có thể vắng mặt. Ở quy mô lớn, thiết kế index-signature nên kèm constraint 
+ở value type; ví dụ, log schema có thể dùng mapped type với literal keys thay vì index lỏng 
+lẻo.
+
+```ts
+type LogFields = "traceId" | "spanId" | "userId";
+type LogRecord = { [K in LogFields]: string }; // chặt hơn { [k: string]: string }
+```
+
+**Tuples** có tính thứ tự và chiều dài cố định, variance của từng phần tử phụ thuộc khả năng 
+ghi/đọc. Gán tuple linh hoạt vào mảng tổng quát sẽ làm mất bảo đảm thứ tự. `readonly` tuple 
+(`as const`) thích hợp cho dữ liệu hằng số và pattern-matching.
+
+```ts
+const pair = [200, "OK"] as const; // readonly [200, "OK"]
+type Pair = typeof pair;           // readonly [200, "OK"]
+```
+
+**Enum** kiểu `enum` do TypeScript triển khai khác biệt so với literal unions; trong hầu hết 
+API hiện đại, literal union với `as const` mang lại DX và khả năng tương tác tốt hơn, đặc 
+biệt với JSON và kiểm thử. Chỉ sử dụng `enum` khi cần interop với code cũ hoặc biên dịch 
+đặc thù; còn lại ưu tiên `const enum` hoặc union literal.
+
+```ts
+// Ưu tiên:
+type Status = "ok" | "error" | "pending";
+// Thay vì:
+enum StatusE { Ok = "ok", Error = "error", Pending = "pending" }
+```
+
+#### Satisfies - Ràng buộc mà giữ nguyên thông tin kiểu
+
+**Satisfies** (TS ≥ 4.9) đưa ra cách ràng buộc mà giữ nguyên thông tin kiểu cụ thể của 
+biểu thức bên trái. Điều này hữu ích khi đối tượng literal có nhiều thuộc tính hơn hợp đồng, 
+nhưng vẫn muốn IDE giữ intellisense đầy đủ. Phối hợp `satisfies` với `as const` tăng tính an 
+toàn khi định nghĩa bảng ánh xạ.
+
+```ts
+const table = {
+  ok: 200,
+  error: 500
+} as const satisfies Record<"ok" | "error", number>;
+```
+
+
+#### Exhaustiveness check - Kiểm tra đầy đủ
+
+Ở quy mô codebase lớn, mục tiêu là **exhaustive by construction**. Thực hành gồm: union 
+có tag rõ ràng; `switch` không `default`, dùng `assertNever` để compiler kiểm tra đầy đủ; 
+tách union theo ngữ cảnh; dùng type-tests (`tsd`/`expectTypeOf`) cho chữ ký phức tạp; bật 
+`strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `strictFunctionTypes`. 
+Các biện pháp này dịch chuyển sai lệch về thời điểm sớm hơn, nơi sửa chữa rẻ hơn.
+
+```ts
+// type-test ví dụ với expectTypeOf
+import { expectTypeOf } from "expect-type";
+
+declare function refine<T, S extends T>(xs: T[], g: (x: T) => x is S): S[];
+const xs = [{ kind: "a" } as const, { kind: "b" } as const];
+const isA = (x: typeof xs[number]): x is Extract<typeof x, { kind: "a" }> => x.kind === "a";
+
+const ys = refine(xs, isA);
+expectTypeOf(ys).toEqualTypeOf<Array<Extract<typeof xs[number], { kind: "a" }>>>();
+```
+
+
+#### Overload vs generic vs union - Lựa chọn phù hợp
+
+Khi cân nhắc **overload vs generic vs union**, ưu tiên giữ API tuyến tính về suy luận. 
+Overload dành cho trường hợp thực sự cần nhiều “hình” đối số với hành vi runtime khác nhau. 
+Generic + conditional types phù hợp khi muốn một cổng vào duy nhất và để trình kiểm tra tính 
+toán kiểu trả về. Union literal là công cụ ổn định để biểu diễn trạng thái rời rạc; việc thu 
+hẹp nên dựa trên tag thay vì kiểm tra cấu trúc ngầm định.
+
+```ts
+// Hạn chế overload bằng generic + guard
+function filter<T>(arr: T[], p: (x: T) => boolean): T[];
+function filter<T, S extends T>(arr: T[], p: (x: T) => x is S): S[];
+function filter<T>(arr: T[], p: (x: T) => boolean) {
+  return arr.filter(p);
+}
+```
+
+#### Guideline
+
+**Guideline về độ sâu type-level**: đặt ngưỡng cho recursion (ví dụ, tránh đệ quy nhiều bậc 
+khi không cần), đặt tên helper rõ ràng, và ưu tiên “khóa chậm” bề mặt công khai; dời tính 
+toán phức tạp vào phạm vi nội bộ. Công cụ như `tsc --diagnostics` và thời gian biên dịch 
+trong CI là tín hiệu cảnh báo về meta-type quá phức tạp.
+
+```ts
+// Helper được đặt tên, che giấu chi tiết
+type UnionToIntersection<U> = 
+  (U extends any ? (k: U) => void : never) extends
+  (k: infer I) => void ? I : never;
+```
+
+Với **control-flow analysis** hiện đại, trình kiểm tra theo dõi định danh qua nhánh và 
+vòng lặp, kể cả khi có mutation có kiểm soát. Tuy nhiên, gán lại một biến giữa các nhánh 
+có thể làm mất thu hẹp; cách khắc phục là tách biến, hoặc dùng const-narrowing.
+
+```ts
+function f(x: string | number) {
+  if (typeof x === "string") {
+    x.toUpperCase(); // x: string
+  }
+  x; // x: string | number — thu hẹp bị “thoát” khi ra khỏi block
+}
+```
+
+#### Type hygiene
+
+Cuối cùng, **type hygiene** là nền tảng cho khả năng tiến hóa. “No-surprise” yêu cầu: 
+không lạm dụng `as`, tránh lộ `any` trong public API, tách ranh giới type rõ ràng giữa module, 
+và kèm theo policy CI để chặn thoái lui. Khi áp dụng nhất quán, các cơ chế nói trên biến 
+compiler thành cộng tác viên, giảm entropy runtime và đưa lỗi logic về compile-time nơi 
+có chi phí sửa thấp hơn.
+
+### Hands-on Lab — Generic Constraints & Union Exhaustiveness
+
+#### 1  Mục tiêu
+
+Bài thực hành này giúp làm chủ hai cơ chế cốt lõi của TypeScript type checker:
+
+1. Ràng buộc generic (generic constraint) – hiểu cách trình biên dịch suy luận kiểu dựa trên mối quan hệ assignability giữa các tham số,
+2. Tính toàn vẹn của union (discriminated union + exhaustive checking).
+
+Mục tiêu là **biến các lỗi runtime thường gặp thành compile-time error** và đảm bảo 
+API “an toàn bằng cấu trúc”.
+
+Kết quả mong đợi:
+
+* `filter<T>` nhận biết predicate dạng type guard và trả về kiểu con `S[]`.
+* Hàm `handle(e: Event)` được compiler xác nhận đã exhaustive.
+* Các type-test `expectTypeOf` hoặc `tsd` chứng minh chữ ký đúng.
+
+#### 2  Thiết lập môi trường
+
+Cấu trúc thư mục tối thiểu:
+
+```bash
+project/
+ ├─ src/
+ │   ├─ domain.ts
+ │   ├─ filter.ts
+ │   └─ event.ts
+ └─ test/
+     └─ types.spec.ts
+```
+
+Cài đặt gói cần thiết:
+
+```bash
+npm i -D typescript vitest expect-type tsx
+```
+
+Tạo `tconfig.json` với cấu hình strict mức cao:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "strictFunctionTypes": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+Cờ `strictFunctionTypes` và `exactOptionalPropertyTypes` là điều kiện cần để 
+variance và optional được kiểm tra chính xác.
+
+#### 3  Định nghĩa domain và predicate
+
+```ts
+// src/domain.ts
+export type User  = { id: string; role: "user";  email: string };
+export type Admin = { id: string; role: "admin"; email: string; scopes: string[] };
+
+export type Principal = User | Admin;
+
+export const isAdmin = (p: Principal): p is Admin => p.role === "admin";
+```
+
+`isAdmin` có dạng type guard; khi predicate trả về `true`, compiler suy ra `p` là `Admin`.
+
+#### 4  Xây dựng `filter` với overload và type guard
+
+```ts
+// src/filter.ts
+export function filter<T>(arr: T[], p: (x: T) => boolean): T[];
+export function filter<T, S extends T>(arr: T[], p: (x: T) => x is S): S[];
+export function filter<T>(arr: T[], p: (x: T) => boolean) {
+  return arr.filter(p);
+}
+```
+
+Ở chữ ký thứ hai, tham số predicate được mô tả như một type guard.
+Nhờ đó, kiểu trả về chuyển thành `S[]` – tập con của `T[]`.
+
+Ví dụ:
+
+```ts
+// src/demo.ts
+import { filter } from "./filter";
+import { isAdmin, Principal } from "./domain";
+
+const ps: Principal[] = [
+  { id: "u1", role: "user", email: "u1@x.io" },
+  { id: "a1", role: "admin", email: "a1@x.io", scopes: ["manage"] }
+];
+
+const admins = filter(ps, isAdmin);
+// admins: Admin[]
+admins[0].scopes.includes("manage"); // an toàn, không cần ép kiểu
+```
+
+Compiler chọn chữ ký thứ hai vì biết predicate là type guard.
+Nếu predicate chỉ trả về boolean, nó quay lại chữ ký tổng quát.
+
+#### 5  Thiết kế union với tag phân biệt
+
+```ts
+// src/event.ts
+export type Click   = { kind: "click"; x: number; y: number };
+export type Submit  = { kind: "submit"; formId: string };
+export type Timeout = { kind: "timeout"; ms: number };
+
+export type Event = Click | Submit | Timeout;
+
+export function assertNever(x: never): never {
+  throw new Error("Unexpected variant: " + JSON.stringify(x));
+}
+
+export function handle(e: Event) {
+  switch (e.kind) {
+    case "click":   return [e.x, e.y];
+    case "submit":  return e.formId;
+    case "timeout": return e.ms;
+  }
+  return assertNever(e); // compiler kiểm tra exhaustive
+}
+```
+
+Khi thêm một biến thể mới mà không cập nhật `handle`, compiler báo lỗi vì `e` không còn 
+`never`.
+Điều này chuyển thiếu sót logic từ runtime sang compile-time.
+
+#### 6  Kiểm tra variance và assignability
+
+```ts
+// src/variance.ts
+import type { Principal } from "./domain";
+
+const ro: ReadonlyArray<Principal> = [];
+// @ts-expect-error – không thể gán vào mutable array
+const mutable: Principal[] = ro;
+
+// Đọc an toàn
+const a = ro[0]; // Principal | undefined
+```
+
+Readonly mang lại covariance an toàn trong khi mảng mutable thì không.
+Việc bật `strictFunctionTypes` đảm bảo các callback được kiểm tra contravariant.
+
+#### 7  Thêm biến thể để kiểm tra exhaustiveness
+
+```ts
+// src/event.ts (mở rộng)
+export type Focus = { kind: "focus"; targetId: string };
+export type Event = Click | Submit | Timeout | Focus;
+
+// Khi biên dịch, handle() báo lỗi: thiếu case "focus".
+```
+
+Lỗi xuất hiện tại biên dịch cho đến khi case mới được xử lý.
+Đây là đặc tính “exhaustive by construction”.
+
+#### 8  Viết type-tests để neo hợp đồng
+
+```ts
+// test/types.spec.ts
+import { expectTypeOf } from "expect-type";
+import { filter } from "../src/filter";
+import { isAdmin, Principal } from "../src/domain";
+
+const ps: Principal[] = [] as any;
+
+const admins = filter(ps, isAdmin);
+expectTypeOf(admins).toEqualTypeOf<Array<Extract<Principal, { role: "admin" }>>>();
+
+// @ts-expect-error – predicate boolean không thay đổi kiểu trả về
+const wrong: Extract<Principal, { role: "admin" }>[] = filter(ps, (x) => !!x);
+```
+
+Các type-test đóng vai trò “cảnh báo hồi quy”: nếu chữ ký `filter` thay đổi, test sẽ fail 
+ngay trong CI.
+
+#### 9  Quan sát kết quả và đo lường
+
+| Mục kiểm tra                  | Kỳ vọng quan sát                                  | Cách xác minh               |
+| ----------------------------- | ------------------------------------------------- | --------------------------- |
+| IntelliSense trên `admins`    | gợi ý thuộc tính `scopes`                         | Hover trên IDE              |
+| Khi thêm `Focus`              | lỗi “Argument of type 'Focus' is not assignable…” | `tsc` báo lỗi               |
+| Gán `ReadonlyArray` → `Array` | lỗi assignability                                 | `tsc` báo lỗi               |
+| Type-test `expectTypeOf`      | pass                                              | chạy `vitest`               |
+| Overload chọn đúng chữ ký     | không cảnh báo ép kiểu                            | đọc `tsc --traceResolution` |
+
+Thời gian biên dịch có thể đo qua `tsc --diagnostics`; các type-test là điều kiện để đưa vào 
+CI.
+
+#### 10  Kết quả học được
+
+Sau bài lab, kỹ sư nắm rõ:
+
+* Cách generic constraint được giải ở cấp trình kiểm tra.
+* Sự khác biệt giữa overload và conditional type về khả năng suy luận.
+* Phương pháp xây union có tag phân biệt để đạt được exhaustive checking.
+* Cách biến compiler thành cộng tác viên thay vì người phán xử lỗi.
+
+### Reflection — Chuyển hoá hiểu biết thành kỷ luật thiết kế
+
+**Assignability** là cơ chế trung tâm của structural typing: tương thích dựa trên shape, không dựa vào danh xưng. Điều này cho phép module tiến hóa độc lập ở mức độ cao, miễn là hợp đồng tối thiểu vẫn được giữ. Tuy nhiên, sự linh hoạt đi kèm rủi ro “compatibility tình cờ” khi hai cấu trúc giống nhau về hình thức nhưng khác ngữ nghĩa miền. Do đó, phần “type surface” công khai cần gọn và có chủ đích; phần triển khai giữ thêm thuộc tính nên được bao bọc bằng `satisfies` để không đánh mất thông tin mà vẫn đảm bảo ràng buộc.
+
+**Variance** làm rõ ràng an toàn khi truyền tham chiếu giữa ngữ cảnh đọc/ghi. Mảng và cấu trúc mutable luôn đi kèm rủi ro nếu dùng như covariant; `readonly` và bề mặt “output-only” là lựa chọn an toàn mặc định. Với callback, contravariance ở tham số bảo vệ chữ ký khỏi sai lệch, nhưng di sản “bivariance” đòi hỏi bật `strictFunctionTypes` và viết test-type cho API công khai.
+
+**Discriminated unions** đưa ra cách biểu diễn trạng thái rời rạc có thể kiểm tra đầy đủ. Việc áp dụng `switch` không `default` và `assertNever` biến thiếu sót logic thành lỗi compile-time, phù hợp mục tiêu “no-surprise”. Kết hợp với type guard, control-flow analysis di chuyển kiểm tra về giai đoạn sớm; runtime chỉ còn nhiệm vụ thi hành đã được xác nhận.
+
+**Overload resolution** hữu ích khi hành vi runtime khác nhau theo hình dạng đối số. Khi mục tiêu chỉ là ánh xạ kiểu trả về theo kiểu đầu vào, conditional types và generic thường tạo bề mặt ổn định hơn, dễ suy luận hơn. Quy tắc thực hành là giới hạn số overload, tránh giao nhau mơ hồ, và luôn kèm test-type cho chữ ký được công bố.
+
+Cuối cùng, kỷ luật cấu hình `strict` và các cờ nâng độ chính xác như `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` giúp giảm khoảng cách giữa hợp đồng thiết kế và thực thi. Khi các biện pháp này kết hợp, compiler vận hành như một “logic engine”, phát hiện sai lệch ở ranh giới module và định hướng refactor an toàn.
+
+### Extension — Thử thách và đọc thêm
+
+#### Challenges
+
+1. Viết `refine<T, S extends T>(xs: T[], g: (x: T) => x is S): S[]` và so sánh với 
+`filter`. Thêm test-type chứng minh trả về `S[]`.
+2. Thiết kế `match<E, R>(e: E, arms: /* bản đồ từ tag → handler */): R` cho `Event`, 
+bảo đảm exhaustive bằng `never`.
+3. Chia `Event` thành các union con theo ngữ cảnh (`UiEvent`, `SysEvent`), đo tác động 
+đến độ phức tạp biên dịch và khả năng đọc.
+4. Viết `as const` + `satisfies` cho bảng mã HTTP và chứng minh mapping luôn có đủ khoá.
+
+#### Đọc thêm
+
+* TypeScript Handbook: [Type Compatibility](https://www.typescriptlang.org/docs/handbook/type-compatibility.html), [Control-Flow Analysis](https://www.typescriptlang.org/docs/handbook/2/narrowing.html), [Discriminated Unions](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html).
+* Mã nguồn `src/compiler/checker.ts` (đoạn `isAssignableTo`, `isTypeAssignableTo`).
+* Các đề xuất và issue về variance, `strictFunctionTypes`.
+* Bài viết về `satisfies` (TS ≥ 4.9) và các pattern so sánh overload vs conditional types.

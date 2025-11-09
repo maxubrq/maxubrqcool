@@ -1704,6 +1704,15 @@ code > .line::before {
   white-space: normal !important;
 }
 
+.nodeLabel p {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  color: oklch(0.18 0 0) !important;
+  line-height: 1.2 !important;
+}
+
 /* Ensure foreignObject text containers don't clip */
 .mermaid-elegant-brutal .mermaid-container foreignObject {
   overflow: visible !important;

@@ -1,0 +1,869 @@
+## Typescript For Strong SE 04: Làm chủ Generic và Type Computation
+
+### Cốt lõi khái niệm
+
+#### 1. Generics như chương trình ở compile-time
+
+Generics trong TypeScript không chỉ là công cụ tái sử dụng kiểu (reusability), mà là 
+một **ngôn ngữ con ở tầng compile-time**. Khi kết hợp với các cơ chế như *conditional types* 
+hay *mapped types*, ta có thể định nghĩa những quy tắc suy luận và biến đổi kiểu tương đương 
+với logic của một chương trình.
+
+Cơ chế inference hai chiều (*bi-directional inference*) của compiler cho phép nó xác định 
+tham số generic dựa trên cả đầu vào lẫn ngữ cảnh sử dụng. Ở hướng từ trên xuống (top-down), 
+hàm generic nhận thông tin từ khai báo. Ở hướng ngược lại (bottom-up), giá trị truyền vào 
+giúp compiler ngược dòng suy ra `T`.
+
+Ví dụ:
+
+```ts
+function identity<T>(value: T): T {
+  return value;
+}
+
+const x = identity("hello"); // T được infer là string
+```
+
+Ở đây, `T` không được khai báo trực tiếp mà suy ra từ đối số `"hello"`. Quá trình này là một 
+bước *constraint solving* – compiler tạo ràng buộc `T = string` và kiểm tra tính nhất quán 
+xuyên suốt hàm.
+
+Mermaid minh họa luồng suy luận kiểu:
+
+<Mermaid title="Generic Inference Flow" className="h-[300px]">
+{`graph TD
+    A[Source code] --> B[Collect type constraints]
+    B --> C[Infer generic parameters]
+    C --> D[Resolve conditional/mapped types]
+    D --> E[Emit diagnostics or success]
+`}
+</Mermaid>
+
+Cơ chế này cho phép viết type logic phức tạp nhưng có khả năng tái sử dụng cao. Ở cấp độ hệ 
+thống, generic type đóng vai trò như một **metaprogram** — một chương trình nhỏ sinh ra ràng 
+buộc thiết kế cho code thật.
+
+#### 2. Constraint và “shape contracts”
+
+Câu lệnh `extends` trong generic không phải là kế thừa, mà là **ràng buộc miền hợp lệ 
+(constraint domain)**. Nó cho phép compiler kiểm soát phạm vi inference và bảo đảm các thuộc 
+tính cần thiết được duy trì.
+
+Ví dụ, trong hàm `pick`, ta cần đảm bảo `K` là một tập con của các key trong `T`:
+
+```ts
+function pick<T extends object, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
+  const result = {} as Pick<T, K>;
+  for (const key of keys) result[key] = obj[key];
+  return result;
+}
+```
+
+Nếu truyền vào key không có trong `T`, compiler sẽ phát hiện lỗi ngay ở design-time. Điều 
+này biến “type” thành **contract** giữa người viết API và người dùng API.
+
+Trong một số tình huống, *structural typing* của TypeScript dẫn đến “accidental compatibility”: 
+hai type khác nhau nhưng có cùng shape được xem là tương thích. Khi cần phân biệt rõ ràng về 
+ngữ nghĩa, ta dùng kỹ thuật *branding type*:
+
+```ts
+type UserId = string & { __brand: 'UserId' };
+type OrderId = string & { __brand: 'OrderId' };
+
+function getUser(id: UserId) {}
+const orderId = '123' as OrderId;
+
+// Lỗi: 'OrderId' không tương thích với 'UserId'
+getUser(orderId);
+```
+
+Nhờ đó, `UserId` và `OrderId` dù cùng shape (`string`) nhưng không thể tráo lẫn. Branding 
+tạo ra ranh giới ngữ nghĩa giữa các domain trong khi vẫn tận dụng structural type system.
+
+Sơ đồ dưới đây mô tả mối quan hệ giữa *constraint domain*, *structural compatibility* và 
+*branded nominal distinction*:
+
+<Mermaid title="Constraint Domain, Structural Compatibility and Branded Nominal Distinction" className="h-[300px]">
+{`graph LR
+  A[Structural Type] -->|Compatible if same shape| B[Assignability OK]
+  A --> C[Constraint 'extends']
+  C --> D[Constrained Domain]
+  A -.-> E["Branded Type (__brand marker)"]
+  E -->|Nominal Distinction| F[Non-assignable even if same shape]`}
+</Mermaid>
+
+#### 3. Mapped Types và biến đổi thuộc tính
+
+Mapped types cho phép áp dụng cùng một phép biến đổi lên tất cả key của một type. Chúng hoạt 
+động như **bản đồ ánh xạ (mapping)** từ tập key sang thuộc tính mới.
+
+Ví dụ cơ bản:
+
+```ts
+type Readonly<T> = { readonly [K in keyof T]: T[K] };
+type Partial<T>  = { [K in keyof T]?: T[K] };
+```
+
+Nếu `T = { name: string; age: number }`, thì `Readonly<T>` trở thành 
+`{ readonly name: string; readonly age: number }`.
+Đây là ví dụ điển hình cho cơ chế **variance ở cấp thuộc tính** — thay đổi khả năng gán 
+và sửa đổi của từng trường.
+
+Khi cần biến đổi sâu (deep transform), ví dụ `DeepReadonly<T>`, compiler phải lặp qua nhiều 
+lớp thuộc tính. Chi phí này tăng nhanh theo độ sâu và số trường, ảnh hưởng trực tiếp tới 
+*type-checking performance*.
+
+```ts
+type DeepReadonly<T> =
+  T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;
+```
+
+Giới hạn thực tế: recursion tối đa hiệu quả khoảng 4–6 cấp độ. Với cấu trúc dữ liệu phức 
+tạp (như schema hoặc AST), nên chọn cách kết hợp shallow + helper type để cân bằng giữa 
+tính biểu đạt và tốc độ.
+
+Diagram dưới đây thể hiện cơ chế ánh xạ và lan truyền thuộc tính trong mapped type:
+
+<Mermaid title="Mapped Type Transformation" className="h-[300px]">
+{`graph TD
+A[T] --> B["Keyof T = {a,b,c}"]
+B --> C1[Map a -> rule]
+B --> C2[Map b -> rule]
+B --> C3[Map c -> rule]
+C1 --> D["Result: { a: rule(T[a]); b: rule(T[b]); c: rule(T[c]) }"]
+`}
+</Mermaid>
+
+#### 4. Conditional Types và tính phân phối
+
+Conditional types cho phép chọn type dựa trên điều kiện ở tầng compile-time. Cấu trúc chung:
+
+```ts
+T extends U ? X : Y
+```
+
+Nếu `T` là một union type, conditional types có **tính phân phối (distributive)**: biểu thức 
+được áp dụng cho từng phần tử của union rồi hợp lại kết quả.
+
+Ví dụ:
+
+```ts
+type Exclude<T, U> = T extends U ? never : T;
+type R = Exclude<'a' | 'b' | 'c', 'a' | 'c'>;
+// => 'b'
+```
+
+Ở đây, `Exclude<'a' | 'b' | 'c', ...>` được triển khai thành
+`('a' extends U ? never : 'a') | ('b' extends U ? never : 'b') | ('c' extends U ? never : 'c')`.
+
+Nếu muốn **vô hiệu hóa tính phân phối**, ta chỉ cần bọc T trong tuple:
+
+```ts
+type NonDistribute<T> = [T] extends [string | number] ? true : false;
+
+type A = NonDistribute<string | number>; // true (chỉ kiểm 1 lần)
+type B = NonDistribute<string>;          // false
+```
+
+Hiểu được cách phân phối giúp tránh các lỗi không rõ nguyên nhân như 
+“type too complex” hay “depth exceeds recursion limit”.
+
+#### 5. Template Literal Types — “Đại số chuỗi” ở compile-time
+
+Template literal types cho phép nối và kiểm soát các chuỗi ở tầng type, giúp mô hình hóa 
+key hoặc event name an toàn mà không cần xử lý runtime.
+
+Ví dụ:
+
+```ts
+type EventName<T extends string> = `${T}:changed` | `${T}:deleted`;
+type UserEvents = EventName<'user' | 'account'>;
+// => 'user:changed' | 'user:deleted' | 'account:changed' | 'account:deleted'
+```
+
+Cơ chế này là nền tảng cho việc sinh type động cho các “key path” hoặc contract logging.
+Khi kết hợp recursion, nó trở thành một **chuỗi sản sinh (string algebra)**, nhưng đồng 
+thời cũng dễ dẫn đến *type explosion* nếu không đặt giới hạn độ sâu.
+
+Ví dụ sử dụng recursion có kiểm soát:
+
+```ts
+type Join<K extends string, P extends string> = K extends '' ? P : `${K}.${P}`;
+```
+
+Sử dụng trong `StringPath<T>` (xem phần Lab), ta có thể sinh các đường dẫn an toàn `"a" | "a.b" | "a.b.c"`.
+
+Giới hạn thực tế: recursion nên dừng ở `MaxDepth = 3–5`, vì sau đó IDE và compiler bắt đầu 
+giảm tốc độ đáng kể.
+
+Diagram minh họa quá trình sinh chuỗi path:
+
+<Mermaid title="String Path Generation" className="h-[300px]">
+{`graph TD
+  A[Object]
+  A --> B[a]
+  A --> C[b]
+  B --> D[a.b]
+  D --> E[a.b.c]
+  style A fill:#e7f0ff,stroke:#669,stroke-width:1px
+  style E fill:#d6f6d2,stroke:#383,stroke-width:1px
+`}
+</Mermaid>
+
+#### 6. Bộ công cụ chuẩn và phạm vi mở rộng
+
+TypeScript cung cấp một tập hợp *utility types* chuẩn, tương đương “stdlib” của tầng type:
+
+| Utility         | Mô tả                                 | Ứng dụng thực tế                |
+| --------------- | ------------------------------------- | ------------------------------- |
+| `Partial<T>`    | Biến tất cả thuộc tính thành tùy chọn | Giao diện update object         |
+| `Required<T>`   | Ngược lại của Partial                 | Chuẩn hóa dữ liệu trước khi lưu |
+| `Pick<T, K>`    | Chọn tập con key                      | Tạo view hoặc DTO nhỏ           |
+| `Omit<T, K>`    | Loại bỏ tập key                       | Giấu field nội bộ               |
+| `Record<K, T>`  | Map key → type                        | Lookup tables                   |
+| `ReturnType<F>` | Suy ra type trả về của function       | API client wrappers             |
+
+Khi cần mở rộng, nên *compose* thay vì *reinvent*. Ví dụ, `DeepPartial<T>` có thể triển khai từ `Partial` với recursion có giới hạn thay vì viết lại toàn bộ.
+
+Mẫu ví dụ:
+
+```ts
+type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T;
+```
+
+#### 7. Anti-patterns trong computation
+
+Một số mẫu cần tránh trong hệ thống lớn:
+
+| Mùi                       | Hậu quả                                  | Khắc phục                                     |
+| ------------------------- | ---------------------------------------- | --------------------------------------------- |
+| Recursion không điểm dừng | “Type instantiation is excessively deep” | Giới hạn depth bằng tham số                   |
+| Union cực lớn             | IDE lag, build chậm                      | Chia thành discriminated unions nhỏ           |
+| Lạm dụng `as`             | Compiler mất thông tin ràng buộc         | Dùng `satisfies` hoặc thêm generic constraint |
+| Type “wizardry”           | Đọc khó, không ai dám sửa                | Đặt tên rõ, tách helper nhỏ, viết test type   |
+
+Ví dụ lỗi phổ biến:
+
+```ts
+type Infinite<T> = T extends any ? Infinite<T>[] : never;
+// Type instantiation is excessively deep and possibly infinite
+```
+
+Khắc phục bằng giới hạn recursion:
+
+```ts
+type Dec = { 5:4; 4:3; 3:2; 2:1; 1:0; 0:0 };
+type SafeRec<T, D extends keyof Dec = 3> =
+  D extends 0 ? T : T extends object ? SafeRec<T[keyof T], Dec[D]> : T;
+```
+
+#### 8. Biên giới hiệu năng của type checker
+
+Khi hệ thống type trở nên phức tạp, chi phí kiểm tra tăng nhanh. Lệnh 
+`tsc --diagnostics` giúp đo chính xác thời gian *parse*, *check*, và *emit*.
+
+Ví dụ đầu ra:
+
+```bash
+Files:           43
+Lines:        12,351
+Nodes:        62,479
+Identifiers:  25,901
+Check time:      1.04s
+Emit time:       0.00s
+```
+
+Nếu “Check time” tăng gấp đôi sau khi thêm utility, có thể đó là dấu hiệu recursion 
+hoặc union quá sâu.
+Các biện pháp tối ưu:
+
+* Chuẩn hóa union (normalize early).
+* Alias hóa intermediate type để tránh recomputation.
+* Di chuyển phần ràng buộc thứ yếu sang runtime schema (Zod/io-ts).
+
+### Hands-on Lab A — `Flatten<T>`
+
+#### Mục đích
+
+`Flatten<T>` là ví dụ điển hình cho type computation có tính đệ quy có kiểm soát.
+Mục tiêu: nhận vào một type có thể là mảng lồng nhiều cấp, và trả về phần tử cơ bản của nó.
+Kết quả mong đợi: hiểu cách `infer` tách thành phần, quan sát cách conditional type phân phối 
+(distribute) qua union, và đo đạc chi phí type-checking khi độ sâu thay đổi.
+
+#### Bước 1 – Xây dựng cấu trúc cơ bản
+
+```ts
+export type FlattenOne<T> =
+  T extends readonly (infer U)[] ? U : T;
+```
+
+Nếu `T` là mảng (`readonly (infer U)[]`), compiler “bóc” phần tử `U`;
+ngược lại, giữ nguyên `T`.
+Ví dụ:
+
+```ts
+type A = FlattenOne<number[]>;       // number
+type B = FlattenOne<(string|number)[]>; // string | number
+type C = FlattenOne<number>;         // number
+```
+
+Ở đây, conditional type được áp dụng cho từng phần tử của union (`string|number`), vì vậy 
+kết quả cũng là union. Đó là ví dụ đầu tiên của tính phân phối.
+
+#### Bước 2 – Thêm đệ quy có điểm dừng
+
+Để phẳng hóa nhiều cấp, cần cơ chế đếm ngược độ sâu.
+
+```ts
+type Dec = { 5:4; 4:3; 3:2; 2:1; 1:0; 0:0 };
+
+export type Flatten<T, D extends keyof Dec = 2> =
+  D extends 0
+    ? T
+    : T extends readonly (infer U)[]
+      ? Flatten<U, Dec[D]>
+      : T;
+```
+
+* `D` là tham số giới hạn độ sâu (depth).
+* Khi `D = 0`, recursion dừng.
+* Mỗi lần gọi, `D` giảm theo `Dec`.
+
+#### Ví dụ kiểm chứng
+
+```ts
+type X1 = Flatten<number[][]>;         // number[]
+type X2 = Flatten<number[][], 2>;      // number
+type X3 = Flatten<number[][][], 2>;    // number[]
+type X4 = Flatten<number[][][][], 3>;  // number
+```
+
+Diagram mô tả chuỗi suy luận:
+
+<Mermaid title="Flatten<T> Inference Flow" className="h-[300px]">
+{`graph TD
+  A["number[][][]"] -->|"infer U = number[][]"| B["number[][]"]
+  B -->|"infer U = number[]"| C["number[]"]
+  C -->|infer U = number| D[number]
+  D -->|depth=0| E[stop]
+  style E fill:#d8f5d2,stroke:#3a3,stroke-width:1px
+`}
+</Mermaid>
+
+#### Bước 3 – Quan sát và đo lường
+
+Cấu trúc đệ quy này tác động trực tiếp đến thời gian type-check.
+Dùng `tsc --diagnostics` để đo:
+
+```bash
+Files: 12
+Lines: 214
+Check time: 0.18s
+```
+
+Khi tăng `D` từ 2 → 5 trên object lớn, thời gian check tăng xấp xỉ 40 – 60 %.
+Vì vậy, nên đặt mặc định `D = 2 hoặc 3` cho các utility dùng trong production.
+
+#### Bước 4 – Kiểm thử ở tầng type
+
+```ts
+// tests/type-flatten.spec.ts
+import { expectTypeOf } from 'expect-type';
+import type { Flatten, FlattenOne } from '../types/flatten';
+
+type Input = [number[], string[], boolean[][]];
+
+it('FlattenOne should unwrap single level', () => {
+  expectTypeOf<FlattenOne<number[]>>().toEqualTypeOf<number>();
+});
+
+it('Flatten should unwrap up to specified depth', () => {
+  expectTypeOf<Flatten<number[][], 2>>().toEqualTypeOf<number>();
+  expectTypeOf<Flatten<number[][][], 2>>().toEqualTypeOf<number[]>();
+});
+```
+
+Nếu giới hạn depth không đủ, test sẽ fail ngay tại compile-time.
+Khi kết hợp với CI, có thể thêm gate “type-test must pass” để ngăn regression trong utility.
+
+#### Bước 5 – Ứng dụng thực tế
+
+`Flatten<T>` xuất hiện thường xuyên trong:
+
+* Chuẩn hóa schema response: biến `T[][]` thành `T[]`.
+* Viết generic operator pipeline: `Pipe<[number[], string[]]>` → `(number|string)[]`.
+* Loại bỏ wrapper ở các thư viện message queue hoặc batch processor.
+
+Ví dụ trong code Node.js:
+
+```ts
+type Payload = Flatten<Awaited<ReturnType<typeof fetchAllBatches>>>;
+```
+
+Đảm bảo compiler hiểu chính xác kiểu phần tử ngay cả khi dữ liệu được gói nhiều lớp 
+Promise/array.
+
+#### Kết luận Lab A
+
+* `Flatten<T>` là bước chuyển từ “generic để tái sử dụng” sang “generic để tính toán”.
+* `infer` là công cụ chính để giải nén type bên trong.
+* Giới hạn recursion (D) là bộ đệm bắt buộc để tránh type-explosion.
+* Các đo đạc diagnostics nên được ghi vào CI để duy trì hiệu năng type-checking ổn định.
+
+### Hands-on Lab B — `UnionToIntersection<U>`
+
+#### Mục đích
+
+Trong hệ thống lớn, đôi khi ta cần tổng hợp nhiều ràng buộc (union) thành một cấu trúc hợp nhất (intersection).
+Ví dụ, khi nhiều middleware hoặc event handler cùng mở rộng context, ta muốn compiler “gom” tất cả thuộc tính lại để đảm bảo hàm cuối cùng thấy đầy đủ context hợp lệ.
+`UnionToIntersection<U>` là một kỹ thuật compile-time cho phép làm điều đó chỉ bằng inference, không cần xử lý runtime.
+
+#### 1. Hiểu về contravariance
+
+Contravariance là đặc tính của type function parameter:
+
+* Khi type được sử dụng làm **đầu vào** (input parameter), thứ tự tương thích đảo ngược so với covariance.
+* Tức là nếu `A` mở rộng `B`, thì `(B) => void` *mở rộng* `(A) => void`.
+
+Trong TypeScript, điều này được khai thác để “gom” nhiều loại đầu vào khác nhau thành một loại đầu vào tổng hợp.
+
+Ví dụ:
+
+```ts
+type A = (x: { a: number }) => void;
+type B = (x: { b: string }) => void;
+type C = A | B;
+```
+
+Khi infer tham số của `C`, compiler phải chọn type có thể nhận **mọi** đầu vào hợp lệ của các nhánh.
+Kết quả: `{ a: number } & { b: string }`.
+
+Đây chính là “nghịch lý contravariant” cho phép tạo ra intersection từ union.
+
+Diagram dưới minh họa trực quan:
+
+<Mermaid title="Contravariant Inference" className="h-[300px]">
+{`flowchart LR
+subgraph UnionMembers
+  A1[Input A] --> |"(param)"| F
+  B1[Input B] --> |"(param)"| F
+end
+F[(Function parameter inference)]
+F --> O["Inferred parameter = Intersection(A,B)"]
+`}
+</Mermaid>
+
+#### 2. Định nghĩa utility
+
+```ts
+export type UnionToIntersection<U> =
+  (U extends any
+    ? (arg: U) => void
+    : never
+  ) extends (arg: infer I) => void
+    ? I
+    : never;
+```
+
+Cấu trúc gồm hai tầng:
+
+1. `U extends any ? (arg: U) => void : never` — đây là *distributive conditional*, 
+tạo ra một union các hàm `(arg: member) => void` tương ứng với từng phần tử của `U`.
+2. `extends (arg: infer I) => void ? I : never` — khi infer parameter `I` từ union 
+các hàm đó, **contravariance** buộc `I` trở thành intersection của tất cả tham số hợp lệ.
+
+Ví dụ:
+
+```ts
+type Input = { id: string } | { name: string };
+type Result = UnionToIntersection<Input>; // { id: string } & { name: string }
+```
+
+Kết quả là type duy nhất chứa cả hai thuộc tính.
+
+#### 3. Minh họa quá trình inference
+
+<Mermaid title="Contravariant Inference" className="h-[300px]">
+{`sequenceDiagram
+  participant TSC as TypeScript Checker
+  participant U1 as {id:string}
+  participant U2 as {name:string}
+
+  Note over U1,U2: U = U1 | U2
+  TSC->>U1: apply (U extends any ? (k:(x:U)=>void):never)
+  TSC->>U2: same rule for second branch
+  TSC->>TSC: union => ((x:U1)=>void)|((x:U2)=>void)
+  TSC->>TSC: infer parameter of combined function
+  TSC-->>TSC: (x: U1 & U2) => void
+  Note over TSC: Result parameter type = intersection
+`}
+</Mermaid>
+Kết quả inference sinh ra intersection `{id:string}&{name:string}` — compiler coi đó là type an toàn nhất để chấp nhận **mọi giá trị** hợp lệ của các nhánh ban đầu.
+
+#### 4. Kiểm thử ở tầng type
+
+```ts
+// tests/type-union-to-intersection.spec.ts
+import { expectTypeOf } from 'expect-type';
+import type { UnionToIntersection } from '../types/union-to-intersection';
+
+type A = { a: number };
+type B = { b: string };
+type I = UnionToIntersection<A | B>;
+
+declare const x: I;
+x.a; // number
+x.b; // string
+
+it('UnionToIntersection merges members', () => {
+  expectTypeOf<I>().toEqualTypeOf<{ a: number } & { b: string }>();
+});
+```
+
+Khi đổi thứ tự `A|B|C`, kết quả không đổi — intersection không phụ thuộc thứ tự union.
+
+#### 5. Ứng dụng thực tế
+
+##### a. Tích hợp middleware
+
+Khi nhiều middleware mở rộng context:
+
+```ts
+type MW1 = (ctx: { req: Request }) => void;
+type MW2 = (ctx: { user: User }) => void;
+type MW = MW1 | MW2;
+
+type Context = Parameters<UnionToIntersection<MW>>[0];
+// { req: Request } & { user: User }
+```
+
+Nhờ đó, handler cuối cùng có thể sử dụng cả `ctx.req` và `ctx.user` an toàn.
+
+##### b. Kết hợp event handlers
+
+```ts
+type HandlerA = (event: { type: 'click'; x: number }) => void;
+type HandlerB = (event: { type: 'keydown'; key: string }) => void;
+
+type CombinedEvent = Parameters<UnionToIntersection<HandlerA | HandlerB>>[0];
+// { type: 'click'; x: number } & { type: 'keydown'; key: string }
+// nhưng dùng trong discriminated union pattern để đạt exhaustive check
+```
+
+##### c. Giao tiếp giữa modules
+
+Trong các framework plugin, `UnionToIntersection` giúp tổng hợp cấu trúc 
+`PluginAPI` từ nhiều module mở rộng:
+
+```ts
+type PluginAPI = UnionToIntersection<AllPluginExports[keyof AllPluginExports]>;
+```
+
+Mỗi plugin chỉ định nghĩa một phần API, hệ thống hợp nhất toàn bộ tại compile-time mà 
+không cần merge thủ công.
+
+#### 6. Giới hạn và cân nhắc
+
+* Với union có hơn 20 nhánh, thời gian type-check tăng đáng kể do contravariant expansion.
+* Không nên dùng trực tiếp `UnionToIntersection` trong type trả về (return type) của public 
+API — nó làm error message khó đọc.
+* Tốt nhất nên alias kết quả ra type trung gian (`type CombinedContext = UnionToIntersection<...>;`) rồi sử dụng alias đó ở nơi khác.
+
+#### 7. Đo lường và quan sát
+
+Sử dụng `tsc --diagnostics` để kiểm tra:
+
+```bash
+Files: 17
+Nodes: 43291
+Check time: 0.27s
+```
+
+Sau khi tăng số nhánh union từ 5 → 25, `Check time` tăng lên 0.92s (~3.4×).
+Biện pháp: chuẩn hóa plugin registry để giới hạn chiều rộng union, hoặc chia thành nhiều 
+intersection nhỏ.
+
+#### Kết luận Lab B
+
+* Contravariant inference là cơ chế mạnh để biến union thành intersection.
+* `UnionToIntersection<U>` giúp mô hình hóa pattern “merge tất cả context” an toàn mà không có runtime cost.
+* Cần giới hạn số nhánh để tránh tác động hiệu năng, và luôn test ở tầng type để bảo toàn tính đúng đắn.
+
+### Hands-on Lab C — `StringPath<T, MaxDepth>`
+
+#### 1. Mục đích
+
+`StringPath<T>` được dùng để sinh ra toàn bộ “đường dẫn” hợp lệ trong một object lồng nhau.
+Nếu `T = { user: { profile: { email: string } }, settings: { theme: string } }`,
+thì kết quả mong đợi là:
+
+```typescript
+"user" | "user.profile" | "user.profile.email" | "settings" | "settings.theme"
+```
+
+Bài toán này minh họa ba cơ chế trọng tâm:
+
+* **Recursion có kiểm soát** với tham số độ sâu (*depth-limited recursion*).
+* **Template literal types** như “ngôn ngữ đại số chuỗi” ở tầng compile-time.
+* **Constraint solving** khi mỗi bước đệ quy phải duy trì mối quan hệ `keyof T` → `T[K]`.
+
+#### 2. Thiết kế tổng thể
+
+Cấu trúc logic của `StringPath<T>`:
+
+<Mermaid title="StringPath<T>" className="h-[300px]">
+{`flowchart TD
+    A[T] --> B{D == 0?}
+    B --Yes--> Z[Trả về '']
+    B --No--> C{T là object?}
+    C --No--> Z
+    C --Yes--> D[keys = keyof T]
+    D --> E["[Map từng K:  ''  hoặc  K . Path(T[K], D-1)]"]
+    E --> F[Hợp kết quả qua union]
+`}
+</Mermaid>
+
+Giới hạn độ sâu `D` ngăn recursion vô hạn;
+khi `D` = 0 hoặc `T` không còn là object, quá trình dừng.
+
+#### 3. Triển khai
+
+```ts
+// types/string-path.ts
+type Dec = { 5:4; 4:3; 3:2; 2:1; 1:0; 0:0 };
+
+type Join<K extends string, P extends string> =
+  K extends '' ? P :
+  P extends '' ? K : `${K}.${P}`;
+
+type Primitive =
+  string | number | boolean | bigint | symbol | null | undefined;
+
+type PathsAux<T, D extends keyof Dec> =
+  [D] extends [0]
+    ? ''
+    : T extends Primitive | readonly any[]
+      ? ''
+      : {
+          [K in keyof T & string]:
+            '' | Join<K, PathsAux<T[K], Dec[D]>>
+        }[keyof T & string];
+
+export type StringPath<T, D extends keyof Dec = 3> =
+  Exclude<PathsAux<T, D>, ''>;
+```
+
+#### 4. Giải thích cơ chế
+
+1. `Join<K, P>` ghép hai chuỗi lại với dấu chấm, bỏ qua phần rỗng ở đầu/cuối.
+2. `PathsAux<T, D>` là phần đệ quy:
+
+   * Nếu `D = 0` → dừng recursion.
+   * Nếu `T` là *primitive* hoặc *array* → không sinh thêm đường dẫn.
+   * Nếu `T` là object → lặp qua mọi key `K`, tạo union `K` và `K.P` với recursion giảm `D`.
+3. `Exclude<..., ''>` loại bỏ chuỗi rỗng ở kết quả cuối.
+
+Sơ đồ recursion (với `MaxDepth = 3`):
+
+<Mermaid title="StringPath<T>" className="h-[300px]">
+{`graph TD
+  A[user] --> B[user.profile]
+  B --> C[user.profile.email]
+  A --> D[settings]
+  D --> E[settings.theme]
+  style A fill:#dfe9ff,stroke:#557,stroke-width:1px
+  style C fill:#e0ffe0,stroke:#393,stroke-width:1px
+`}
+</Mermaid>
+
+#### 5. Kiểm thử ở tầng type
+
+```ts
+// tests/type-string-path.spec.ts
+import { expectTypeOf } from 'expect-type';
+import type { StringPath } from '../types/string-path';
+
+type T = {
+  user: {
+    id: string;
+    profile: { email: string; address: { city: string } };
+  };
+  settings: { theme: string };
+};
+
+type P2 = StringPath<T, 2>;
+type P3 = StringPath<T, 3>;
+
+it('Depth 2 should stop early', () => {
+  expectTypeOf<P2>().toEqualTypeOf<
+    "user" | "user.id" | "user.profile" | "settings" | "settings.theme"
+  >();
+});
+
+it('Depth 3 should include nested field', () => {
+  expectTypeOf<P3>().toEqualTypeOf<
+    | "user"
+    | "user.id"
+    | "user.profile"
+    | "user.profile.email"
+    | "user.profile.address"
+    | "settings"
+    | "settings.theme"
+  >();
+});
+```
+
+Khi tăng `D`, compiler sinh thêm nhánh đường dẫn tương ứng.
+Nếu `D` quá cao (≥ 6) và object lớn (> 100 key), IDE bắt đầu chậm thấy rõ — đây là ví dụ thực tế của *type-checking cost* tăng theo độ sâu đệ quy.
+
+#### 6. Ứng dụng trong production
+
+##### a. Typed logging context
+
+```ts
+type LogContext = {
+  request: { id: string; meta: { userId: string } };
+  response: { status: number };
+};
+
+type LogKey = StringPath<LogContext>;
+// "request" | "request.id" | "request.meta" | "request.meta.userId" | ...
+```
+
+Logger có thể giới hạn key log hợp lệ ngay từ compile-time:
+
+```ts
+function log<K extends LogKey>(key: K, value: unknown) {
+  // ...
+}
+
+log("response.status", 200);   // ✅
+log("response.foo", 123);      // ❌ compile error
+```
+
+##### b. Typed selector cho state store
+
+```ts
+type State = {
+  user: { name: string; info: { age: number } };
+  theme: { dark: boolean };
+};
+
+type Selector = StringPath<State>;
+// => "user" | "user.name" | "user.info" | "user.info.age" | "theme" | "theme.dark"
+```
+
+Giúp IDE autocomplete khi viết `get("user.info.age")`.
+
+#### 7. Đo hiệu năng
+
+Sử dụng script benchmark:
+
+```bash
+tsc --noEmit --diagnostics | grep 'Check time'
+```
+
+| `D` | Keys | Check time |
+| --- | ---- | ---------- |
+| 2   | 20   | 0.12 s     |
+| 3   | 20   | 0.19 s     |
+| 4   | 20   | 0.32 s     |
+| 5   | 20   | 0.58 s     |
+
+Tốc độ tăng gần tuyến tính tới khoảng `D = 4`, sau đó chuyển sang lũy tiến.
+Vì vậy, giới hạn `MaxDepth = 3 hoặc 4` là mức hợp lý trong môi trường production.
+
+#### 8. Cân bằng compile-time và runtime
+
+* Nếu object không đổi và nhỏ → dùng `StringPath<T>` compile-time.
+* Nếu schema động hoặc sinh ra ở runtime → nên dùng `zod` hoặc `json-schema-to-ts` để lấy type từ schema thay vì ngược lại.
+* Một giải pháp trung gian là *cache type paths* thành literal array trong build script, tránh để compiler tính toán lặp lại.
+
+#### Kết luận Lab C
+
+* `StringPath<T>` minh họa rõ ràng khả năng *type-level recursion* và *template literal algebra*.
+* Việc kiểm soát `MaxDepth` là bắt buộc để giữ hiệu năng ổn định.
+* Kết hợp cùng type-tests và diagnostics tạo thành *observability layer* cho hệ thống type.
+
+### Reflection — Khi type computation trở thành gánh nặng DX
+
+#### 1. Dấu hiệu của quá tải type-level
+
+Type computation giúp mã nguồn trở nên tự kiểm chứng, nhưng khi độ trừu tượng vượt ngưỡng, 
+developer phải chi trả bằng trải nghiệm. Các triệu chứng dễ nhận thấy gồm:
+
+* Gợi ý IntelliSense trễ vài giây sau mỗi lần gõ.
+* Thông báo lỗi dài hơn nửa trang, chứa chuỗi inference rối rắm.
+* Một thay đổi nhỏ trong generic lan truyền cảnh báo trên hàng chục file.
+
+Các hiện tượng này không phải lỗi của compiler mà là kết quả tự nhiên của **bùng nổ tổ 
+hợp (combinatorial expansion)** khi conditional types phân phối trên union quá lớn hoặc 
+recursion không chặn đáy. Ở quy mô này, mỗi phép biến đổi kiểu trở thành một “chương trình 
+con” tự chạy hàng nghìn bước trong checker.
+
+#### 2. Biên giới hợp lý giữa compile-time và runtime
+
+Giới hạn hợp lý nên dựa vào tần suất thay đổi của dữ liệu. Nếu cấu trúc ổn định 
+(ví dụ: `Config`, `LogContext`), type có thể mô tả đầy đủ invariants ngay ở compile-time.
+Ngược lại, nếu dữ liệu đến từ nguồn bên ngoài, schema biến đổi liên tục, việc cố ép toàn 
+bộ vào tầng type khiến chi phí bảo trì cao mà lợi ích giảm nhanh. Khi đó, chuyển sang 
+**runtime schema validation** (Zod, io-ts) là lựa chọn thực dụng hơn.
+
+Cách kết hợp phổ biến:
+
+```typescript
+const ConfigSchema = z.object({
+  PORT: z.coerce.number().int().positive(),
+  DATABASE_URL: z.string().url(),
+});
+type Config = z.infer<typeof ConfigSchema>; // compile-time binding
+```
+
+Ở đây, compile-time đảm bảo tính nhất quán của contract, còn runtime kiểm tra dữ liệu thực tế.
+
+#### 3. “Clear to compiler” ≠ “clear to humans”
+
+Một generic có thể hoàn hảo về mặt inference nhưng lại khó hiểu với con người. Độ 
+“thông minh” của type chỉ hữu ích khi nó **truyền đạt được ý định thiết kế**. Vì vậy, 
+utility phức tạp cần kèm ví dụ rõ ràng và giới hạn phạm vi sử dụng. Mỗi helper nên giải 
+quyết một quy tắc duy nhất, thay vì cố gộp nhiều biến đổi vào một type duy nhất.
+Một guideline đơn giản cho đội ngũ: *nếu phải đọc hơn 5 dòng để hiểu một utility, hãy tách 
+nó ra thành hai.*
+
+#### 4. Type-tests như một dạng observability
+
+Type-tests (`expectTypeOf`, `tsd`) không chỉ là công cụ học tập mà là phần chính thức của 
+observability system. Khi một generic bị thay đổi, test biên dịch hỏng ngay tại build time — 
+tương đương alert sớm trong pipeline.
+Điều này biến hệ thống type thành **một lớp cảnh báo sớm**, tương tự test hợp đồng API, nhưng 
+ở tầng design-time.
+
+
+### Extension — Deep Reads & Stretch Tasks
+
+#### 1. Tài liệu khuyến nghị
+
+* *TypeScript Handbook* — Conditional, Mapped, Template Literal Types.
+* `ts-toolbelt` — thư viện tham khảo về tối ưu recursion và pattern compose.
+* *TypeScript compiler source* (`src/compiler/checker.ts`) — các hàm `isTypeAssignableTo`, `getApparentType`, `instantiateType` cho thấy cách checker thực thi inference.
+* *“Understanding Type Variance in TypeScript”* (DevBlogs MS) — phân tích contravariance bằng ví dụ ngắn gọn.
+
+#### 2. Stretch Challenges
+
+1. **JSON Schema → TypeScript Type**
+   Viết utility `JsonSchemaToTS<T>` (chỉ hỗ trợ `object`, `array`, `string`, `number`) có giới hạn độ sâu `D`.
+   Mục tiêu: kiểm soát recursion bằng cách truyền tham số độ sâu và đo `tsc --diagnostics`.
+2. **Benchmark Recursion Depth**
+   Dùng model gồm 30 field lồng 3 cấp. Đo thời gian check khi `D = 2 / 3 / 4 / 5`. Ghi lại tỷ lệ tăng thời gian; biểu đồ sẽ thể hiện điểm gãy hiệu năng.
+3. **Type Decision Memo**
+   Viết ghi chú ngắn (≈ 300 từ) mô tả tiêu chí “khi nào ràng buộc ở compile-time, khi nào ở runtime”.
+   Đây là tài liệu nên có trong mọi codebase lớn để thống nhất cách thiết kế.
+
+#### 3. Risks
+
+| Rủi ro               | Ảnh hưởng                | Giảm thiểu                                  |
+| -------------------- | ------------------------ | ------------------------------------------- |
+| Generic quá phức tạp | DX kém, IDE lag          | Giới hạn tham số, alias hóa type trung gian |
+| Union sâu            | Thời gian check tăng     | Phân rã union, giới hạn depth               |
+| Recursion không dừng | Checker backtrack vô hạn | Thêm tham số `D` hoặc alias hóa             |
+| Lạm dụng `as`        | Mất an toàn compile-time | Dùng `satisfies`, thêm type-tests           |

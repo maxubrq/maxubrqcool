@@ -24,38 +24,38 @@
     "tags": ["syntax-highlighting", "shiki", "code", "styling", "developer-tools"]
   },
   "0005_typescript-series-01_introduction": {
-    "title": "#5 - TypeScript Fundamentals: Part 1 - Introduction",
+    "title": "#5 - Typescript For Strong SE 01: Khi Typescript không chỉ là \"Type\"",
     "date": "2024-02-01",
     "excerpt": "Begin your TypeScript journey with this comprehensive introduction. Learn about basic types, functions, interfaces, and why TypeScript is essential for modern development.",
     "tags": ["typescript", "fundamentals", "tutorial", "programming", "javascript"],
     "series": {
-      "name": "TypeScript Fundamentals",
+      "name": "Typescript For Strong SE",
       "part": 1,
-      "totalParts": 3,
+      "totalParts": 12,
       "slug": "typescript-series"
     }
   },
-  "0006_typescript-series-02_advanced-types": {
-    "title": "#6 - TypeScript Fundamentals: Part 2 - Advanced Types",
+  "0006_typescript-series-02_tu-hon-don-den-ro-rang": {
+    "title": "#6 - Typescript For Strong SE 02: Từ \"Hỗn độn\" đến \"Rõ ràng\" - Sự thay đổi tư duy từ JS sang TS",
     "date": "2024-02-05",
     "excerpt": "Level up your TypeScript skills with generics, utility types, type guards, and advanced type manipulation. Master the features that make TypeScript powerful.",
     "tags": ["typescript", "advanced", "generics", "types", "programming"],
     "series": {
-      "name": "TypeScript Fundamentals",
+      "name": "Typescript For Strong SE",
       "part": 2,
-      "totalParts": 3,
+      "totalParts": 12,
       "slug": "typescript-series"
     }
   },
-  "0007_typescript-series-03_real-world-patterns": {
-    "title": "#7 - TypeScript Fundamentals: Part 3 - Real-World Patterns",
+  "0007_typescript-series-03_bi-mat-nam-sau-cu-phap": {
+    "title": "#7 - Typescript For Strong SE 03: Bí mật của Hệ thống Type - Logic nằm sau Cú pháp",
     "date": "2024-02-10",
     "excerpt": "Complete your TypeScript mastery with real-world patterns, React integration, testing strategies, and professional best practices.",
     "tags": ["typescript", "patterns", "react", "testing", "best-practices"],
     "series": {
-      "name": "TypeScript Fundamentals",
+      "name": "Typescript For Strong SE",
       "part": 3,
-      "totalParts": 3,
+      "totalParts": 12,
       "slug": "typescript-series"
     }
   },
@@ -283,6 +283,18 @@
       "part": 10,
       "totalParts": 10,
       "slug": "github-action-101-909"
+    }
+  },
+  "0035_typescript-series-04_lam-chu-generic-va-type-computation": {
+    "title": "#35 - Làm chủ Generic và Type Computation",
+    "date": "2025-11-18",
+    "excerpt": "Làm chủ Generic và Type Computation. Giúp làm chủ Generic và Type Computation.",
+    "tags": ["vietnamese", "typescript", "generic", "type-computation", "tutorial"],
+    "series": {
+      "name": "Typescript For Strong SE",
+      "part": 4,
+      "totalParts": 12,
+      "slug": "typescript-series"
     }
   }
 }

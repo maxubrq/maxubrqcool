@@ -34,6 +34,9 @@ import {
   NoteAlert 
 } from './components/Alert'
 import { LinkPreview } from './components/LinkPreview'
+import { TypeScriptSeries02Quiz } from './components/TypeScriptSeries02Quiz'
+import { TypeScriptSeries03Quiz } from './components/TypeScriptSeries03Quiz'
+import { TypeScriptSeries04Quiz } from './components/TypeScriptSeries04Quiz'
 
 // Utility function to generate IDs from heading text
 function generateHeadingId(text: string): string {
@@ -69,6 +72,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     GitHubActionsPart7Quiz,
     GitHubActionsPart8Quiz,
     GitHubActionsPart9Quiz,
+    TypeScriptSeries02Quiz,
+    TypeScriptSeries03Quiz,
+    TypeScriptSeries04Quiz,
     Mermaid,
     Kroki,
     // MathJax components

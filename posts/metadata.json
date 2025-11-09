@@ -286,7 +286,7 @@
     }
   },
   "0035_typescript-series-04_lam-chu-generic-va-type-computation": {
-    "title": "#35 - Làm chủ Generic và Type Computation",
+    "title": "#35 - Typescript For Strong SE 04: Làm chủ Generic và Type Computation",
     "date": "2025-11-18",
     "excerpt": "Làm chủ Generic và Type Computation. Giúp làm chủ Generic và Type Computation.",
     "tags": ["vietnamese", "typescript", "generic", "type-computation", "tutorial"],

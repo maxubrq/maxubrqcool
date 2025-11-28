@@ -296,6 +296,12 @@
       "totalParts": 12,
       "slug": "typescript-series"
     }
+  },
+  "0036_mux-video-demo": {
+    "title": "#36 - Mux Video Demo - High Performance Video Streaming",
+    "date": "2025-11-28",
+    "excerpt": "Experience high-performance video streaming with the MuxVideo component. Features include adaptive bitrate streaming, custom metadata, and responsive player controls.",
+    "tags": ["video", "mux", "streaming", "components", "demo"]
   }
 }
 

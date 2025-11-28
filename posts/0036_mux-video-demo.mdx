@@ -1,0 +1,69 @@
+## Mux Video Component
+
+The `MuxVideo` component provides a high-performance wrapper around the Mux Player, optimized for Next.js applications. It supports adaptive bitrate streaming, custom metadata tracking, and fully responsive playback.
+
+### Standard Player
+
+Here is the standard player configuration with default controls.
+
+<MuxVideo 
+  playbackId="2dq02SAd7gg6l2eKqLAv9yILA01jg934m969TcBMus2IQ"
+  metadata={{
+    video_title: "Eternal Sunshine of the Spotless Mind - Standard",
+    video_id: "demo-001"
+  }}
+/>
+
+### Autoplay & Loop
+
+You can configure the player to autoplay (muted required by browsers) and loop content, perfect for background videos or showcases.
+
+<MuxVideo 
+  playbackId="2dq02SAd7gg6l2eKqLAv9yILA01jg934m969TcBMus2IQ"
+  autoPlay={false}
+  muted={false}
+  loop={false}
+  metadata={{
+    video_title: "Eternal Sunshine of the Spotless Mind",
+    video_id: "demo-002"
+  }}
+/>
+
+### Implementation Details
+
+The component is built using `@mux/mux-player-react` and provides a type-safe interface for easy integration.
+
+```tsx
+interface MuxVideoProps {
+  playbackId: string;
+  metadata?: {
+    video_id?: string;
+    video_title?: string;
+    viewer_user_id?: string;
+  };
+  className?: string;
+  autoPlay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
+}
+```
+
+It automatically handles:
+- Responsive aspect ratio preservation
+- Theme-aware accent colors
+- Loading states and error handling
+- Analytics tracking via metadata
+
+### Usage in MDX
+
+To use the MuxVideo component in your MDX files, simply wrap your video content in a `MuxVideo` component:
+
+```mdx
+<MuxVideo 
+  playbackId="2dq02SAd7gg6l2eKqLAv9yILA01jg934m969TcBMus2IQ"
+  metadata={{
+    video_title: "Eternal Sunshine of the Spotless Mind",
+    video_id: "demo-002"
+  }}
+/>
+```

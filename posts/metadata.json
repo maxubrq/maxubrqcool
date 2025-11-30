@@ -302,6 +302,12 @@
     "date": "2025-11-28",
     "excerpt": "Experience high-performance video streaming with the MuxVideo component. Features include adaptive bitrate streaming, custom metadata, and responsive player controls.",
     "tags": ["video", "mux", "streaming", "components", "demo"]
+  },
+  "0037_yeu-de-cuoi": {
+    "title": "#37 - Yêu để cưới",
+    "date": "2025-11-29",
+    "excerpt": "\"Yêu để cưới\" — nghe quen tai, nhưng càng lớn mình càng thấy câu này lệch lệch. Một suy nghĩ về tình yêu, cam kết, và việc xem hôn nhân như một kết quả tự nhiên thay vì một mục tiêu phải chạy tới.",
+    "tags": ["vietnamese", "personal", "reflection", "love", "relationships", "marriage", "philosophy"]
   }
 }
 

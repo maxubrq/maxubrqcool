@@ -1,0 +1,603 @@
+## 6 năm trong ngành Phần mềm — The Good, The Bad, và The Ugly
+
+Có những giai đoạn trong đời buộc mình phải dừng lại và nghĩ xem: 
+“Mình đã đi đâu, và mình đã trở thành ai?” Sáu năm trong ngành phần mềm không phải quá dài, 
+nhưng đủ để tôi nhìn lại mình không chỉ như một kỹ sư, mà như một con người thay đổi theo từng
+dòng code, từng dự án, từng sai lầm và những lần đứng dậy.
+
+Nếu tính từ ngày tôi viết dòng Java đầu tiên vào năm lớp 11, ngồi run run trước màn hình 
+Android Studio chỉ để thấy cái app Hello World chạy được, thì hành trình với phần mềm của 
+tôi cũng đã ngót nghét một thập kỷ. Và trong mười năm đó, tôi nhận ra một điều: công nghệ thay 
+đổi nhanh đến mức không ai có thể đuổi kịp mọi thứ, nhưng cái thay đổi mạnh nhất—và khó nhất—
+luôn là chính mình.
+
+Đây là câu chuyện của tôi. Không tô hồng. Không kể công. Không than vãn. Chỉ là một bản ghi lại những điều tôi học được: 
+**cái tốt giữ tôi lại**, **cái tệ khiến tôi chậm lại**, và **cái xấu buộc tôi phải tỉnh táo**.
+
+### THE GOOD — Những điều khiến tôi lớn lên
+#### 1. Bắt đầu với đam mê thuần khiết
+
+Tôi đến với lập trình bằng sự tò mò, không phải bằng tham vọng. Lúc đó tôi không nghĩ xa 
+rằng sau này sẽ làm nghề, sẽ đi làm công ty này công ty kia. Tôi chỉ muốn hiểu làm sao mà 
+mấy cái app trên điện thoại lại hoạt động được. Và từ ngày tôi build được app Android đầu tiên,
+tôi biết mình đã tìm đúng thứ mình muốn gắn bó.
+
+Nó không phải đam mê kiểu “tôi muốn làm IT vì lương cao”. <br/>
+Nó là cảm giác **tạo ra thứ gì đó từ số không**, theo đúng nghĩa đen. <br/>
+Giống như học được một thứ phép thuật, từ tay không, trí tuệ và tạo ra một thế giới của 
+riêng mình.
+
+Và sự ngây thơ đó — đến giờ — vẫn là thứ bảo vệ tôi khỏi nhiều lần muốn bỏ nghề.
+
+#### 2. Bài học từ công ty đầu tiên: kỹ năng không chỉ nằm trong code
+
+Năm ba đại học, tôi đi làm chính thức ở công ty đầu tiên, vị trí mobile dev. 
+Tại đây tôi gặp người anh team lead đã ảnh hưởng rất lớn đến cách tôi nhìn nghề.
+
+Anh ấy cho tôi thấy sự khác biệt giữa:
+
+* **“SE lâu năm”** — người làm lâu nhưng không nhất thiết làm đúng
+* **“SE xịn”** — người xem nghề này như craft, không chỉ là công việc
+
+Ở anh có một thứ mà tôi ít thấy ở nhiều người khác: **sự bình thản của người thực sự 
+hiểu mình đang làm gì**. Anh debug không vội, design không màu mè, và giải thích mọi thứ 
+rất rõ ràng. Với anh, kỹ năng thật sự nằm ở việc hiểu vấn đề, không phải viết nhiều code.
+
+**Từ anh ấy, tôi học được 3 điều quan trọng đầu tiên của nghề:**
+
+1. Code tốt là code dễ hiểu.
+2. Hệ thống tốt là hệ thống có thể được người khác tiếp tục.
+3. Người giỏi nhất là người làm cho team giỏi hơn.
+
+Nhưng cái tốt không đến một mình. Tại đây, tôi cũng đối mặt với một sự thật:
+**tôi không biết làm việc nhóm.**
+
+Tôi giao tiếp kém hơn mình nghĩ. Tôi không biết nói rõ yêu cầu. Tôi không quen việc 
+người khác review code của mình. Tôi cảm thấy mình giỏi nhất khi làm một mình — nhưng đó 
+là sai lầm lớn đầu tiên của tôi.
+
+Lập trình là nghề của teamwork.
+Và tôi nhận ra mình còn rất xa mới gọi là “giỏi”.
+
+#### 3. Công ty thứ hai: bước vào thế giới thực sự của sản phẩm
+
+Công ty thứ hai chỉ khoảng 30 người — một công ty outsource nhỏ. Nhưng đây là nơi tôi 
+trưởng thành mạnh nhất. Tôi được lead vài dự án nhỏ, được làm từ đầu đến cuối, 
+được nói chuyện với khách hàng, và được trải nghiệm cảm giác **mọi sai lầm đều có giá thật**.
+
+Ở đây, tôi lần đầu hiểu:
+
+##### Production-grade là một thế giới hoàn toàn khác.
+
+Thứ bạn viết khi dev có thể “chạy được”. <br/>
+Nhưng chạy trong môi trường thực tế với user thật — đó là một câu chuyện khác hoàn toàn. <br/>
+
+Nhiều lần deploy xong thì hệ thống bị sập. <br/>
+Nhiều lần bug chỉ xuất hiện lúc 1–2 giờ sáng. <br/>
+Nhiều lần tưởng mình đúng, nhưng khách hàng dùng lại hoàn toàn khác. <br/>
+
+Tại đây, tôi học được:
+
+* **Feature chạy được** là bước một.
+* **Feature chạy ổn định** mới là bước hai.
+* **Feature mang lại giá trị thật** mới là mục tiêu cuối.
+
+Tôi cũng lần đầu hiểu giá trị của những thứ không có trong code:
+
+* Technical communication
+* Expectation management
+* Ownership
+* Trách nhiệm với người dùng
+
+Nhiều đêm thức trắng, nhiều thất bại, nhiều lần căng thẳng với khách hàng, đồng nghiệp, sếp — nhưng chính những 
+điều này tạo nên con người kỹ sư của tôi hiện tại.
+
+#### 4. Công ty thứ ba: nơi tôi học cách đi chậm để đi xa
+
+Công ty thứ ba là một tập đoàn đa quốc gia. Mọi thứ lớn hơn, phức tạp hơn, khó đoán hơn. 
+Nhưng cũng chính tại đây tôi học được những bài học không còn mang tính kỹ thuật nữa, mà 
+mang tính **hệ thống** và **con người**.
+
+Những điều tôi nhận ra sớm nhất:
+
+1. **Stability > Scalability.**
+   Không phải lúc nào scale cũng quan trọng. Một hệ thống crash-free 99.99% có giá trị hơn 
+   một hệ thống scale gấp đôi nhưng unstable.
+
+2. **Hệ thống tốt là hệ thống quan sát được.**
+   Không log = mù. <br/>
+   Không trace = mò. <br/>
+   Không metric = đoán. <br/>
+   Một hệ thống tốt là hệ thống có thể quan sát được, luôn là như vậy.
+
+3. **Slow is smooth, smooth is fast.**
+   Đi chậm để đi đúng. <br/>
+   Đi đúng để đi nhanh. <br/>
+   Đi nhanh mà sai sẽ tạo ra vòng lặp vĩnh cửu chết người. <br/>
+
+4. **Tiềm năng là thứ không ai quan tâm; thể hiện giá trị mới là thứ quan trọng.**
+   Câu này hơi đau, nhưng đúng. Rất đúng.
+
+Ở nơi này, tôi học cách kiểm soát bản thân trước khi đụng vào hệ thống.
+
+- Học cách chọn trận để đánh.
+- Học cách kiên nhẫn với thứ phức tạp.
+- Học cách giữ năng lượng để không bị hòa tan vào tập thể.
+
+### THE BAD — Những điều làm tôi chậm lại, dừng lại, và đôi khi muốn bỏ nghề
+
+Nghề này cho tôi rất nhiều, nhưng cũng lấy đi không ít thứ. Không phải lúc nào nó cũng 
+đáng yêu như lúc tôi viết app Android đầu tiên. Có những giai đoạn tôi không còn thấy mình 
+“đang lớn lên”, mà thấy mình **đang mòn đi**.
+
+Và chính những vùng trũng đó làm nên phần “Bad” của hành trình này.
+
+#### 1. Tốc độ là cái bẫy ngọt ngào nhất
+
+Những năm đầu đi làm, tôi mắc phải cái bẫy kinh điển của kỹ sư trẻ:
+**làm nhanh = làm giỏi.**
+
+- Deadline đến phải làm thật nhanh.
+- Task nhiều phải xử lý thật nhanh.
+- Hệ thống phức tạp phải nhảy vào thật nhanh.
+
+Và rồi "nhanh" trở thành thói quen, rồi trở thành danh tính.
+
+Nhưng cũng từ đó, tôi nhận ra cái giá:
+
+* Làm nhanh thì thường thiếu chiều sâu.
+* Làm nhanh thì dễ bỏ sót những corner case quan trọng.
+* Làm nhanh khiến team khó làm việc cùng, vì họ không theo kịp logic bạn đang “cảm thấy đúng”.
+* Làm nhanh khiến tôi tự tin quá mức—thậm chí cố chấp.
+
+Tệ hơn, “nhanh” khiến tôi nghĩ mình giỏi hơn thực tế.
+
+Cho đến một ngày, hệ thống mà tôi phụ trách gặp sự cố chỉ vì một “giải pháp nhanh” tôi 
+viết 3 tháng trước. Hóa ra tôi “đi nhanh”, nhưng **để lại nợ** cho chính mình.
+
+Từ khoảnh khắc đó, tôi mới thấm câu:
+
+> *Nếu bạn không có thời gian để làm đúng, bạn sẽ phải tốn thời gian để làm lại.*
+
+#### 2. Không phải thất bại nào cũng dạy bài học đẹp
+
+Người ta hay nói: “Fail fast, learn fast”.
+Nghe thì hay đó, nhưng thực tế đôi khi… **fail chỉ đơn giản là fail**.
+
+Tôi từng làm một dự án mà team hiểu sai yêu cầu trong suốt hai tuần.
+Tôi từng refactor một module lớn chỉ để nhận ra khách hàng đổi scope.
+Tôi từng bảo vệ một giải pháp rất tự tin, chỉ để production chứng minh tôi sai.
+
+Những thất bại đó không phải lúc nào cũng dẫn đến bài học triết lý.
+Nhiều lần nó chỉ dẫn đến:
+
+* Căng thẳng
+* Mất ngủ
+* Mệt mỏi
+* Tự nghi ngờ bản thân
+* Mất động lực
+
+Có giai đoạn tôi làm việc mà trong người lúc nào cũng có áp lực như đá đè.
+Tôi tưởng stress là dấu hiệu của sự “trưởng thành”, nhưng không, đó là 
+dấu hiệu của sự mất cân bằng.
+
+#### 3. Burnout lần đầu: khi đam mê bị bào mòn
+
+Có lần tôi nhận ra mình không còn hứng thú với lập trình. Không phải vài ngày, 
+mà là cả năm trời.
+
+Dù mở laptop ra, tôi vẫn thấy:
+
+* Task lặp lại
+* Công việc vô nghĩa
+* Feature không liên quan gì đến người dùng
+* Team đang chạy endpoint chứ không chạy sản phẩm
+
+Tôi không ghét nghề này. <br/>
+Tôi chỉ cảm thấy trống rỗng. <br/>
+Rỗng đến mức không nhớ lần cuối mình hứng thú với code là khi nào.
+
+Burnout không đến vì làm nhiều. <br/>
+Nó đến vì **làm mãi mà không thấy ý nghĩa**.
+
+#### 4. Va chạm với con người khó hơn va chạm với hệ thống
+
+Làm việc trong ngành phần mềm, tôi từng nghĩ khó nhất là công nghệ —
+nhưng thực ra khó nhất luôn là **con người**.
+
+Tôi từng gặp:
+
+* PO không hiểu kỹ thuật nhưng lại quyết chiến với timeline.
+* Dev giỏi nhưng cái tôi rất lớn, không ai muốn làm việc cùng.
+* Người chỉ thích nhanh, bất chấp chất lượng.
+* Người nói “tôi giao đúng requirement, lỗi do bạn hiểu sai”.
+* Người nói thì hay, làm thì ít, nhưng ảnh hưởng lại rất lớn.
+
+Mỗi môi trường, mỗi team đều có dynamics riêng. <br/>
+Và không phải lúc nào bạn cũng hòa vào được.
+
+Code có thể refactor. <br/>
+Con người thì không.
+
+#### 5. Đôi khi công ty không quan tâm bạn giỏi thế nào
+
+Làm outsource, tôi trải nghiệm việc kỹ sư bị đánh giá bằng:
+
+* Số task
+* Số bug fix
+* Số giờ billable
+* Tốc độ trả lời tin nhắn
+
+Làm enterprise, tôi thấy kỹ sư bị đánh giá bằng:
+
+* Performance cycle
+* Visibility
+* Buy-in
+* Tính chính trị trong team
+
+Không ai hỏi:
+
+* Bạn học được gì?
+* Bạn hiểu hệ thống sâu thế nào?
+* Bạn chữa cháy ra sao?
+* Bạn chăm chút chất lượng đến mức nào?
+
+Điều này có thể khiến nhiều kỹ sư giỏi **trở nên im lặng**, và nhiều kỹ sư bình thường **trở nên nổi bật**.
+
+Không công bằng, đúng, nhưng đây là sự thật.
+
+#### 6. Mình không luôn đúng — và việc chấp nhận điều đó làm tôi tổn thương cái tôi
+
+Tôi từng tin rằng nếu mình nghiên cứu kỹ, nếu mình hiểu hệ thống, thì mình đúng.
+Nhưng nhiều lần tôi sai — và sai rất nặng.
+
+Tôi từng bảo vệ giải pháp đến cùng,
+để rồi production tát vào mặt tôi rằng tôi bỏ sót case cực kỳ đơn giản.
+
+Tôi từng nghĩ mình hiểu yêu cầu,
+để rồi cuối sprint phát hiện user flow sai ngay từ đầu.
+
+Tôi từng nghĩ người khác không hiểu technical bằng mình,
+nhưng họ lại hiểu business gấp mười lần tôi.
+
+Cái tôi nghề nghiệp bị đập không biết bao nhiêu lần.
+
+Đau — nhưng đó là điều cần thiết.
+
+#### 7. “Mình không giỏi như mình tưởng”
+
+Câu này là khó chấp nhận nhất.
+
+Mỗi lần gặp một người kỹ sư giỏi thật sự, tôi đều thấy:
+
+* Kiến thức của mình còn lủng
+* Tư duy của mình còn nông
+* Production mindset của mình còn thiếu
+* System design của mình chỉ mới ở mức “đi làm được”
+
+Lần đầu nhận ra mình “chưa giỏi” không đáng sợ. <br/>
+Nhưng lần thứ mười, thứ hai mươi — nó khiến bạn hoang mang.
+
+#### 8. Đôi khi nỗ lực không tạo ra kết quả
+
+Bạn có thể dành cả tháng để cải thiện performance,
+nhưng business chỉ nhìn vào feature mới.
+
+Bạn có thể chuẩn bị rất kỹ cho review cycle,
+nhưng vẫn không được promote vì chính trị nội bộ.
+
+Bạn có thể làm đúng tất cả,
+nhưng hệ thống vẫn crash vì dependency của team khác.
+
+Nghề này không công bằng. <br/>
+Và chấp nhận điều đó — cũng là một kỹ năng.
+
+### THE UGLY — Những mặt tối mà không ai nói ra nhưng kỹ sư nào cũng cảm nhận
+
+#### 1. Ngành này có thể bào mòn bạn mà bạn không nhận ra
+
+Cái đáng sợ nhất không phải là làm nhiều, mà là *không nhận ra mình đã kiệt sức*.
+Tôi từng có giai đoạn:
+
+* Làm 10–12 tiếng một ngày nhưng nghĩ “bình thường”
+* Cuối tuần vẫn mở laptop vì “đang dang dở”
+* Trả lời tin nhắn công việc lúc nửa đêm như phản xạ
+* ăn qua loa, ngủ thất thường, nhưng vẫn nghĩ “mình chịu được”
+
+Rồi một ngày… chẳng còn cảm xúc gì.
+
+Không vui khi build thành công. <br/>
+Không buồn khi gặp bug. <br/>
+Không hào hứng khi học công nghệ mới. <br/>
+Không thấy passion — chỉ còn thói quen. <br/>
+
+Burnout không phải là ngọn lửa bùng lên. <br/>
+Nó giống nước ngầm cạn dần, cạn đến mức đáy mà bạn không thấy.
+
+#### 2. Chính trị nội bộ mạnh hơn năng lực thật
+
+Đây là điều không ai muốn thừa nhận:
+
+> Nhiều lúc, người được thăng tiến không phải là người giỏi nhất, mà là người 
+phù hợp nhất với narrative của tổ chức.
+
+Tôi từng thấy:
+
+* Người làm ít nhưng nói hay → được ghi nhận.
+* Người làm nhiều nhưng ít nói → bị lu mờ.
+* Người “hòa hợp văn hóa” → được ưu tiên.
+* Người “nói chuyện khó nghe” → dù giỏi vẫn bị xem thường.
+
+Kỹ năng mềm là cần thiết — nhưng đôi khi nó được đánh giá **quá cao**, tới mức che mờ kỹ 
+năng thật.
+
+Và đau nhất là khi bạn thấy một kỹ sư rất giỏi rời công ty chỉ vì không chịu nổi **layers of politics**.
+
+#### 3. Nhiều người giỏi rời ngành — không phải vì họ yếu, mà vì ngành không xứng với họ
+
+Ngành phần mềm có thể rất đẹp, nhưng nó cũng rất dễ khiến người giỏi bị mất ý nghĩa:
+
+* Làm hoài những task xa rời giá trị thật.
+* Dính vào cuộc đua công nghệ vô tận không biết mục đích.
+* Làm sản phẩm mà chính mình cũng không tin vào.
+* Bị đánh giá qua những metric thấp nhất của nghề.
+
+Tôi từng thấy những kỹ sư cực kỳ giỏi rời ngành để:
+
+* Làm nghiên cứu
+* Mở quán café
+* Đi dạy
+* Làm sản phẩm nhỏ của riêng mình
+* Hoặc đổi nghề hoàn toàn
+
+Không phải vì họ bỏ cuộc.
+Mà vì **ngành này nhiều lúc không thưởng đúng người**.
+
+#### 4. Đơn độc là một phần nghề — nhưng không ai nói trước
+
+Có những bug chỉ bạn hiểu. <br/>
+Có những phần hệ thống chỉ bạn nắm. <br/>
+Có những đêm trực production một mình, không ai khác trong team online. <br/>
+Có những quyết định kiến trúc mà nếu sai, bạn là người chịu hết.
+
+Lập trình là nghề teamwork — nhưng cũng là nghề của sự cô độc.
+Rất nhiều lần, bạn phải tự mình đối mặt với:
+
+* Áp lực
+* Trách nhiệm
+* Lỗi lầm
+* Sự phán xét
+* Sự nghi ngờ bản thân
+
+Và không phải ai cũng có team hoặc leader đủ tốt để chia sẻ gánh nặng đó.
+
+#### 5. Nhiều người dùng “tốc độ thay đổi công nghệ” để che đi sự thiếu giá trị
+
+Một thực tế phũ phàng:
+
+> Nhiều kỹ sư học framework mới không phải vì cần thiết, mà vì họ không biết mình đang 
+giải quyết vấn đề gì.
+
+* Đổi ngôn ngữ
+* Đổi stack
+* Đổi framework
+* Đổi approach
+* Đổi pattern
+
+Nhìn thì như “cập nhật công nghệ”, nhưng đôi lúc chỉ là:
+
+* Sợ tụt lại
+* Muốn khoe CV
+* Hoặc né tránh việc phải hiểu sâu một thứ gì đó
+
+Và chính sự “đổi liên tục” này làm ngành phần mềm trở nên nhiễu và mệt.
+
+#### 6. Sự thật đau nhất: không phải mọi cố gắng đều được đền đáp
+
+Trong nhiều ngành khác — chăm chỉ, nỗ lực, kỷ luật → thường được ghi nhận.
+
+Nhưng trong phần mềm:
+
+* Phần bạn làm có thể bị bỏ đi.
+* Giải pháp bạn xây có thể bị chuyển hướng.
+* Dự án bạn đổ máu có thể bị hủy vì business thay đổi.
+* Code bạn chăm chút có thể bị rewrite trong một quý.
+* Điều bạn tự hào nhất có khi chẳng ai nhớ.
+
+Làm phần mềm dạy tôi một bài học khó nuốt:
+
+> Giá trị thật không nằm trong sản phẩm, mà nằm trong con người bạn trở thành khi làm nó.
+
+#### 7. Nghề này có thể làm bạn trở nên vô cảm
+
+Không phải theo nghĩa tiêu cực, mà theo nghĩa “tập quen với vấn đề” quá nhanh.
+
+Crash? → Restart service.
+
+Bug? → Hotfix.
+
+Khách hàng than? → Deploy bản mới.
+
+Đồng nghiệp stress? → “Cố lên bro.”
+
+Tôi nhận ra có lúc mình phản ứng như robot.
+Không suy nghĩ, không cảm xúc, chỉ hành động theo phản xạ của người làm hệ thống quá lâu.
+
+Đó là lúc tôi thấy mình đã đánh mất một phần quan trọng: **sự nhạy cảm với con người.**
+
+#### 8. Điều xấu nhất: chính mình đôi khi trở thành vấn đề
+
+Đây là phần xấu nhất, nhưng cũng thật nhất.
+
+Tôi từng trở thành:
+
+* Người nóng nảy trong code review
+* Người bảo thủ về giải pháp
+* Người cố chấp với cách làm cũ
+* Người không lắng nghe junior
+* Người quên mất teamwork
+* Người đẩy áp lực sang người khác
+* Người nghĩ mình “giỏi nhất team”
+
+Nhiều lúc vấn đề không nằm ở công ty, không nằm ở quy trình, không nằm ở team.
+
+Nó nằm ở **cái tôi chưa được mài dũa của chính mình**.
+
+Nhận ra điều này đau, nhưng cứu được tôi khỏi trở thành “SE lâu năm” mà chính 
+tôi từng không muốn trở thành.
+
+### THE SYNTESIS — Tại sao tôi vẫn ở lại?
+
+Sau khi đi qua từng lớp của nghề—cái tốt làm mình lớn, cái tệ làm mình chậm, và cái xấu làm mình tỉnh—tôi thường tự hỏi:
+
+> “Vậy rốt cuộc, sao mình vẫn còn ở đây?”
+
+Tại sao không bỏ? <br/>
+Tại sao không chuyển ngành? <br/>
+Tại sao không làm thứ gì “ít đau đầu” hơn? <br/>
+
+Câu trả lời không đơn giản, nhưng cũng không mơ hồ. Nó là cảm giác rất rõ rằng: <br/>
+> nghề này, dù phức tạp và mâu thuẫn, vẫn là phần định nghĩa con người tôi.
+
+#### 1. Vì lập trình dạy tôi tư duy rõ ràng
+
+Không môn học nào trong đời tôi giúp tôi hiểu sâu về nguyên nhân–hệ quả như lập trình.
+
+* Một bug dạy bạn sự khiêm tốn.
+* Một hệ thống ổn định dạy bạn sự kiên nhẫn.
+* Một lần deploy thành công dạy bạn sự chuẩn bị.
+* Một lần production sập dạy bạn sự trách nhiệm.
+
+Lập trình rèn cho tôi một cách nghĩ: **không lừa mình.**
+Bạn có thể kể chuyện hay, nói lý thuyết tốt, nhưng code thì không nói dối. Sự thật 
+phơi bày ngay tại runtime.
+
+Đó là triết lý vượt ra ngoài công việc.
+
+#### 2. Vì đây là nghề cho phép mình tạo ra giá trị thật
+
+Ngành này mang tính xây dựng. Bạn tạo ra thứ gì đó *chạy được*, *giúp được người khác*, 
+*làm cho cuộc sống dễ hơn*.
+
+Trong một thế giới nhiều ngành chỉ “di chuyển thông tin từ nơi này sang nơi khác”, 
+lập trình khiến tôi cảm thấy mình **đang tạo ra một thứ gì đó thực sự tồn tại**.
+
+Cảm giác thấy người dùng nói “à tính năng này tốt quá” — nó không lớn lao, nhưng rất chân thật.
+
+#### 3. Vì nghề này giúp tôi trở thành phiên bản kỷ luật và tỉnh táo hơn của chính mình
+
+Tôi từng là người làm nhanh, nôn nóng, dễ stress, dễ tự ái khi bị review.
+
+Nhưng qua từng sự cố, từng lần dựng lại hệ thống, từng cuộc tranh luận với đồng đội, 
+từng release, từng lần phải gỡ bug mình gây ra… tôi trở nên:
+
+* Bình tĩnh hơn
+* Logic hơn
+* Có hệ thống hơn
+* Khiêm tốn hơn
+* Tôn trọng teamwork hơn
+* Và thực tế hơn
+
+Tôi không chỉ giỏi lên.
+Tôi **trưởng thành hơn**.
+
+#### 4. Vì tôi hiểu rằng đây là nghề bạn càng đi sâu càng thấy đẹp
+
+Lúc mới vào nghề, lập trình chỉ là code. <br/>
+Sau đó, lập trình là giải pháp. <br/>
+Sau nữa, lập trình là hệ thống. <br/>
+Rồi lập trình là con người. <br/>
+Cuối cùng, lập trình là triết lý. <br/>
+
+Cái đẹp của nghề này nằm ở chỗ:
+
+* Càng hiểu sâu, bạn càng thấy mọi thứ liên kết
+* Càng đi lâu, bạn càng ít cực đoan
+* Càng có kinh nghiệm, bạn càng thấy mình vẫn chưa biết gì
+
+Nó là một con đường không bao giờ kết thúc, nhưng không vì thế mà vô nghĩa.
+Ngược lại, chính vì *không bao giờ xong*, nó mới đáng đi.
+
+#### 5. Vì tôi không muốn trở thành một kỹ sư lâu năm — tôi muốn trở thành một người thợ tốt
+
+Sự khác biệt rất lớn giữa hai từ này.
+
+“Kỹ sư lâu năm” chỉ nói về thời gian. <br/>
+“Người thợ tốt” nói về thái độ.
+
+Một người thợ tốt:
+
+* Chăm chút cái mình làm
+* Chịu trách nhiệm cho cả phần thấy được và phần không ai thấy
+* Không làm cho xong
+* Không coi thường người khác
+* Không phớt lờ sự thật
+* Không đánh đổi chất lượng bằng sự vội vàng
+
+Và tôi nhận ra:
+> Nghề này trở nên đẹp nhất khi mình làm nó như một người thợ.
+
+#### 6. Vì tôi tin rằng một ngày nào đó, tôi sẽ tạo ra thứ của riêng mình
+
+Có thể là một sản phẩm. <br/>
+Có thể là một hệ thống. <br/>
+Có thể là một đội. <br/>
+Có thể là một triết lý xây dựng phần mềm. <br/>
+
+Những năm qua không chỉ đơn thuần là “đi làm”.
+Nó là, một trường học đầy mâu thuẫn và khó chấp nhận:
+
+* Học cách nhìn vấn đề
+* Học cách giải quyết vấn đề đúng cách
+* Học cách thiết kế hệ thống không phản bội lại mình
+* Học cách dẫn dắt người khác
+* Học cách tạo ra giá trị, không chỉ tạo ra mã nguồn
+
+Tôi tin rằng mọi va vấp—tốt, tệ, xấu—đều là nguyên liệu cho một ngày mình viết được 
+“sản phẩm đúng nghĩa”.
+
+#### 7. Vì sau tất cả, tôi vẫn yêu cảm giác một ý tưởng trở thành thứ vận hành được
+
+Thật lòng mà nói, tất cả lý do trên đều quan trọng.
+Nhưng lý do giữ tôi lại mạnh nhất vẫn là điều rất đơn giản:
+
+> Tôi thích cảm giác làm ra được thứ gì đó hoạt động.
+
+Cảm giác một dòng log hiện ra đúng như mình dự tính. <br/>
+Cảm giác một request chạy qua các layer một cách mượt mà. <br/>
+Cảm giác production ổn định sau khi mình sửa một lỗi khó. <br/>
+Cảm giác code mình viết giúp team dễ thở hơn. <br/>
+Cảm giác kiến trúc mình design không sập khi load tăng. <br/>
+Cảm giác một user miểm cười khi dùng thứ mình làm <br/>
+Cảm giác khi bất giác nghe "Wow, cái này đỉnh quá" <br/>
+
+#### THE CLOSING — Điều đẹp nhất không nằm ở công nghệ
+
+Khi nhìn lại sáu năm qua, tôi nhận ra chiếc máy tính không thay đổi tôi.
+Con người quanh chiếc máy tính mới thay đổi tôi.
+
+Những người hướng dẫn tôi, <br/>
+Những người tranh luận với tôi,
+Những người tin tôi, <br/>
+Những người không tin tôi, <br/>
+Những người tôi từng làm sai với họ <br/>
+Những người từng làm sai với tôi.
+
+Chính họ khiến tôi hiểu rằng:
+
+> Phần mềm là công việc của con người. 
+> Và nếu ta hiểu con người, ta mới hiểu được cách xây phần mềm tốt.
+
+The Good tạo nên nền. <br/>
+The Bad tạo nên kinh nghiệm. <br/>
+The Ugly tạo nên sự tỉnh thức. <br/>
+
+Và tôi — qua tất cả những điều ấy — đã trở thành một kỹ sư không hoàn hảo, nhưng thật.
+
+Một kỹ sư vẫn còn muốn học. <br/>
+Vẫn còn muốn làm sản phẩm tốt. <br/>
+Vẫn còn tự hỏi mỗi ngày xem mình có thể làm điều này hay hơn không. <br/>
+Vẫn còn yêu nghề này, dù nhiều lúc nó chẳng yêu lại mình. <br/>
+
+Và có lẽ, chỉ vậy thôi — <br/>
+đã đủ để tôi tiếp tục bước tiếp vào năm thứ 7, 8, 9… của hành trình này. <br/>

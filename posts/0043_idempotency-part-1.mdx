@@ -1,0 +1,1704 @@
+## Idempotency Masterclass - Part 1: Hiểu rõ bản chất của Idempotency, thực tế, ngộ nhận và tính tường minh.
+
+### 1. Định nghĩa thật sự của Idempotency (đẳng thức): Idempotency là thuộc tính của effect (hiệu ứng)
+
+Idempotency được hiểu chính xác là *thuộc tính của effect khi thực thi một action nhiều lần* 
+trong **cùng điều kiện đầu vào và cùng trạng thái ban đầu** mà *kết quả cuối cùng chỉ phản 
+ánh đúng một lần thực thi*. Điểm cốt lõi nằm ở *effect* chứ không nằm ở *API*, *HTTP verb*, 
+hoặc *implementation pattern*. Một API có thể dùng POST nhưng vẫn đảm bảo idempotent effect; 
+ngược lại, một DELETE tưởng là idempotent theo RFC nhưng vẫn có thể gây ra hiệu ứng phụ lặp 
+nếu phía dưới có cascade update.
+
+Trong thiết kế hệ thống, idempotency không gắn chặt với hình thức request. 
+Idempotency-key, PUT, DELETE, hay bất kỳ cơ chế giao tiếp nào đều chỉ là công cụ giao diện (interface); 
+chúng không tạo ra idempotency. Điều quyết định là effect thực tế lên state của hệ thống 
+sau n lần thực thi. Khi state không thay đổi sau lần đầu tiên, action đó được xem là idempotent. 
+Do đó, bản chất của idempotency luôn gắn với state transition, không phải network semantics.
+
+Retry (thực thi lại) là điều kiện tự nhiên để kiểm tra một operation (hành động) có idempotent hay không. 
+Một logic chỉ được xem là idempotent nếu việc retry **không thể tạo ra thêm side-effect 
+hoặc thay đổi không mong muốn**. Trong khi đó, hai thực thi giống nhau ở mức request không đảm 
+bảo hai effect giống nhau nếu trạng thái bên dưới thay đổi hoặc nếu chính action tạo ra side-effect phụ. 
+Điểm này cho thấy lý do vì sao việc nhìn idempotency chỉ qua API là sai: quyết định nằm 
+ở *semantics của effect*, không nằm ở *giao thức*.
+
+Trong thực tế, có nhiều API HTTP mang tính “idempotent” theo chuẩn HTTP nhưng *không* 
+idempotent theo nghĩa hệ thống. Ví dụ, một lệnh DELETE /user/123 có thể gọi lần hai để 
+“xóa lại” không gây thay đổi, nhưng nếu service khởi chạy một quá trình cleanup cascade 
+hoặc gửi email thông báo mỗi lần DELETE được nhận, thì effect đã bị lặp. Điều này cho thấy 
+idempotency không thể được quy chiếu chỉ qua giao thức; cần phân tích cả hệ sinh thái effect.
+
+Đối nghịch lại, POST /payments — vốn không được xem là idempotent theo HTTP spec — 
+hoàn toàn có thể được thiết kế thành idempotent operation. Khi hệ thống định nghĩa đúng 
+**idempotency boundary** và sử dụng **idempotency-key** làm chìa khóa ánh xạ vào một 
+state-machine, effect thực sự trở nên *chỉ thực thi một lần*. Khi đó, semantics của POST trở 
+thành một lớp giao tiếp, còn effect phía dưới mới là thứ quyết định tính đúng đắn.
+
+Sự phân tách giữa “idempotent effect” và “idempotent interface” là nền tảng của toàn bộ 
+series này. Interface có thể mô tả ý định; effect phản ánh outcome (kết quả đầu ra). 
+Khi hai thứ không trùng nhau, hệ thống sẽ sinh lỗi. Khi hiểu và thiết kế đúng, 
+idempotency trở thành tính chất giúp hệ thống miễn nhiễm trước retry, reprocessing, 
+và những nhiễu loạn của thế giới phân tán.  
+
+### 2. Tại sao Idempotency tồn tại: sự hỗn loạn của thế giới phân tán
+
+Idempotency xuất hiện vì các hệ thống phân tán không bao giờ vận hành trong điều kiện lý tưởng. 
+Bất kỳ thành phần nào tham gia vào quá trình xử lý — client, gateway, load balancer, worker, 
+queue, database, hoặc chính network — đều có khả năng gây ra retry. Do đó, retry trở thành một 
+**đặc tính tự nhiên của runtime (môi trường chạy)**, không phải một lựa chọn thiết kế. 
+Khi một hệ thống không chuẩn bị cho retry, các effect sẽ bị nhân đôi và sai lệch tích lũy 
+theo thời gian.
+
+Trong thực tế, có năm nguồn chính dẫn đến retry: timeout từ phía client, retry tự động của 
+load balancer, worker crash và re-execute, queue redelivery, và event reprocessing trong 
+hệ thống event-driven. Mỗi nguồn retry yêu cầu ở thời điểm khác nhau, khi state đã thay đổi 
+hoặc khi effect trước đó đã được commit nhưng caller không biết. Vì vậy hệ thống buộc phải 
+giả định rằng *bất kỳ* action nào cũng có thể được gửi thêm ít nhất một lần. Đặc điểm này 
+giải thích vì sao không thể trông đợi hành vi “exactly-once (chính xác một lần)”; môi trường 
+phân tán không cung cấp cơ chế đảm bảo ở tầng transport (giao vận).
+
+Khái niệm “exactly-once” thường bị hiểu nhầm như một thuộc tính có thể đạt được nhờ 
+transaction hoặc queue đảm bảo. Tuy nhiên, ngay cả khi một effect đã được commit thành công, 
+thông điệp phản hồi có thể bị mất. Caller xem đó là thất bại và gửi lại yêu cầu. Trong lúc đó, 
+service đã ghi state mới vào database. Sự phân tách giữa effect và acknowledgment khiến hai 
+phía không bao giờ đồng bộ được nhận thức về thành công của action. Do đó, giải pháp thực 
+tế không phải tránh retry mà là làm cho retry trở nên vô hại.
+
+Tính chất “at-least-once delivery” là mặc định trong các queue phổ biến như Kafka, 
+RabbitMQ hoặc Redis Stream, và cũng là hành vi thực tế của HTTP khi đi qua nhiều lớp proxy. 
+Khi một yêu cầu có thể bị gửi lại nhiều lần vì nguyên nhân nằm ngoài tầm kiểm soát, 
+hệ thống chỉ có thể an toàn nếu logic xử lý là idempotent. Một action chỉ thực thi đúng một 
+effect bất chấp số lần nó được submit.
+
+Hệ quả là khi xây dựng hệ thống, không nên triển khai logic dựa vào giả định “action chỉ 
+được gọi một lần”. Triển khai như vậy sẽ hoạt động trong môi trường lý tưởng nhưng sẽ hỏng 
+ngay khi có một biến cố nhỏ: một lần mất gói, một lần worker restart, một instance bị 
+autoscale out/in. Tính chất phi-deterministic của thế giới phân tán khiến số lần thực thi 
+thực tế không còn tương ứng với số lần mà client dự tính.
+
+Do đó, lý do tồn tại của idempotency không nằm ở chuẩn giao thức, mà ở bản chất hỗn loạn 
+của môi trường phân tán. Khi hệ thống chấp nhận sự thật rằng retry là điều không tránh khỏi, 
+idempotency trở thành cơ chế chính đảm bảo correctness (tính đúng đắn) dưới điều kiện 
+“at-least-once (ít nhất một lần)”, và là nền tảng cho mọi pattern xử lý trong workflow phức tạp.
+
+Dưới đây là **Mục 3 – Clarifying the Core Semantics: Repeatable, Safe, Atomic, Idempotent**.
+Mình chia thành **nhiều message** để giữ độ rõ, độ sâu và mạch tuyến tính chuẩn O’Reilly.
+
+### 3. Phân tích bốn ngữ nghĩa thường gặp: Repeatable, Safe, Atomic, Idempotent
+
+Bốn khái niệm “repeatable”, “safe”, “atomic”, và “idempotent” thường được sử dụng lẫn nhau 
+trong thực tế, nhưng chúng mô tả các thuộc tính hoàn toàn khác nhau của một operation. 
+Việc phân tách chính xác là nền tảng để tránh sai lệch trong thiết kế khi hệ thống phải xử 
+lý retry và state mutation. Nếu chỉ hiểu idempotency một cách mơ hồ, việc áp dụng pattern 
+sẽ không nhất quán và có thể tạo ra lỗi double-effect.
+
+**Repeatable** mô tả khả năng tạo ra **cùng output khi thực thi cùng một operation nhiều lần**, 
+với giả định state ban đầu không đổi. Thuộc tính này chỉ nói về **kết quả trả về**; nó không 
+phản ánh effect thực tế của operation. Do đó, một operation có thể repeatable nhưng vẫn thay 
+đổi state mỗi lần.
+
+**Safe** theo [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231) mô tả các HTTP method 
+không gây ra effect destructive lên tài nguyên. GET và HEAD được xem là safe vì chúng chỉ 
+đọc dữ liệu. Tuy nhiên, tính safe chỉ áp dụng cho "ý định theo giao thức”, không đảm bảo rằng 
+cách thực thi thực sự không có side-effect.
+
+**Atomic** mô tả khả năng nhìn thấy trạng thái “hoặc tất cả, hoặc không gì” của một mutaion (thay đổi). 
+Atomicity xử lý vấn đề _partial state_, nhưng không kiểm soát việc một mutation được thực thi 
+bao nhiêu lần. Một thao tác vừa atomic vừa non-idempotent có thể tạo ra đúng effect trong một 
+lần thực thi nhưng nhân đôi effect khi retry.
+
+**Idempotent** mô tả rằng *effect cuối cùng sau n lần thực thi tương đương với effect 
+của một lần thực thi*. Khái niệm này không yêu cầu output giống nhau, cũng không yêu cầu 
+operation không có side-effect. Nó chỉ yêu cầu effect không thay đổi sau lần đầu tiên.
+
+Bốn khái niệm này độc lập với nhau. Một operation có thể an toàn theo HTTP nhưng không 
+idempotent theo nghĩa hệ thống, hoặc có thể idempotent nhưng không atomic nếu effect 
+bị phân mảnh. Vì vậy, phân biệt semantics là cách duy nhất để xác định yêu cầu thiết kế 
+đúng khi xử lý retry, event replay, hoặc trong workflow event-driven.
+
+Dưới đây là **Message 2/3 — Bảng so sánh + 3 tình huống gây nhầm lẫn** trong Mục 3.
+Giữ đúng giọng O’Reilly Technical Clarity.
+
+#### Bảng so sánh bốn semantics
+
+Bảng dưới đây cho thấy sự khác biệt sâu giữa bốn ngữ nghĩa. Mỗi dòng mô tả đúng trọng tâm 
+mà hệ thống cần quan sát khi đánh giá một operation trong môi trường có retry.
+
+| Thuộc tính      | Định nghĩa chính                         | Liên quan state? | Liên quan effect? | Có đảm bảo an toàn khi retry? | Ghi chú hệ thống                                                 |
+| --------------- | ---------------------------------------- | ---------------- | ----------------- | ----------------------------- | ---------------------------------------------------------------- |
+| **Repeatable**  | N lần chạy → cùng output                 | Không            | Gián tiếp         | Không                         | Output ổn định nhưng effect có thể thay đổi.                     |
+| **Safe (HTTP)** | Không tạo effect destructive (theo spec) | Không            | Không bắt buộc    | Không                         | Safe chỉ là “intent” của method, không ràng buộc implementation. |
+| **Atomic**      | Không quan sát partial state             | Có               | Không             | Không                         | Atomicity không kiểm soát số lần mutation xảy ra.                |
+| **Idempotent**  | N lần chạy → effect cuối không đổi       | Có               | Có                | Có                            | Tập trung vào effect, không phụ thuộc HTTP verb.                 |
+
+Điểm quan trọng: **chỉ “idempotent” mô tả boundary đúng khi retry xảy ra**. Ba semantics 
+còn lại giải quyết vấn đề khác và không thay thế nhau.
+
+#### Ba tình huống thực tế gây nhầm lẫn
+
+##### 1. Repeatable nhưng không idempotent
+
+Một API GET /recommendations có thể trả về cùng một danh sách đề xuất khi dữ liệu nền không 
+đổi. Output ổn định nên operation được xem là repeatable. Tuy nhiên, nếu endpoint ghi log 
+“view” mỗi lần được truy cập, việc retry GET sẽ làm tăng số lần ghi log. 
+Operation không idempotent dù output giống nhau.
+
+**Nhầm lẫn thường gặp:** nhiều hệ thống xem “output giống nhau” là đủ, nhưng effect mới là 
+thứ gây lỗi.
+
+##### 2. Safe theo HTTP nhưng không idempotent trong hệ thống
+
+DELETE theo RFC được xem là idempotent vì xóa một tài nguyên hai lần không thay đổi kết quả. 
+Tuy nhiên, nếu implementation kích hoạt cleanup cascade (xóa ảnh, xóa token) hoặc gửi email 
+thông báo mỗi lần DELETE được nhận, retry sẽ gây ra effect lặp.
+
+**Nguyên nhân:** safe chỉ mô tả mô hình giao thức, không mô tả effect thực tế.
+
+##### 3. Atomic nhưng không idempotent
+
+Một thao tác “INSERT INTO payments …” được gói trong transaction đảm bảo atomicity: chỉ 
+commit full hoặc rollback. Tuy nhiên, nếu client bị timeout trước khi nhận được response và 
+retry, database sẽ thực thi lại INSERT. Kết quả là hai bản ghi thanh toán được tạo, dù từng 
+lần đều atomic nhưng effect khác nhau.
+
+**Lỗi nhận thức phổ biến:** “có transaction = idempotent”.
+Trên thực tế: **atomicity giải quyết partial-state, không giải quyết retry-state**.
+
+#### Unified Framework & lý do phân tách các ngữ nghĩa là bắt buộc
+
+Bốn ngữ nghĩa — repeatable, safe, atomic, idempotent — không thể thay thế lẫn nhau vì mỗi 
+thuộc tính mô tả một tầng khác nhau trong lifecycle của một operation. Khi nhìn một action 
+trong hệ thống phân tán, cần đánh giá nó qua cả bốn lăng kính để tránh nhầm lẫn. Mỗi lăng 
+kính chỉ trả lời một câu hỏi riêng, và chỉ idempotency mới mô tả đặc tính an toàn dưới retry.
+
+**Repeatable** trả lời câu hỏi: *output có ổn định dưới điều kiện lý tưởng?*
+Thuộc tính này không cung cấp bất kỳ đảm bảo nào khi state bị mutation. Nó hữu ích trong 
+kiểm thử hoặc trong thiết kế API cần output predictable, nhưng không giải quyết vấn đề 
+correctness dưới nhiều lần thực thi.
+
+**Safe** trả lời câu hỏi: *từ góc nhìn giao thức, request có được xem là không gây thay đổi 
+phá hủy không?*
+Đây là thuộc tính của HTTP verb. Hệ thống thực tế có thể không tuân theo intent của giao thức, 
+vì vậy safe không thể làm cơ sở cho suy luận về effect.
+
+**Atomic** trả lời câu hỏi: *có trạng thái trung gian nào bị lộ ra trong quá trình mutation không?*
+Atomicity giải quyết visibility của state, nhưng không quyết định việc mutation xảy ra bao 
+nhiêu lần. Khi retry xuất hiện, một action atomic vẫn có thể nhân đôi effect.
+
+**Idempotent** trả lời câu hỏi quan trọng nhất:
+*Sau n lần thực thi trong cùng điều kiện state ban đầu, effect cuối cùng có tương đương với 
+một lần thực thi không?*
+Thuộc tính này là duy nhất đủ sức mô tả hành vi của operation trong môi trường có retry,
+reprocessing, hoặc network loss. Vì vậy nó trở thành nền tảng của correctness trong toàn bộ 
+thế giới at-least-once (ít nhất một lần).
+
+Trong phần còn lại của series, mọi ví dụ và pattern đều quay về khung phân tích unified này:
+
+1. **Output semantics** – repeatable
+2. **Protocol intent** – safe
+3. **Visibility semantics** – atomic
+4. **Effect semantics** – idempotent
+
+Phân tách bốn lớp giúp tránh nhầm lẫn thường gặp như “có transaction thì sẽ không 
+double-effect” hoặc “DELETE luôn idempotent”. Khi một operation được đánh giá rõ trên từng 
+trục, hệ thống mới có thể dự đoán hành vi của nó dưới retry và bảo toàn correctness.
+
+Kết luận của mục này: idempotency phải được xem như *effect discipline*. Nó không phụ 
+thuộc vào HTTP verb, không tự sinh ra từ transaction, và không phải là thuộc tính của output. 
+Khi các semantics được phân tách rõ ràng, đội phát triển có thể xác định chính xác điểm cần 
+bảo vệ trong một operation và chuẩn bị cho bước tiếp theo: **định hình state-machine**, 
+nền tảng duy nhất để prove idempotency một cách formal trong Part 2.
+
+### 4. Các hiểu lầm làm hỏng hệ thống thực tế
+
+Các hệ thống phân tán thường gặp lỗi không phải vì thiếu cơ chế kỹ thuật, mà vì ngộ 
+nhận về semantics (ngữ nghĩa). Idempotency là nơi các hiểu lầm này gây thiệt hại trực 
+tiếp: double payment, duplicate email, inconsistent state, hoặc logic bị kích hoạt nhiều lần. 
+Việc phân tích từng ngộ nhận cho thấy vấn đề không nằm ở công nghệ mà nằm ở cách đánh giá effect.
+
+#### Ngộ nhận 1: “Idempotency = insert-if-not-exists.”
+
+Một số hệ thống dùng `INSERT ... ON CONFLICT DO NOTHING` hoặc `INSERT IF NOT EXISTS` 
+như cách để đảm bảo idempotency. Cách làm này *chỉ phù hợp cho write-once record* và không 
+bao phủ các dạng effect khác. Idempotency yêu cầu kiểm soát toàn bộ effect cuối cùng, trong 
+khi insert-if-not-exists chỉ kiểm soát việc tạo bản ghi.
+
+Vấn đề xuất hiện khi mutation cần được áp dụng theo state thay đổi. Ví dụ, một API 
+`/orders/{id}/confirm` có thể cần ghi thêm nhiều field khác nhau hoặc thực hiện side-effect. 
+Một "insert-if-not-exists" không đảm bảo operation không chạy lại logic nhiều lần, 
+vì logic có thể có nhiều bước ngoài insert ban đầu.
+
+Do đó, việc equate idempotency với insert-if-not-exists dẫn đến việc bỏ sót nhiều side-effect 
+khác không được bảo vệ.
+
+#### Ngộ nhận 2: “Idempotency-Key = random UUID là xong.”
+
+Idempotency-Key chỉ là một handle để ánh xạ vào state-based semantics. 
+Nếu key là UUID được tạo mới cho mỗi lần request, retry sẽ mang key khác, dẫn đến hai 
+effect độc lập. Vì vậy hệ thống không có bất kỳ idempotent guarantee nào.
+
+Idempotency-Key chỉ có tác dụng khi:
+
+1. Key được caller tái sử dụng khi retry.
+2. Server lưu lại state hoặc effect tương ứng với key đó.
+3. Server tái sử dụng kết quả đã commit hoặc từ chối tạo mới effect.
+
+Nếu thiếu một trong ba điều kiện, key trở thành metadata vô nghĩa.
+Thực tế log cho thấy nhiều hệ thống “đã có idempotency-key” nhưng vẫn double-charge, 
+vì phía client sinh key mới khi timeout. Tính idempotent chưa bao giờ tồn tại.
+
+#### Ngộ nhận 3: “Retry = làm lại từ đầu.”
+
+Nhiều developer mặc định rằng retry nghĩa là “thực hiện lại như lần đầu”, 
+nhưng giả định này vô hiệu trong môi trường phân tán. Khi retry được kích hoạt, state có thể 
+đã thay đổi. Có thể effect đã được commit, chỉ response bị mất. Có thể một step của workflow 
+đã chạy xong còn step khác chưa.
+
+Do đó, retry không thể xem là "re-run from initial state".
+Retry phải được xem là "re-run from *unknown* state", nơi only-safe property là idempotency. 
+Logic phải dựa vào current state chứ không phải dựa vào assumption về những gì đã xảy ra 
+trong lần trước.
+
+#### Ngộ nhận 4: “Nếu dùng transaction thì tự idempotent.”
+
+Transaction đảm bảo không có partial-write nhưng không kiểm soát số lần mutation 
+được thực thi. Khi transaction commit thành công nhưng response bị mất trên đường, caller 
+sẽ retry. Database sẽ thực thi mutation lần nữa trong một transaction hoàn toàn hợp lệ.
+
+Vì vậy transaction giải quyết atomicity, không giải quyết idempotency.
+Sự nhầm lẫn này là nguyên nhân phổ biến của duplicate orders, double payment hoặc record 
+bị ghi nhiều lần.
+
+#### Ngộ nhận 5: “Idempotent ở service A ⇒ idempotent ở system-level.”
+
+Idempotency phải được đánh giá theo *effect boundary*. Một service có thể idempotent 
+trong nội bộ, nhưng khi effect lan ra các subsystem khác (queue, event bus, external API), 
+toàn bộ chain không còn giữ thuộc tính idempotent.
+
+Ví dụ thường gặp:
+
+* Service A xử lý idempotent.
+* Nhưng nó phát ra event `PaymentConfirmed`.
+* Consumer xử lý event không idempotent.
+* Khi event được replay, hệ thống tạo thêm credit, thêm reward, hoặc cập nhật inventory sai.
+
+System-level idempotency đòi hỏi mỗi effect trong chain phải idempotent, không chỉ một service 
+đơn lẻ.
+
+#### Biểu hiện lỗi trong môi trường thực tế
+
+Các ngộ nhận ở phần trước dẫn đến nhiều failure pattern đặc trưng. 
+Mỗi pattern đều phản ánh điểm chung: hệ thống không định nghĩa rõ effect boundary và không 
+xem retry như một phần tất yếu của môi trường chạy.
+
+**1. Double-effect trong payment hoặc billing**
+Log thường xuất hiện hai bản ghi thanh toán có cùng payload nhưng khác request-id hoặc 
+có cùng idempotency-key nhưng được xử lý bởi hai worker khác nhau. Các hệ thống bị autoscale 
+hoặc worker restart giữa chừng dễ tạo ra hành vi này. Sự cố lặp effect thường chỉ được phát 
+hiện khi reconciliation chạy vào cuối ngày (tính toán lại số dư).
+
+**2. Duplicate notification hoặc email**
+Consumer nhận cùng một event từ queue nhiều lần. Nếu consumer không idempotent, hệ 
+thống tạo ra email trùng lặp hoặc gửi nhiều thông báo trong cùng một phút. Đây là hậu quả 
+của ngộ nhận “retry là edge case” trong các service đọc event.
+
+**3. Sai lệch dữ liệu khi profile update**
+Khi một API update thiếu state-check, retry có thể áp dụng mutation dựa trên snapshot cũ. 
+Ví dụ: field bị overwrite bởi giá trị cũ do retry không dựa vào current state. Nhiều hệ thống 
+CRM gặp issue này khi load balancer retry trong thời điểm database replication lag.
+
+**4. Phantom commit trong queue processing**
+Worker xử lý message, commit effect vào database, nhưng crash ngay trước lúc gửi ACK. Queue 
+sẽ redeliver message, worker mới chạy lại logic. Effect được áp dụng hai lần dù database 
+đảm bảo transaction. Đây là dạng failure phổ biến trong hệ thống không triển khai idempotent 
+consumer.
+
+**5. Inconsistent chain effect trong microservices**
+Một service upstream xử lý idempotent nhưng downstream không. Khi event được replay hoặc 
+retry, chỉ một phần của workflow giữ được tính idempotent, khiến dữ liệu giữa các service 
+lệch nhau. Khi làm postmortem, trace thường dừng lại tại điểm “event replay nhưng consumer 
+không idempotent”.
+
+Các hệ thống dễ gặp lỗi idempotency thường xuất hiện các dấu hiệu sau:
+
+* Nhiều bản ghi gần giống nhau trong database với timestamp sát nhau.
+* Caller log báo timeout nhưng server log báo thành công.
+* Queue có nhiều redelivery spike không rõ nguyên nhân.
+* Event bus xuất hiện replay từ offset cũ nhưng consumer logic không chịu được.
+* Kết quả của job batch khác nhau giữa các lần chạy dù input không đổi.
+
+Những tín hiệu này phản ánh việc design đang dựa vào assumption “call once”, 
+trong khi hệ thống thực tế vận hành theo “call as many times as needed”.
+
+#### Architectural drift từ những ngộ nhận ban đầu
+
+Một vấn đề khó thấy hơn là **drift về kiến trúc**. Khi idempotency bị hiểu sai,
+team thường thêm code phòng thủ theo kiểu ad-hoc:
+
+* Thêm cờ “processed = true” trong nhiều bảng nhưng không prove được semantics.
+* Thêm sleep hoặc delay để “tránh chạy lại cùng lúc”.
+* Thêm điều kiện "if exists then skip" mà không xác định state effect đầy đủ.
+* Tăng timeout thay vì xử lý retry.
+* Tối ưu bằng caching theo request-id mà không đảm bảo state consistency.
+
+Những kỹ thuật này làm architecture trở nên opaque và khó bảo trì. Chúng giải quyết 
+triệu chứng mà không xử lý nguyên nhân: effect không có boundary rõ.
+
+Các ngộ nhận về idempotency dẫn đến cả lỗi visible (double payment) lẫn lỗi invisible 
+(state lệch trong workflow). Khi không phân biệt semantics và không phân tích đúng effect, 
+hệ thống dễ trở nên khó đoán. Các failure pattern cho thấy một sự thật: thiết kế không bao 
+giờ được dựa trên assumption rằng action chỉ chạy một lần.
+
+Từ mục này, người học có đủ nền để sang mục tiếp theo:
+**Mục 5 – Giải phẫu một operation không idempotent**, nơi ta sẽ giải phẫu chi tiết 
+tại sao double-effect xảy ra và cấu trúc effect timeline của một operation không idempotent.
+
+### 5. Giải phẩu một operation không idempotent
+
+Một operation trở thành non-idempotent khi effect của nó phụ thuộc vào số lần 
+thực thi thay vì phụ thuộc vào state ban đầu. Phân tích cấu trúc của một action gây 
+double-effect cho phép nhận diện chính xác điểm yếu trong flow xử lý. Điều này đặc biệt 
+quan trọng vì nhiều lỗi không xuất hiện khi chạy một lần, mà chỉ xuất hiện khi môi trường 
+vận hành buộc hệ thống xử lý cùng một yêu cầu nhiều lần.
+
+Bốn nhóm lỗi sau đại diện cho phần lớn sự cố do thiếu idempotency trong hệ thống thực tế.
+
+#### 1. Double charge trong xử lý thanh toán
+
+Double charge là hậu quả của việc xử lý một yêu cầu thanh toán mà caller không biết 
+trạng thái thực sự của lần thực thi trước. Khi server commit giao dịch vào payment gateway 
+nhưng response bị mất, client sẽ retry. Gateway nhận thêm yêu cầu và thực thi một lần nữa.
+
+##### Cơ chế thất bại
+
+1. Client gửi yêu cầu thanh toán.
+2. Server thực thi mutation: debit hoặc create charge.
+3. Response bị mất hoặc timeout tại caller.
+4. Client retry với payload tương tự.
+5. Gateway hoặc internal logic tạo thêm một charge độc lập.
+
+##### Điểm gây double-effect
+
+Double-effect xuất hiện ở bước **client retry** khi không có binding giữa request và 
+effect đã commit. Không có idempotency-key hoặc key không được server kết hợp với state, 
+nên mỗi request được xem là độc lập.
+
+##### Tác động quan sát
+
+* Hai bản ghi charge trong gateway.
+* Hai dòng hạch toán trong internal ledger.
+* Reconciliation mismatch vào cuối ngày.
+
+Action này cho thấy một pattern: *effect đã commit nhưng caller không nhận được 
+acknowledgment* là nguyên nhân phổ biến nhất của non-idempotent payment.
+
+#### 2. Double message trong hệ thống notification
+
+Một notification system thường xử lý event-triggered messages: email, SMS, push notification. 
+Khi worker xử lý một event và crash trước khi ACK với message broker, broker sẽ redeliver 
+message. Nếu worker không idempotent, nội dung được gửi thêm lần nữa.
+
+##### Cơ chế thất bại
+
+1. Worker nhận message từ queue.
+2. Worker gửi email/push và side-effect xảy ra.
+3. Worker crash hoặc timeout trước khi ACK.
+4. Queue redeliver message cho worker khác.
+5. Worker mới gửi lại một email/push thứ hai.
+
+##### Điểm gây double-effect
+
+Double-effect xảy ra **giữa điểm commit effect** (email đã gửi) và **điểm ACK** (broker 
+chưa biết). Không có dedup guard hoặc không lưu trace của effect đã thực hiện.
+
+##### Tác động quan sát
+
+* Người dùng nhận hai email/push giống nhau.
+* Log hiển thị hai luồng xử lý giống nhau bởi hai worker.
+* SLA của notification tăng nhưng chất lượng giảm.
+
+#### 3. Overwrite sai trong profile update
+
+Một API update state mà không kiểm tra phiên bản hoặc không dựa vào current state có 
+thể gây ghi đè dữ liệu sai nếu retry được thực hiện với payload cũ. Đây là dạng lỗi phổ 
+biến trong hệ thống CRUD.
+
+##### Cơ chế thất bại
+
+1. Client gửi PATCH /profile với payload A.
+2. Server áp dụng mutation lên state S₀ → S₁.
+3. Response bị timeout.
+4. Client retry PATCH cùng payload A, nhưng state hiện tại là S₁.
+5. Server áp dụng mutation lần nữa, tạo ra S₂ không mong muốn.
+
+##### Điểm gây double-effect
+
+Mutation không phụ thuộc vào state hiện tại mà chỉ dựa trên payload. Khi payload cũ được áp 
+dụng lên state mới, logic overwrite gây mất dữ liệu.
+
+##### Tác động quan sát
+
+* Field bị revert về giá trị cũ.
+* Ghi đè mất thông tin người dùng đã cập nhật sau lần đầu.
+* “Race condition không rõ nguyên nhân” trong thực tế.
+
+#### 4. Phantom commit trong queue + timeout + retry
+
+Một phantom commit xuất hiện khi effect được commit nhưng actor được hiểu là chưa xử lý xong. 
+Đây là trường hợp đặc biệt trong worker-based processing, nơi ACK và effect không được liên kết 
+chặt.
+
+##### Cơ chế thất bại
+
+1. Worker xử lý message và ghi dữ liệu vào database.
+2. Worker timeout hoặc crash trước ACK.
+3. Queue redeliver message.
+4. Worker xử lý lại — và commit lần thứ hai.
+
+##### Điểm gây double-effect
+
+Double-effect xuất hiện tại **khoảng trống giữa commit và ACK**. Không có mechanism để hệ thống 
+biết rằng effect đã thực hiện, nên phần xử lý lại không được ngăn chặn.
+
+##### Tác động quan sát
+
+* Hai bản ghi trong DB liên quan cùng một event id.
+* Báo cáo batch hoặc thống kê tăng gấp đôi.
+* Hệ thống downstream xử lý duplicated events mà không nhận ra.
+
+#### Effect Timeline Model (5 pha)
+
+Một operation có thể được phân tích theo **timeline 5 pha**, cho phép xác định chính 
+xác điểm mà double-effect có thể phát sinh. Việc mô hình hóa theo timeline giúp team 
+nhìn operation không phải như một lời gọi hàm, mà là một chuỗi trạng thái liên tục với khả 
+năng thất bại ở từng đoạn.
+
+Dưới đây là mô hình chuẩn:
+
+##### Pha 1 — Request Arrival
+
+Hệ thống nhận một yêu cầu từ client hoặc worker.
+Ở pha này, rủi ro nằm ở việc nhận lại yêu cầu nhiều lần từ nhiều nguồn retry. 
+Hệ thống chưa có bất kỳ thông tin nào để phân biệt giữa retry legit và request mới.
+
+**Vấn đề:** không có idempotency-key hoặc không lưu trace → mọi request đều được xem là mới.
+
+##### Pha 2 — Precondition & State Read
+
+Service đọc state hiện tại để quyết định hành động.
+Nếu state không được kiểm tra đúng hoặc logic không phụ thuộc vào current state, retry 
+sẽ có thể áp dụng mutation dựa trên snapshot cũ.
+
+**Vấn đề:** duplicate writes hoặc overwrite sai khi retry dùng payload cũ.
+
+##### Pha 3 — Effect Execution
+
+Mutation được thực thi lên database, gateway, external API hoặc message broker.
+Khi effect ở pha này hoàn tất, state mới đã được commit. Tuy nhiên, caller vẫn chưa 
+nhận được acknowledgment.
+
+**Vấn đề:** nếu effect hoàn tất nhưng ACK không gửi được → caller retry → effect thực thi lần hai.
+
+##### Pha 4 — Acknowledgment
+
+Service gửi phản hồi cho caller hoặc ACK cho message broker.
+Đây là điểm giao nhau giữa logic ứng dụng và lưới truyền thông. Bất kỳ sự cố mất gói, 
+timeout, hoặc crash nào đều khiến caller không biết rằng effect đã tồn tại.
+
+**Vấn đề:** caller xem operation thất bại, trong khi effect đã commit.
+
+##### Pha 5 — Completion / Cleanup
+
+System thực hiện cleanup hoặc side-effect bổ sung (audit log, cascade update).
+Nếu retry xảy ra sau pha này mà logic cleanup không idempotent, các side-effect sẽ sinh 
+thêm nhiều lần.
+
+**Vấn đề:** dup log, dup events, hoặc cascade run lại.
+
+#### Điểm rủi ro chính trên timeline
+
+Khi đánh giá một operation, chỉ cần nhìn ba điểm sau để phát hiện non-idempotency:
+
+1. **Boundaries không rõ giữa Pha 3 (commit effect) và Pha 4 (ACK).**
+   Mọi lỗi double-effect đều xuất hiện khi effect commit nhưng caller không biết.
+
+2. **Logic của Pha 2 không phụ thuộc vào current state.**
+   Overwrite sai hoặc mutation lặp khi retry áp payload lên state đã thay đổi.
+
+3. **Không có trace or guard ở Pha 1.**
+   Hệ thống thiếu cơ chế nhận biết retry → mỗi request được coi như mới.
+
+Một operation không-idempotent thường có ít nhất một trong ba vấn đề này.
+Một operation idempotent *phải* giải quyết cả ba.
+
+Non-idempotency không phải là tính chất của một đoạn code, mà là kết quả của cách vận hành 
+timeline effect. Khi timeline có khoảng trống giữa commit và acknowledgment hoặc khi logic 
+không dựa vào state, hệ thống sẽ tạo ra double-effect dù business logic hoàn toàn đúng trong 
+lần thực thi đầu tiên.
+
+Việc mô phỏng timeline giúp đội kỹ thuật nhìn rõ:
+
+* Nơi effect thực sự xảy ra
+* Nơi state trở nên không còn phù hợp
+* Nơi retry trở thành rủi ro thay vì cơ chế bình thường
+* Nơi cần đặt idempotency guard
+
+Các mục tiếp theo sẽ dùng timeline này như framework nền.
+Trong **Mục 6 – Các tình huống retry phổ biến**, chúng ta sẽ phân tích 6 nguồn retry phổ biến 
+và liên kết chúng lại với các điểm rủi ro trên timeline để thấy vì sao retry không thể bị loại 
+bỏ — chỉ có thể được làm vô hại bởi idempotency.
+
+### 6. The Retry Scenarios: Where Failure Actually Happens
+
+Retry không phải là ngoại lệ; nó là trạng thái vận hành mặc định của hệ thống phân tán. 
+Mỗi lớp trong kiến trúc có thể kích hoạt retry vì những lý do khác nhau, ở những thời điểm 
+khác nhau, và trong những điều kiện state không đồng nhất. Khi một operation không được thiết 
+kế để chịu retry, hệ quả không chỉ là duplicated request mà là double-effect, inconsistent 
+state, hoặc workflow bị kích hoạt lại không mong muốn.
+
+Phân tích dưới đây mô tả **6 nguồn retry phổ biến** và liên kết chúng với **Effect Timeline 
+Model** để làm rõ vị trí mà failure thực tế xuất hiện.
+
+#### 1. Client Retry
+
+Client retry là nguồn phổ biến nhất. Khi timeout xảy ra, client không thể biết liệu operation 
+đã commit hay chưa. Vì HTTP không cung cấp cơ chế xác nhận cuối cùng, client mặc định thực thi 
+lại yêu cầu.
+
+##### Cơ chế kích hoạt
+
+* Timeout khi chờ response
+* Mất kết nối
+* Retry logic trong SDK
+* Người dùng nhấn nút “submit” lần thứ hai
+
+##### Điểm rủi ro trên timeline
+
+Rủi ro nằm ở khoảng **sau pha 3 (commit effect)** nhưng **client không nhận được ACK**.
+Khi retry gửi lại payload giống lần đầu, server có thể thực thi lại mutation.
+
+##### Failure pattern thường gặp
+
+* Double charge
+* Duplicate order creation
+* Profile overwrite từ payload cũ
+
+#### 2. Load Balancer / Gateway Retry
+
+Nhiều load balancer và API gateway (Envoy, NGINX, HAProxy) được cấu hình retry một cách tự 
+động khi upstream timeout hoặc connection reset. Hệ thống upstream có thể đã commit effect 
+nhưng gateway không nhận được phản hồi đúng hạn.
+
+##### Cơ chế kích hoạt
+
+* 5xx tạm thời
+* Upstream slow response
+* Connection reset ở bước flush response
+
+##### Điểm rủi ro trên timeline
+
+LB retry xảy ra khi **effect đã được apply nhưng response không đến gateway**.
+Trong nhiều hệ thống, developer không ý thức được điều này vì retry là implicit.
+
+##### Failure pattern thường gặp
+
+* API tưởng không có retry nhưng thực ra có
+* Mutation chạy lại vì upstream không phân biệt request
+
+#### 3. Worker Retry (Job execution)
+
+Worker trong các hệ thống task runner luôn có khả năng retry task khi crash, timeout hoặc 
+khi bị kill bởi autoscaler. Worker không biết state đã commit lần trước; nó chỉ biết task 
+chưa được "acknowledged".
+
+##### Cơ chế kích hoạt
+
+* Worker crash
+* OOM
+* Autoscaler kill instance
+* Deadline exceeded
+
+##### Điểm rủi ro trên timeline
+
+Rủi ro xảy ra khi effect ở **pha 3** đã commit nhưng worker chưa update job-run state hoặc 
+chưa report completion.
+
+##### Failure pattern thường gặp
+
+* Duplicate invoice
+* Duplicate credit calculation
+* Nhiều artifact build từ cùng một job
+
+#### 4. Scheduler Retry
+
+Cron, workflow engine, và trigger-based scheduler có thể phát lại job vì drift thời gian hoặc 
+missed execution. Nhiều hệ thống không idempotent ở layer scheduler vì xem job là “run-once”.
+
+##### Cơ chế kích hoạt
+
+* Scheduler bị pause rồi resume
+* Missed schedule được re-run
+* Leader election thay đổi → job chạy lại
+
+##### Điểm rủi ro trên timeline
+
+Rủi ro nằm ở **Pha 1 (request arrival)** vì scheduler không phân biệt lần chạy cũ và lần chạy 
+mới; chỉ biết job đến hạn.
+
+##### Failure pattern thường gặp
+
+* Gửi email marketing hai lần
+* Recompute số liệu hàng ngày → tăng gấp đôi
+* Regenerate event snapshot chồng lên dữ liệu cũ
+
+#### 5. Queue Redelivery
+
+Queue như RabbitMQ, Kafka, SQS, Redis Stream đều hoạt động theo mô hình at-least-once delivery. 
+Khi consumer không ack, message sẽ bị redeliver. Đây là một trong những nguồn tạo retry mạnh nhất.
+
+##### Cơ chế kích hoạt
+
+* Consumer crash
+* Timeout ack
+* Partition rebalance (Kafka)
+* Visibility timeout (SQS)
+
+##### Điểm rủi ro trên timeline
+
+Rủi ro nằm ở **khoảng commit-before-ack**, giống các case phantom commit trong Mục 5.
+
+##### Failure pattern thường gặp
+
+* Event xử lý hai lần → reward, inventory, credit bị tăng thêm
+* Notification gửi hai lần
+* Workflow step bị kích hoạt lại
+
+#### 6. Event Replay (intentional or unintentional)
+
+Event replay xuất hiện khi:
+
+* Reprocess từ offset cũ
+* Restore data từ backup
+* Rebuild projection
+* Debug hoặc audit
+
+Replay là hành động cố ý nhưng nếu consumer không idempotent, hệ thống sẽ tạo ra state sai 
+nghiêm trọng.
+
+##### Cơ chế kích hoạt
+
+* Developer chạy replay để rebuild index
+* Ops replay partition để fix inconsistency
+* Autoscaler load lại chunk event cũ
+
+##### Điểm rủi ro trên timeline
+
+Rủi ro nằm ở **Pha 1**, nhưng nghiêm trọng hơn các loại retry khác vì số lượng event có t
+hể rất lớn.
+
+##### Failure pattern thường gặp
+
+* Duplicate reward point
+* Double inventory deduction
+* Rebuild wrong snapshot
+
+#### Loss-of-Response Timeline Diagram
+
+Dưới đây là chuỗi thời gian tối giản mô tả trường hợp phổ biến nhất: **effect đã thực 
+thi thành công, nhưng acknowledgment không đến caller**, dẫn đến retry.
+
+* **T0 — Request Arrival:** Service nhận request và parse payload.
+* **T1 — State Read:** Service đọc state S₀ và chuẩn bị mutation.
+* **T2 — Effect Execution:** Mutation được commit thành công → state chuyển sang S₁.
+* **T3 — Response Construct:** Service tạo response nhưng chưa gửi.
+* **T4 — Response Loss:** Network reset, gateway timeout hoặc client đóng kết nối trước khi nhận response.
+* **T5 — Client Retry:** Client không biết S₁ đã tồn tại → gửi request lần nữa với payload giống T0.
+* **T6 — Second Effect:** Service xử lý lại operation, lần này dựa trên S₁ → tạo effect mới (double-effect).
+
+Điều cần nhấn mạnh: **mọi hệ thống phân tán đều có thể gặp loss-of-response**. Không có 
+giao thức nào đảm bảo vận chuyển ACK một cách tuyệt đối. Vì vậy retry xảy ra ngay cả khi 
+service hoạt động đúng.
+
+#### Vì sao retry không thể bị loại bỏ
+
+Retry xuất hiện vì ba đặc tính cố hữu của môi trường phân tán:
+
+1. **Network Unreliability:** Không có đường truyền TCP/HTTP nào đảm bảo phản hồi luôn đến đích.
+2. **Process Failure:** Worker, node, pod, container có thể crash bất cứ lúc nào.
+3. **Concurrency & Scheduling:** Redelivery, rebalance, timeout là cơ chế mặc định của event processing.
+
+Vì ba đặc tính này không thể loại bỏ, retry trở thành nền tảng vận hành. Mọi hệ thống hướng 
+tới correctness phải chọn một trong hai:
+
+* không chịu được retry → sai;
+* hoặc **idempotent** → đúng bất kể retry.
+
+#### Unified Retry Risk Model
+
+Nếu ghép toàn bộ retry sources vào Effect Timeline Model, có thể biểu diễn một cách thống 
+nhất hàng nghìn failure case vào ba điểm rủi ro chính:
+
+##### R1 — Retry trước khi effect commit (Pha 1 hoặc đầu Pha 2)
+
+* Scheduler duplicate run
+* Client double submit
+* Event replay cố ý
+  **Rủi ro:** logic chạy hai lần trên cùng state → overwrite sai hoặc mutation lặp.
+
+##### R2 — Retry sau khi effect commit nhưng trước ACK (Pha 3 → Pha 4)
+
+* Client timeout
+* Load balancer retry
+* Worker crash trước ACK
+  **Rủi ro:** double-effect do caller không biết state đã thay đổi.
+
+##### R3 — Retry với số lượng lớn (mass replay hoặc redelivery spike)
+
+* Rebuild projection
+* Kafka consumer rebalance
+* Partial restore hoặc recovery
+  **Rủi ro:** state drift nghiêm trọng vì effect không idempotent theo event-id.
+
+Mọi retry scenario trong hệ thống phân tán đều quy về R1, R2 hoặc R3.
+Idempotency-patterns ở các phần sau sẽ liên kết trực tiếp với ba nhóm rủi ro này.
+
+Sáu nguồn retry và unified risk model cho thấy retry không phải là hành vi phụ, mà là trục 
+chính trong reasoning của bất kỳ operation nào. Khi thiết kế một action, không thể hỏi "nếu 
+retry thì sao?" mà phải mặc định rằng retry sẽ xảy ra nhiều lần ở nhiều dạng khác nhau.
+
+Khi operation không đảm bảo idempotent effect, mọi retry đều có rủi ro:
+
+* R1 → overwrite sai
+* R2 → double-effect
+* R3 → state drift toàn hệ thống
+
+Những kết luận này dẫn trực tiếp tới mục tiếp theo — nơi cần chuyển từ việc nhận diện rủi 
+ro sang một mô hình tư duy formal:
+
+**Mục 7 — The Mental Model: Effect Windows & State Freeze.**
+
+Tư duy này sẽ trở thành nền để thiết kế idempotency bằng state-machine trong Part 2.
+
+### 7. The Mental Model: Effect Windows & State Freeze
+
+Idempotency không thể được thiết kế đúng nếu hệ thống không hiểu chính xác hai khái niệm: 
+**Effect Window** và **State Freeze**. Đây là hai nền tảng để mô hình hóa operation dưới 
+góc nhìn state transition, tránh hiểu idempotency như một "trick" dựa vào idempotency-key 
+hay transaction.
+
+Effect Window mô tả khoảng thời gian mà mutation có thể sinh ra effect không mong muốn khi 
+retry xảy ra. State Freeze mô tả cách hệ thống giữ "ý định ban đầu" của operation để mọi 
+retry đều quy về cùng một effect duy nhất. Hai khái niệm này trở thành trục phân tích trong 
+mọi pattern của Part 2.
+
+#### 1. Effect Window — Khoảng thời gian mà effect có thể bị nhân đôi
+
+Effect Window là khoảng thời gian từ lúc operation nhận request đến khi hệ thống ghi nhận 
+effect cuối cùng và cập nhật state nhất quán. Trong thời gian này, bất kỳ retry nào cũng có 
+khả năng sinh ra effect lặp.
+
+Nói cách khác: **Effect Window là thời đoạn mà operation chưa trở nên idempotent.**
+
+##### Phân rã Effect Window theo timeline
+
+Dựa trên Effect Timeline Model (Mục 5), Effect Window thuộc phạm vi:
+
+* **Pha 1:** retry đến quá sớm → logic chạy lại từ snapshot cũ
+* **Pha 2:** state-read chưa được “freeze” → retry áp logic lên state đã thay đổi
+* **Pha 3:** effect đã commit nhưng caller không biết → retry kích hoạt effect lần hai
+* **Pha 4:** ACK bị mất → system cho rằng operation chưa hoàn tất
+* **Pha 5:** side-effect post-processing chạy lại khi retry
+
+Trong mọi case double-effect đã phân tích, failure đều xảy ra **bên trong Effect Window**.
+
+##### Đặc tính của Effect Window
+
+* Bắt đầu khi request xuất hiện
+* Kết thúc khi system có thể đảm bảo rằng mọi retry sẽ không sinh ra effect mới
+* Phụ thuộc vào semantics của operation, không phụ thuộc HTTP verb
+
+##### Hệ quả
+
+Muốn thiết kế idempotency, phải:
+
+1. xác định rõ Window của từng operation,
+2. đặt guard sao cho mọi retry trong Window đều trở nên vô hại.
+
+Khi Window không được mô tả rõ, team chỉ có thể lấp khoảng trống bằng code ad-hoc.
+
+#### 2. State Freeze — Giữ nguyên "ý định hiệu ứng" của operation
+
+State Freeze là cơ chế đảm bảo rằng mọi retry liên quan đến cùng một operation đều được 
+liên kết với cùng một **effect-intent**. Khi Freeze được áp dụng, server không dựa vào 
+state hiện tại để quyết định effect, mà dựa vào state-intent đã được gắn với operation ngay 
+lần đầu.
+
+##### Tại sao cần State Freeze?
+
+Không có Freeze, bất kỳ retry nào cũng sẽ dựa vào current state thay vì state ban đầu. Điều này cực kỳ nguy hiểm:
+
+* state có thể đã bị mutation bởi lần thực thi trước
+* state có thể đã thay đổi bởi tác nhân khác
+* current state có thể không còn tương ứng với ý định ban đầu
+
+Điều này dẫn đến pattern phổ biến:
+**retry áp dụng mutation cũ lên state mới → overwrite hoặc double-write.**
+
+##### Cơ chế State Freeze trong hệ thống thực tế
+
+Freeze có thể được thực hiện theo ba cách:
+
+1. **Freeze intent:** gắn idempotency-key → mọi retry ánh xạ vào cùng một intent.
+2. **Freeze state snapshot:** lưu lại state S₀ hoặc token version S₀.version.
+3. **Freeze effect:** ghi nhận effect E₀ để mọi retry phục vụ E₀, không chạy lại logic.
+
+State Freeze không yêu cầu hệ thống giữ toàn bộ state; chỉ cần giữ *đủ thông tin* để đảm bảo retry không sinh ra effect mới.
+
+#### 3. Mối liên hệ: Effect Window → State Freeze → Idempotent Effect
+
+Idempotency là kết quả của:
+
+1. **Nhận diện đúng Effect Window**, nơi effect có thể bị nhân đôi.
+2. **Áp dụng State Freeze** để mọi retry trong Window đều cố định vào cùng một effect-intent.
+3. **Kết thúc Effect Window** bằng cách commit effect và ACK trong một boundary rõ.
+
+Khi hệ thống hiểu sâu hai khái niệm này, idempotency không còn là trick ở tầng API mà trở 
+thành discipline ở tầng state semantics.
+
+#### 4. Effect Boundary — Điểm hệ thống “chốt” effect và đóng cửa Window
+
+Effect Window mô tả khoảng thời gian mà effect có thể bị nhân đôi.
+**Effect Boundary** mô tả **thời điểm và điều kiện** để Window kết thúc.
+
+Boundary phải đáp ứng hai yêu cầu:
+
+1. **Only one effect will exist**: hệ thống chắc chắn rằng effect đã được commit.
+2. **Every retry maps to the same effect**: mọi retry không thể sinh ra effect mới.
+
+Một operation chỉ an toàn khi Effect Window kết thúc ở một boundary có thể chứng minh được.
+
+##### Một số dạng Effect Boundary phổ biến
+
+* **Persistence boundary**: ghi vào một bảng idempotent-tracking hoặc record lock.
+* **Token boundary**: gán phiên bản (version / ETag / sequence number).
+* **Gateway boundary**: trả về response chứa idempotency result.
+* **Event boundary**: phát ra event chỉ khi effect ổn định.
+
+Điểm quan trọng: **ACK không phải boundary**, vì ACK chỉ phản ánh tình trạng truyền nhận, 
+không phản ánh trạng thái effect. Boundary phải dựa vào state, không dựa vào network.
+
+#### 5. Mapping Effect Window → Unified Retry Risks (R1, R2, R3)
+
+Dựa trên Unified Retry Model (Mục 6), State Freeze + Boundary giúp triệt tiêu từng loại rủi ro:
+
+##### R1 — Retry trước khi effect commit (trong Pha 1–2)
+
+* **Rủi ro:** logic chạy lại, effect phụ thuộc vào snapshot cũ, overwrite sai.
+* **Giải pháp bằng State Freeze:** cố định effect-intent ngay khi nhận request đầu tiên.
+* **Boundary:** ghi nhận intent hoặc idempotency record trước mutation.
+
+Khi Freeze tồn tại, mọi retry trong Window đều sử dụng lại effect-intent, logic không chạy 
+lại từ snapshot cũ.
+
+##### R2 — Retry sau khi effect commit nhưng caller không biết (Pha 3–4)
+
+* **Rủi ro:** double-effect do client retry sau loss-of-response.
+* **Giải pháp bằng State Freeze:** khi effect commit xong, retry phải trả về cùng result.
+* **Boundary:** idempotency-key binding → effect chỉ commit một lần, mọi retry trả lại cached result.
+
+Điểm này mô tả rất rõ: **Freeze vô hiệu hóa entire Pha 3–4 risk**.
+
+##### R3 — Mass replay hoặc redelivery spike
+
+* **Rủi ro:** effect lặp hàng loạt, gây state drift trên toàn hệ thống.
+* **Giải pháp bằng Freeze:** consumer lưu effect-id hoặc event-id → mọi lần replay đều no-op.
+* **Boundary:** dedup table, version guard, hoặc state-driven FSM.
+
+Áp dụng Freeze tại event-level giúp consumer trở thành idempotent bản chất.
+
+Effect Window và State Freeze là nền tảng conceptual của idempotency.
+Chúng cho phép hệ thống chuyển từ mô hình xử lý “run logic mỗi lần request tới” sang mô 
+hình “thực thi logic một lần, và mọi retry ánh xạ về cùng effect”.
+
+**Những điểm cốt lõi cần nắm:**
+
+* Idempotency không thể reasoning ở tầng API hoặc HTTP verb.
+* Tiêu điểm phải đặt vào *effect* — và mọi retry phải quy về cùng effect.
+* Effect Window là vùng rủi ro; State Freeze + Boundary là cơ chế để chốt rủi ro.
+* Ba nhóm rủi ro R1, R2, R3 của thế giới phân tán đều được kiểm soát bởi Freeze.
+* Đây là bước chuyển tự nhiên sang tư duy state-machine — nơi idempotency có thể được "prove" thay vì "cảm giác đúng".
+
+### 8. Case Study 1: Payment Processing Retry
+
+Payment là môi trường lý tưởng để quan sát idempotency vì hệ thống phải xử lý nhiều tác nhân 
+không kiểm soát được: timeout, network loss, gateway delay, fraud-check latency, và user 
+retry. Sai lệch idempotency dẫn tới double charge, reconciliation mismatch và trách nhiệm 
+tài chính. Vì vậy, hầu hết các payment API thực chất là state-machine được thiết kế xoay 
+quanh Effect Window và State Freeze.
+
+Case dưới đây mô tả một flow kiểu Stripe/Adyen — không phụ thuộc vendor — tập trung hoàn toàn 
+vào semantics của effect.
+
+#### 1. Bối cảnh tác vụ
+
+Người dùng nhấn nút "Pay".
+Client gửi request:
+
+```
+POST /payments
+Body: { amount, method, metadata, ... }
+Idempotency-Key: X
+```
+
+Thực tế trong môi trường production có 3 biến cố phổ biến:
+
+1. Request xử lý thành công nhưng response bị mất → user retry.
+2. Gateway chậm → client timeout → retry.
+3. App mobile gửi lại request do mất kết nối tạm thời.
+
+Tất cả đều dẫn đến khả năng **nhiều request tương đương**, do chính user hoặc cơ chế nền tảng 
+tạo ra.
+
+#### 2. Phân tích theo Effect Window
+
+Ta dùng Effect Timeline Model (Mục 5):
+
+1. **Pha 1 — Arrival**: server nhận request với idempotency-key X
+2. **Pha 2 — State Read**: server đọc trạng thái hiện tại của key X
+3. **Pha 3 — Effect Execution**: tạo charge tại gateway, hold tiền hoặc capture
+4. **Pha 4 — ACK**: response gửi về client
+5. **Pha 5 — Completion**: emit event hoặc ghi audit
+
+**Rủi ro** nằm ở đoạn Pha 3–4: charge đã tạo nhưng client không nhận ACK → client retry với cùng payload và có thể gây một charge khác.
+
+Nếu không có Freeze, retry sẽ chạy lại logic thanh toán từ đầu.
+
+#### 3. Khi nào double charge xảy ra?
+
+Double charge xuất hiện khi **effect commit** không được ràng buộc với idempotency-key.
+Cụ thể:
+
+* Request 1: server tạo charge C₁ → gateway trả về `charge_id = CH_xxxx`.
+* Response bị mất (network timeout).
+* Client retry (Request 2) với payload *giống hệt* nhưng key khác hoặc key không được lưu.
+* Server coi đây là request mới → tạo charge C₂.
+
+Lỗi này không xuất phát từ gateway mà từ việc application không map retry vào cùng effect.
+
+#### 4. Chỗ nào cần Idempotency-Key?
+
+Key được sử dụng trong hai bước critical:
+
+##### Bước A — Khi nhận request (Pha 1)
+
+Server kiểm tra xem key X đã từng được dùng chưa:
+
+* Nếu chưa → freeze intent cho X.
+* Nếu đã có → skip logic, trả về kết quả đã lưu từ lần đầu.
+
+Nếu không làm bước này, request thứ hai sẽ chạy logic mới và tạo effect mới.
+
+##### Bước B — Sau khi commit effect (Pha 3)
+
+Khi charge C₁ được tạo, server phải ràng buộc:
+
+```
+idempotency_key X → charge_result C₁
+```
+
+Mọi retry với key X phải trả về C₁, không chạy lại logic.
+
+#### 5. Chỗ nào cần state-machine?
+
+Idempotency-key là chưa đủ.
+Payment flow luôn có nhiều trạng thái như:
+
+* `requires_payment_method`
+* `requires_confirmation`
+* `processing`
+* `succeeded`
+* `failed`
+* `canceled`
+
+Retry không chỉ xảy ra một lần. Retry có thể đến trong bất kỳ trạng thái nào, đặc biệt trong 
+`processing`.
+
+**State-machine giải quyết vấn đề:**
+
+* Nếu state = `processing` → retry trả về “still processing”, không tạo charge mới.
+* Nếu state = `succeeded` → retry trả về kết quả charge thành công.
+* Nếu state = `failed` nhưng idempotency-key còn hiệu lực → retry không được tạo charge khác tùy ý.
+
+State-machine tạo ra *State Freeze Layer*: mọi retry từ cùng intent phải đi qua cùng luồng 
+xử lý.
+
+#### 6. Vì sao hiểu sai semantics gây hậu quả lớn?
+
+Nhiều hệ thống nghĩ rằng:
+
+* “POST không idempotent nên mặc định không xử lý retry.”
+* “Transaction đảm bảo atomic → không double charge.”
+
+Hai giả định đều sai:
+
+* POST có thể được thiết kế thành idempotent bằng effect semantics.
+* Transaction không giúp chống retry. Nếu mất ACK, operation vẫn có thể chạy lại.
+
+Sai lệch này dẫn tới hậu quả:
+
+* Double charge → refund bulk → reconciliation rối
+* Order tạo hai lần → user bị trừ tiền hai lần
+* Downstream event bị nhân đôi → shipping/tracking sai
+
+Payment là domain đòi hỏi correctness tuyệt đối, nên mọi retry-case phải được formalize 
+bằng state+effect.
+
+#### 7. Ba biến thể retry: client, gateway, server
+
+Trong môi trường payment, retry không chỉ phát sinh từ người dùng. Có ba nguồn chính:
+
+##### a. Client retry (user retry hoặc app retry)
+
+* App mobile mất kết nối → gửi lại request khi reconnect
+* Người dùng nhấn nút “Pay” hai lần
+* SDK timeout nhưng gateway xử lý chậm
+
+**Tác động:** payload được gửi lại nguyên vẹn; nếu idempotency-key không giữ nguyên hoặc 
+không được map vào state, server tạo thêm một charge.
+
+##### b. Gateway retry (LB/proxy retry)
+
+Gateway có thể retry ngay cả khi client không chủ động.
+Điều này xảy ra khi gateway không nhận được response từ upstream đúng thời hạn.
+
+**Tác động:** upstream đã commit charge nhưng gateway gửi lại request; server có thể tạo 
+charge thứ hai nếu không freeze effect theo key.
+
+##### c. Server retry (worker/job replay)
+
+Một số hệ thống payment xử lý theo mô hình async:
+
+* confirm → enqueue → worker xử lý → capture
+  Khi worker crash trước khi ACK, queue redeliver task.
+
+**Tác động:** worker chạy lại bước capture → double capture nếu không có idempotent guard.
+
+Ba biến thể nhìn khác nhau nhưng cùng chung một đặc điểm: **retry xảy ra tại các thời điểm 
+không đồng bộ với trạng thái commit của effect**.
+
+#### 8. Full Effect Timeline cho Payment Case
+
+Dưới đây là mô tả đầy đủ của timeline bao gồm cả branches retry.
+Mỗi bước đều liên kết trực tiếp với Effect Window.
+
+##### T0 — Client gửi POST /payments với key X
+
+Request đến server; Window mở.
+
+##### T1 — Server kiểm tra idempotency-key X
+
+* Nếu chưa tồn tại → freeze intent
+* Nếu tồn tại → trả kết quả đã có (idempotent branch)
+
+##### T2 — Server đọc state hiện tại
+
+Nếu charge chưa tạo, tiếp tục.
+
+##### T3 — Server gọi payment gateway → charge C₁ được tạo
+
+Effect thực sự được commit ở đây.
+
+##### T4 — Server lưu mapping: key X → result(C₁)
+
+State Freeze hoàn tất.
+
+##### T5 — Server gửi response
+
+Nếu response đến được client → Window đóng.
+
+##### T6 — Response thất lạc hoặc timeout
+
+Gateway drop, client drop, hoặc network unstable.
+
+##### T7 — Client hoặc gateway retry POST /payments với key X
+
+Server nhận lại request; Window đã đóng tại T4.
+
+##### T8 — Server trả về result(C₁) mà không chạy lại logic Pha 3
+
+Idempotent effect được đảm bảo.
+Retry không tạo thêm charge.
+
+**Điểm quan trọng:**
+Effect Window mở từ T0 đến T4.
+Idempotency chỉ được đảm bảo khi logic ở T1 và T4 tồn tại và đúng semantics.
+
+#### 9. Phân tích failure khi không có Freeze
+
+Nếu hệ thống không ghi nhận effect cho key X tại T4, server sẽ:
+
+* Xem retry như request mới
+* Thực thi lại Pha 3
+* Tạo charge C₂
+
+Hậu quả thực tế:
+
+* Hai charge với cùng amount, cùng metadata
+* Người dùng bị trừ tiền hai lần
+* Reconciliation mismatch cần refund hoặc chargeback
+* Downstream events duplicated → shipping/tracking lệch
+
+Các tổ chức lớn xuất bản rất nhiều incident liên quan đến lỗi này.
+Sai lệch diễn ra không phải vì logic sai, mà vì retry semantics không được formalize.
+
+Case payment cho thấy:
+
+* Idempotency-key là vật mang “intent identity”; nó không tự tạo idempotency.
+* State Freeze là phần cốt lõi bảo đảm effect commit một lần.
+* Effect Window phải đóng bằng một boundary rõ ràng (mapping key → effect).
+* Retry không thể được ngăn chặn; chỉ có thể vô hại hóa.
+* Payment chỉ đúng khi được xem như một state-machine, không phải một function call.
+
+Những lesson này chuẩn bị trực tiếp cho Mục 9, nơi ta phân tích một domain khác: **Webhook 
+Delivery & Reprocessing**, vốn mang bản chất at-least-once và là môi trường giàu retry hơn 
+cả payment.
+
+### 9. Case Study 2: Webhook Delivery & Reprocessing
+
+Webhook được thiết kế theo mô hình **at-least-once**. Nghĩa là bất kỳ event nào cũng có 
+thể được gửi nhiều lần, theo nhiều kênh, với nhiều khoảng thời gian cách nhau. Một consumer 
+không được thiết kế idempotent sẽ chịu hậu quả trực tiếp: duplicate record, incorrect state, 
+hoặc cascade side-effect nhiều lần.
+
+Đặc điểm của webhook là:
+**retry không phải một tình huống đặc biệt mà là cơ chế tiêu chuẩn.**
+Bởi vậy, webhook là case study lý tưởng để thấy vì sao idempotency phải được giải quyết ở 
+tầng *effect semantics*, không ở tầng API hoặc HTTP verb.
+
+#### 1. Bối cảnh hoạt động của một webhook
+
+Một service A (producer) phát ra webhook “order.created” tới service B (consumer).
+Producer theo thiết kế:
+
+* gửi request
+* chờ response 2xx
+* nếu timeout hoặc lỗi → retry
+* nếu vẫn không thành công → retry exponential
+* có thể retry trong nhiều giờ
+
+Không có cam kết exactly-once.
+Không có cơ chế “prevent duplicate”.
+Không có guarantee về thời gian giữa các lần gửi.
+
+Hệ thống downstream phải mặc định rằng **bất kỳ webhook nào cũng có thể được gửi lại**.
+
+#### 2. Nguồn retry trong webhook
+
+Webhook có số lượng retry nhiều hơn nhiều so với payment vì nó chịu đồng thời cả failure từ 
+producer, network và consumer.
+
+##### a. Retry từ producer
+
+* Timeout khi chờ response
+* Consumer overloaded → timeout
+* Consumer trả lỗi 5xx
+* Network disconnect
+
+##### b. Retry từ network
+
+* Loss hoặc duplication ở tầng TCP khi connection reset
+* Proxy/gateway ở giữa tự retry
+
+##### c. Reprocessing từ consumer
+
+* Consumer crash trước khi ghi state
+* Worker restart → event được enqueue lại
+* Manual replay để rebuild state
+
+Điểm chung: **effect có thể được kích hoạt lại bất kể consumer có mong muốn hay không**.
+
+#### 3. Rủi ro effect phổ biến nếu consumer không idempotent
+
+##### a. Duplicate record
+
+Webhook “order.created” được gửi 4 lần → consumer tạo 4 order trong DB.
+
+##### b. Duplicate side-effect
+
+Consumer gửi email “Order confirmed” hai lần, hoặc trừ inventory nhiều lần.
+
+##### c. Incorrect state transition
+
+Consumer áp dụng 4 lần mutation `inventory -= quantity`, trong khi chỉ nên áp dụng một lần.
+
+##### d. Chèn dữ liệu sai khi reprocess
+
+Khi chạy reprocess từ event log để rebuild projection, consumer không nhận biết các event đã xử lý → drift state.
+
+Trong hệ thống thực tế, các lỗi này xuất hiện lặp đi lặp lại và tạo hậu quả cộng dồn.
+
+#### 4. Phân tích Webhook theo Effect Window
+
+Dùng lại Effect Timeline Model:
+
+1. **Pha 1 — Arrival:** consumer nhận webhook
+2. **Pha 2 — State Read:** consumer kiểm tra state hiện tại
+3. **Pha 3 — Effect Execution:** tạo record hoặc update state
+4. **Pha 4 — ACK:** consumer trả response 2xx
+5. **Pha 5 — Completion:** emit event downstream
+
+##### Điểm rủi ro
+
+* Producer retry trước Pha 4 → consumer xử lý nhiều lần
+* Producer retry sau Pha 4 vì mất response → xử lý thêm
+* Consumer crash sau Pha 3 nhưng trước commit hoặc ack → phantom commit
+* Reprocessing kích hoạt Pha 1 nhiều lần → multiple effects nếu không có dedup guard
+
+Webhook là domain mà **mọi Pha trong Window đều có khả năng gây double-effect**.
+
+#### 5. Tại sao “Best Effort Delivery” yêu cầu idempotent consumer
+
+Mô hình webhook đặt gánh nặng correctness lên consumer.
+Producer chỉ thực hiện best effort delivery, không giữ state về webhook đã gửi.
+Không có idempotency-key chính thức, không có tracking chuẩn trong giao thức HTTP.
+
+Do đó chỉ có một cách để đảm bảo correctness:
+
+##### Consumer phải tự trở thành idempotent theo event-id.
+
+Nếu consumer không ràng buộc event-id vào effect, mỗi lần nhận webhook sẽ là một lần mutation 
+mới.
+
+#### 6. Dedup Table — Cơ chế idempotent tối thiểu cho webhook
+
+Consumer phải tự nhận diện event nào đã được xử lý trước đó.
+Cách đơn giản và phổ biến nhất: **Dedup Table**.
+
+##### Semantics chính
+
+Mỗi event có `event_id` duy nhất (do producer phát hành).
+Consumer phải thực hiện ba bước:
+
+1. **Check event_id:** tìm xem event đã xuất hiện trong Dedup Table chưa.
+2. **Nếu chưa:**
+
+   * ghi nhận event_id vào Dedup Table
+   * thực thi effect (tạo order, trừ inventory, v.v.)
+3. **Nếu đã có:**
+
+   * bỏ qua logic
+   * trả ACK 2xx ngay lập tức
+
+##### Đặc điểm quan trọng
+
+* Dedup Table đại diện cho **State Freeze Layer** ở cấp consumer.
+* Guarantee: mọi retry với cùng `event_id` → no-op.
+* Không cần giữ toàn bộ payload, chỉ cần giữ `event_id` + kết quả tối thiểu (nếu cần).
+
+##### Hạn chế
+
+Dedup Table phải được cập nhật **trong cùng transaction** với effect mutation.
+Nếu hai thao tác này tách rời, consumer có thể ghi dedup nhưng chưa commit mutation, hoặc ngược lại → drift state.
+
+#### 7. Mutation Guard Light — Khi state thay đổi phụ thuộc vào event semantics
+
+Có những webhook không chỉ tạo record mới mà còn cập nhật state dựa trên nội dung event.
+Ví dụ: webhook “invoice.overdue” cập nhật trạng thái invoice.
+
+Trong trường hợp này, chỉ lưu event_id là chưa đủ.
+Consumer phải kiểm tra **state visibility** trước khi thực thi mutation.
+
+##### Cơ chế Mutation Guard Light
+
+1. Consumer kiểm tra current state: nếu state đã phản ánh event, bỏ qua.
+2. Nếu state chưa phản ánh event, thực thi mutation.
+3. Ghi nhận event_id vào Dedup Table hoặc history table.
+
+##### Lợi ích
+
+* Mutation được thực hiện chính xác ngay cả khi producer replay toàn bộ event log.
+* Consumer không dựa vào assumption “event chưa xử lý”.
+* Consumer chuyển từ mô hình “run logic mỗi lần nhận event” sang “chỉ thực thi khi state mismatch”.
+
+Mutation Guard Light là nền tảng cho consumer idempotency trong các hệ thống event-driven lớn (Kafka, Kinesis, NATS JetStream).
+
+#### 8. Full Timeline cho webhook duplicate
+
+Mô tả đầy đủ flow khi producer gửi cùng event hai lần:
+
+##### T0 — Producer gửi webhook event_id = E123
+
+Consumer nhận request → Window mở.
+
+##### T1 — Consumer check Dedup Table
+
+`E123` chưa tồn tại → Freeze intent.
+
+##### T2 — Consumer thực thi effect
+
+Tạo order, update inventory, v.v.
+
+##### T3 — Consumer ghi dedup record E123 và commit cùng transaction
+
+Boundary đóng.
+
+##### T4 — Consumer trả response 2xx
+
+Nếu response đến producer → kết thúc.
+
+##### T5 — Response bị mất / timeout
+
+Producer không nhận 2xx → retry.
+
+##### T6 — Producer gửi lại webhook event_id = E123
+
+Consumer nhận lại request → kiểm tra Dedup Table.
+
+##### T7 — Dedup Table chứa E123
+
+Consumer bỏ qua effect và trả 2xx → operation trở nên idempotent.
+
+**Điểm quyết định:**
+Boundary đóng tại T3 → retry nào cũng quay về nhánh idempotent.
+
+#### 9. Rủi ro khi chỉ dựa vào giao thức HTTP
+
+Nhiều hệ thống hiểu sai rằng:
+
+> “Webhook chỉ là HTTP POST, chỉ cần xử lý như API bình thường.”
+
+Thực tế:
+
+* HTTP không có guarantee exactly-once.
+* HTTP không gắn event-id thành standard.
+* HTTP không có built-in deduplication.
+* HTTP không chống được replay intentional hoặc accidental.
+
+Dựa vào giao thức để đảm bảo idempotency là sai về mặt semantics.
+Idempotency thuộc về **effect**, không thuộc về giao thức.
+
+Webhook case cho thấy:
+
+* Retry là cơ chế cốt lõi của webhook delivery.
+* Consumer phải đảm bảo idempotency vì producer không cung cấp guarantee.
+* Dedup Table + Mutation Guard Light là hai pattern tối thiểu cho correctness.
+* State Freeze ở cấp consumer là điểm khác biệt giữa “nhận event nhiều lần” và “thực thi effect nhiều lần”.
+* Khi kết hợp với timeline reasoning, webhook trở thành domain tiêu biểu để chứng minh rằng idempotency không phải kỹ thuật bổ trợ mà là *effect discipline*.
+
+Case này cũng chuẩn bị trực tiếp cho Mục 10 — nơi toàn bộ Part 1 được gom lại thành một 
+khung nhận thức duy nhất.
+
+### 10. Synthesizing Part 1: Idempotency as an Effect Discipline
+
+Idempotency không phải là một cơ chế đơn lẻ, không phải là một flag, không phải là HTTP verb, và cũng không phải là tiện ích để “phòng lỗi”. Idempotency là **một discipline** — một cách tư duy về hệ thống thông qua *effect* và *state*, nhằm đảm bảo rằng mọi retry, reprocessing, và replay đều dẫn đến **một effect duy nhất**.
+
+Part 1 đã xây dựng toàn bộ nền tảng cho discipline này: từ semantics, failure modes, timeline, đến các case study thực tế như payment và webhook. Mục này tổng hợp chúng thành một framework thống nhất, chuẩn bị cho Part 2 — nơi ta formalize mọi operation bằng state-machine.
+
+#### 1. Idempotency: bản chất là thuộc tính của effect
+
+Điểm cốt lõi xuyên suốt Part 1:
+
+* Idempotency không nằm ở API.
+* Không nằm ở HTTP method.
+* Không nằm ở UUID.
+* Không nằm ở transaction.
+* Không nằm ở “logic chạy một lần”.
+
+Idempotency thuộc về **resultant effect** khi một operation được thực thi nhiều lần trong cùng bối cảnh.
+Khi effect cuối cùng không đổi sau N lần thực thi, ta có idempotency.
+
+Điều này chỉ có thể biểu diễn đúng nếu operation được mô hình hóa bằng:
+
+* effect intent
+* effect boundary
+* state-based semantics
+
+Part 1 đã lặp đi lặp lại điều này ở mọi case: payment, webhook, worker, job, event replay.
+
+#### 2. Thế giới phân tán = môi trường at-least-once
+
+Mọi retry scenario trong phần 6 đều chứng minh:
+
+* Response có thể bị mất
+* ACK có thể đến trễ
+* Worker có thể crash trước commit
+* Gateway có thể retry không báo trước
+* Replay có thể diễn ra với số lượng lớn
+* Client có thể gửi lại request không đồng bộ
+
+Hệ thống phân tán sống trong *thực tại at-least-once*, không phải *ideal exactly-once*.
+Idempotency tồn tại vì thế giới thực **luôn** cho phép operation xuất hiện nhiều lần.
+
+**Nếu effect không idempotent → correctness không thể bảo đảm.**
+
+#### 3. Semantics: repeatable, safe, atomic, idempotent
+
+Part 1 đã phân tách bốn semantics để tránh nhầm lẫn:
+
+| Thuộc tính     | Liên quan effect? | Giải quyết retry? |
+| -------------- | ----------------- | ----------------- |
+| Repeatable     | Không             | Không             |
+| Safe           | Không             | Không             |
+| Atomic         | Không             | Không             |
+| **Idempotent** | Có                | **Có**            |
+
+Ba semantics đầu giải quyết các khía cạnh khác của operation.
+Chỉ idempotency gắn trực tiếp với effect semantics, và chỉ idempotency có khả năng biến retry thành no-op.
+
+Nếu một hệ thống dùng transaction thay idempotency, hoặc dùng safe verb thay idempotency, nó sẽ sai khi gặp retry ở bất kỳ dạng nào.
+
+#### 4. Timeline là cách duy nhất để quan sát rủi ro
+
+Effect Timeline Model (5 pha):
+
+1. Request Arrival
+2. State Read
+3. Effect Execution
+4. ACK
+5. Completion
+
+Double-effect, overwrite sai, phantom commit đều phát sinh *bên trong Effect Window*, tức khoảng Pha 1–Pha 4 nơi effect có thể bị nhân đôi nhưng system chưa “chốt” được intent.
+
+Điều này cho thấy:
+
+* Operation không thể được suy luận như một function call.
+* Operation phải được phân tích như một tiến trình có state và thời gian.
+* Retry tương tác với từng pha theo cách khác nhau.
+
+Timeline reasoning là yêu cầu tối thiểu để hiểu đúng idempotency.
+
+#### 5. Effect Window & State Freeze → Trụ cột của discipline
+
+Khi timeline đã rõ, Part 1 gom lại thành hai trụ cột:
+
+##### Effect Window
+
+Khoảng thời gian mà retry có thể sinh effect mới.
+
+##### State Freeze
+
+Cơ chế để đảm bảo mọi retry trong Window đều ánh xạ vào **cùng effect-intent**.
+
+Freeze biến operation từ “logic chạy bao nhiêu lần cũng được” → “effect chỉ tồn tại một lần”.
+
+Những thiết kế như idempotency-key mapping, dedup table, version guard, hoặc event-id tracking đều là các hiện thân của State Freeze.
+
+#### 6. Unified Discipline Model: Intent → Freeze → Boundary → Effect
+
+Tất cả phân tích trong Part 1 có thể gom lại thành một mô hình thống nhất mô tả lifecycle 
+của một operation idempotent:
+
+##### (1) Intent
+
+Operation bắt đầu bằng một *effect intent* — ý định gây ra một mutation.
+Intent có thể gắn với idempotency-key, event-id, command-id hoặc sequence.
+
+> Mục tiêu: xác định *đơn vị effect* mà operation muốn tạo.
+
+##### (2) State Freeze
+
+Ngay khi nhận request đầu tiên, hệ thống phải freeze intent để mọi retry của cùng operation đều quy chiếu vào cùng intent.
+Freeze có thể được thực hiện bằng storing key, storing snapshot, storing effect-id, hoặc marking state.
+
+> Mục tiêu: đưa toàn bộ retry vào cùng nhánh xử lý.
+
+##### (3) Effect Boundary
+
+Boundary là thời điểm hệ thống commit effect và ghi nhận kết quả cuối cùng cho intent này.
+Boundary phải dựa vào state (not ACK) và phải đồng bộ: freeze-record và effect phải commit cùng ngữ cảnh.
+
+> Mục tiêu: đóng Effect Window và chứng minh rằng effect tồn tại *chỉ một lần*.
+
+##### (4) Idempotent Effect
+
+Sau boundary, mọi retry của intent đều no-op hoặc trả về cached result.
+
+> Mục tiêu: retry không còn khả năng tạo effect mới.
+
+Mô hình này áp dụng cho mọi domain: payment, webhook, job, order, inventory, subscription, email sending, v.v.
+
+Khi một hệ thống suy luận bằng mô hình này, idempotency trở thành discipline có thể replicate, kiểm thử và formalize.
+
+---
+
+#### 7. Tổng quát hóa từ Case Payment & Webhook sang toàn bộ hệ thống
+
+Payment case cho thấy:
+
+* Intent = charge request
+* Freeze = idempotency-key
+* Boundary = mapping key → charge result
+* Effect = capture/hold tiền
+
+Webhook case cho thấy:
+
+* Intent = event-id
+* Freeze = dedup record
+* Boundary = commit dedup + effect trong một giao dịch
+* Effect = mutation tương ứng với event
+
+Nhưng chính cấu trúc chung này cho phép ta khái quát:
+
+##### Bất kỳ domain nào có thể có double-effect đều phải implement discipline Intent → Freeze → Boundary → Effect.
+
+Ví dụ:
+
+* **Inventory:** Intent = “reserve item”, Boundary = version check + record reservation.
+* **Email:** Intent = “send mail M”, Freeze = outbound-id, Boundary = recorded-delivery.
+* **Booking:** Intent = “book seat S”, Freeze = seat-lock token, Boundary = transactional claim.
+* **Reward/Credit:** Intent = “grant reward R”, Freeze = event-id, Boundary = ledger append.
+
+Điểm mạnh của discipline là khả năng tái sử dụng mà không dựa vào một cơ chế cụ thể.
+
+Idempotency không đến từ công nghệ; nó đến từ semantics.
+
+#### 8. Vai trò của idempotency trong tư duy state-machine
+
+Toàn bộ Part 2 sẽ dựa trên một quan sát quan trọng:
+
+> *Idempotency không chỉ là property của effect; nó là property của state-machine.*
+> Một operation chỉ thực sự idempotent khi nó tương ứng với một trong ba loại transition:
+>
+> * **No transition** (retry)
+> * **Deterministic transition** (intent fixed → same effect)
+> * **Terminal transition** (after boundary)
+
+Điều này dẫn đến framework state-machine:
+
+* Mỗi operation phải được định nghĩa như một state transition → state’
+* Mọi retry phải dẫn đến **cùng state’** hoặc **giữ nguyên state**
+
+Khi state-machine tồn tại, idempotency không cần “thêm vào”.
+Idempotency xuất hiện như kết quả tự nhiên của deterministic transitions.
+
+Part 2 sẽ formalize điều này bằng State Transition Tables, Eventual Boundary, và Optimistic/Versioned Freeze.
+
+### 11. Exercises
+
+#### A. Easy (5)
+
+*Mục tiêu: làm quen semantics và phân loại đúng.*
+
+##### 1. Classification by Semantics
+
+Cho 5 action sau:
+
+1. GET /products
+2. POST /users/register
+3. PUT /profiles/\{id\}
+4. DELETE /orders/\{id\}
+5. PATCH /inventory/\{sku\}/decrease
+
+Nhiệm vụ: phân loại từng action vào nhóm **safe / atomic / repeatable / idempotent**.
+Lưu ý: có thể một action không thuộc nhóm nào; có thể thuộc nhiều nhóm (ví dụ: safe + repeatable). Giải thích ngắn gọn lý do.
+
+##### 2. Identify Effect
+
+Liệt kê effect của 3 action trong hệ thống của bạn.
+Xác định xem effect có thể sinh double-effect khi retry hay không.
+
+##### 3. Safe vs Idempotent
+
+Chọn một API trong hệ thống đang dùng HTTP GET hoặc DELETE.
+Xác định đúng rằng nó “safe theo giao thức” hay thực sự idempotent về hiệu ứng.
+
+##### 4. Atomic vs Idempotent
+
+Chọn một mutation trong hệ thống đang dùng transaction.
+Giải thích vì sao atomicity không đảm bảo idempotency.
+
+##### 5. Effect Window Recognition
+
+Chọn một API bất kỳ và mô tả Pha 1–Pha 4 trong Effect Timeline Model.
+Đánh dấu vị trí mà retry có thể gây double-effect.
+
+#### B. Medium (20)
+
+*Mục tiêu: phân tích retry, nhận diện rủi ro và đánh giá đúng cần/không cần idempotency.*
+
+##### 20 Retry Scenarios
+
+Với mỗi scenario dưới đây, hãy trả lời ba câu hỏi:
+
+1. **Effect có bị lặp không?**
+2. **Nguồn rủi ro nằm ở pha nào của Effect Window (Pha 1–4)?**
+3. **Nên thiết kế idempotency hay không? Vì sao?**
+
+Danh sách 20 tình huống:
+
+1. Payment: client timeout khi tạo charge.
+2. Payment: worker retry bước capture.
+3. Booking: khách tạo đơn đặt chỗ hai lần do mobile double-submit.
+4. Booking: cron job re-run để auto-cancel booking pending.
+5. Profile update: PATCH gửi lại vì LB retry.
+6. Email sending: worker crash trước ACK.
+7. Inventory sync: webhook “inventory.decrease” gửi lại 3 lần.
+8. Inventory sync: event replay từ Kafka partition cũ.
+9. Webhook: “order.created” gửi lại do 5xx.
+10. Webhook: consumer re-deploy → message redelivery.
+11. Subscription renewal: scheduler chạy hai lần trong 1h vì drift.
+12. OTP lifecycle: user request OTP nhiều lần trong 1 giây.
+13. Reward credit: event “payment.succeeded” được replay để debug.
+14. File upload: client retry chunk khi timeout.
+15. Data pipeline: transform job crash giữa chừng và re-run.
+16. User signup: backend retry request sang email-service.
+17. Fraud check: webhook từ vendor gửi lại theo exponential backoff.
+18. Inventory reservation: PUT /reserve gửi lại khi network unstable.
+19. Internal command bus: command re-dispatch sau node failure.
+20. Batch reconciliation: chạy lại batch cho ngày hôm qua.
+
+#### C. Hard (5)
+
+*Mục tiêu: mô tả semantics idempotency bằng state + effect + boundary.*
+
+Với mỗi domain sau, mô tả ba yếu tố:
+
+1. **State:** trạng thái trước và sau effect.
+2. **Effect:** mutation kỳ vọng của operation.
+3. **Boundary:** điều kiện và cơ chế đảm bảo effect chỉ commit một lần.
+
+Danh sách 5 domain:
+
+1. **Seat booking** (soft/hard lock, versioning, overbooking risk)
+2. **Inventory with versioning** (optimistic lock, conflict)
+3. **Subscription renewal** (grace period, retry windows)
+4. **OTP lifecycle** (generate, verify, expire)
+5. **Reward credit** (ledger semantics, append-only)
+
+Các bài hard yêu cầu reasoning chính xác bằng state-machine.
+Không được mô tả cảm tính; phải dựa vào semantics đã chuẩn hóa.
+
+### 12. Reflection & Checklist
+
+Phần này được thiết kế như một audit cá nhân để đảm bảo bạn nắm chắc Part 1 trước khi bước sang Part 2.
+
+Đánh dấu “✓” khi bạn có thể trả lời chính xác:
+
+* **Idempotent vs Repeatable vs Safe vs Atomic:**
+  Tôi có thể phân biệt từng khái niệm và giải thích chúng không thay thế nhau.
+
+* **Retry → Double-effect reasoning:**
+  Tôi có thể chỉ ra vị trí trong Effect Window nơi retry gây ra double-effect.
+
+* **UUID ≠ Idempotency:**
+  Tôi hiểu rằng idempotency-key là handle cho intent, không tạo ra idempotent effect nếu không có Freeze & Boundary.
+
+* **System as flow of state & effect:**
+  Tôi nhìn hệ thống như một chuỗi state transition, không như các function call độc lập.
+
+* **Discipline:**
+  Tôi cảm nhận rõ rằng idempotency không phải tiện ích kỹ thuật mà là cơ chế nền để vận hành trong môi trường at-least-once.
+
+#### Câu hỏi tự vấn
+
+1. **Action nào trong hệ thống của tôi đang *tưởng là idempotent* nhưng không prove được?**
+   Nếu không chỉ ra được Freeze và Boundary, thực chất action đó không idempotent.
+
+2. **Tôi có biết mọi nguồn retry trong system của mình không?**
+   Nếu chỉ nghĩ tới client retry, tôi đã bỏ sót gateway, worker, scheduler, queue, replay.
+
+3. **Tôi có thể mô tả Effect Window của bất kỳ API nào tôi đang quản lý?**
+   Nếu không mô tả được Pha 1–4, tôi không thể reason về correctness của operation đó.
+
+4. **Nếu ngày mai hệ thống bị replay 1000 sự kiện, phần nào sẽ hỏng trước?**
+   Câu trả lời cho biết nơi thiếu Freeze hoặc thiếu Boundary.

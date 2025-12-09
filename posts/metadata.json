@@ -338,6 +338,18 @@
     "date": "2025-12-04",
     "excerpt": "Sáu năm trong ngành phần mềm không phải quá dài, nhưng đủ để nhìn lại mình không chỉ như một kỹ sư, mà như một con người thay đổi theo từng dòng code, từng dự án, từng sai lầm và những lần đứng dậy. Một bản ghi lại những điều học được: cái tốt giữ tôi lại, cái tệ khiến tôi chậm lại, và cái xấu buộc tôi phải tỉnh táo.",
     "tags": ["vietnamese", "personal", "reflection", "software-engineering", "career", "experience", "engineering", "professional-growth"]
+  },
+  "0043_idempotency-part-1": {
+    "title": "#43 - Idempotency Masterclass - Part 1: Hiểu rõ bản chất của Idempotency, thực tế, ngộ nhận và tính tường minh",
+    "date": "2025-12-05",
+    "excerpt": "Idempotency là thuộc tính của effect, không phải của API hay HTTP verb. Trong thế giới phân tán, retry là đặc tính tự nhiên của runtime. Series này phân tích sâu về semantics, failure modes, retry scenarios, và case studies thực tế để xây dựng một discipline về effect và state, đảm bảo mọi retry đều dẫn đến một effect duy nhất.",
+    "tags": ["vietnamese", "technical", "distributed-systems", "idempotency", "software-engineering", "systems-design", "reliability", "tutorial", "best-practices"],
+    "series": {
+      "name": "Idempotency Masterclass",
+      "part": 1,
+      "totalParts": 7,
+      "slug": "idempotency-masterclass"
+    }
   }
 }
 
